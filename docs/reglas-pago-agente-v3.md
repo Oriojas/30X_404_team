@@ -7,18 +7,28 @@ Las empresas globales constituidas en EE. UU. que operan en Latinoamérica enfre
 
 ### Delimitación Oficial del Alcance (Ficha del Reto)
 
-```
-┌──────────────────────────────────────────────┬──────────────────────────────────────────────┐
-│ ENTRA EN EL ALCANCE (Agente de Inteligencia) │ NO ENTRA EN EL ALCANCE (Fuera de Scope)      │
-├──────────────────────────────────────────────┼──────────────────────────────────────────────┤
-│ ✓ Leer facturas/cuentas (PDF, imagen, texto) │ ✗ Ejecutar pagos reales o mover dinero real │
-│   y extraer datos clave (quién, cuánto,      │ ✗ Abrir cuentas bancarias                    │
-│   moneda, fecha límite).                     │ ✗ Proceso de KYB / Verificación de identidad │
-│ ✓ Evaluar reglas de negocio configurables.   │   compleja de empresas                       │
-│ ✓ Decidir: PAGAR, FRENAR o ESCALAR a humano. │ ✗ Motores complejos de fraude bancario       │
-│ ✓ Generar Audit Log explicable por factura.  │ ✗ Rediseño de la app completa de Blinka      │
-│ ✓ Dashboard interactivo de reglas e historial│                                              │
-└──────────────────────────────────────────────┴──────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph InScope ["✓ ENTRA EN EL ALCANCE (Agente de Inteligencia)"]
+        direction TB
+        I1["Leer facturas/cuentas (PDF, imagen, texto)<br/>y extraer datos clave (quién, cuánto, moneda, fecha límite)"]
+        I2["Evaluar reglas de negocio configurables"]
+        I3["Decidir: PAGAR, FRENAR o ESCALAR a humano"]
+        I4["Generar Audit Log explicable por factura"]
+        I5["Dashboard interactivo de reglas e historial"]
+    end
+
+    subgraph OutScope ["✗ NO ENTRA EN EL ALCANCE (Fuera de Scope)"]
+        direction TB
+        O1["Ejecutar pagos reales o mover dinero real"]
+        O2["Abrir cuentas bancarias"]
+        O3["Proceso de KYB / Verificación de identidad compleja de empresas"]
+        O4["Motores complejos de fraude bancario"]
+        O5["Rediseño de la app completa de Blinka"]
+    end
+
+    style InScope fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style OutScope fill:#fef2f2,stroke:#dc2626,stroke-width:2px
 ```
 
 ---
@@ -62,37 +72,28 @@ Para cumplir estrictamente con los requisitos del Kickoff, el equipo entregará 
 
 El agente procesa cada factura de forma determinista mediante una tubería (*pipeline*) secuencial. Si falla una prueba crítica en las capas iniciales, la decisión se detiene de inmediato para garantizar la seguridad.
 
-```
-                  [ Factura / Cuenta de Cobro de Entrada ]
-                                     │
-                                     ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ CAPA 1: Compliance, SARLAFT & Seguridad                                   │
-│ ¿Está en listas negras (OFAC/GAFI) o presenta cuenta no autorizada?      │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │ No / Pasó
-                                     ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ CAPA 2: Integridad & Validación de Datos                                 │
-│ ¿Es un cobro duplicado o excede la tarifa acordada?                      │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │ No / Pasó
-                                     ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ CAPA 3: Solvencia Financiera & Presupuesto                               │
-│ ¿Hay saldo suficiente en la cuenta Blinka y presupuesto en el periodo?   │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │ No / Pasó
-                                     ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│ CAPA 4: Gobierno Human-in-the-Loop (HITL)                                │
-│ ¿Excede el límite autónomo ($2,000 USD) o es un proveedor nuevo?        │
-└────────────────────────────────────┬─────────────────────────────────────┘
-                                     │
-            ┌────────────────────────┼────────────────────────┐
-            ▼                        ▼                        ▼
-    [ AUTO_APPROVED ]       [ SCALED_TO_HUMAN ]          [ REJECTED ]
-   (Pago Aprobado 100%)    (Requiere Humano)         (Frenado / Rechazado)
+```mermaid
+flowchart TD
+    Input["Factura / Cuenta de Cobro de Entrada"] --> L1
+
+    subgraph Pipeline ["Pipeline Determinista de Evaluación"]
+        L1["CAPA 1: Compliance, SARLAFT & Seguridad<br/>¿Está en listas negras (OFAC/GAFI) o presenta cuenta no autorizada?"]
+        L2["CAPA 2: Integridad & Validación de Datos<br/>¿Es un cobro duplicado o excede la tarifa acordada?"]
+        L3["CAPA 3: Solvencia Financiera & Presupuesto<br/>¿Hay saldo suficiente en la cuenta Blinka y presupuesto en el periodo?"]
+        L4["CAPA 4: Gobierno Human-in-the-Loop (HITL)<br/>¿Excede el límite autónomo ($2,000 USD) o es un proveedor nuevo?"]
+
+        L1 -->|"No / Pasó"| L2
+        L2 -->|"No / Pasó"| L3
+        L3 -->|"No / Pasó"| L4
+    end
+
+    L4 --> Approved["AUTO_APPROVED<br/>(Pago Aprobado 100%)"]
+    L4 --> Scaled["SCALED_TO_HUMAN<br/>(Requiere Humano)"]
+    L4 --> Rejected["REJECTED<br/>(Frenado / Rechazado)"]
+
+    style Approved fill:#dcfce7,stroke:#16a34a,stroke-width:2px
+    style Scaled fill:#fef9c3,stroke:#ca8a04,stroke-width:2px
+    style Rejected fill:#fee2e2,stroke:#dc2626,stroke-width:2px
 ```
 
 ---
