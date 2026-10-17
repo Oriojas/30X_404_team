@@ -5,6 +5,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
+from app.core.domain.errors import TreasuryNotInitializedError
 from app.core.domain.models import (
     CompanyRules,
     DecisionStatus,
@@ -113,21 +114,33 @@ class NoSanctions:
 
 
 class FixedTreasury:
-    """Saldo de $8,500 y presupuesto de $25,000; set_balance toma una foto nueva y libera lo comprometido."""
+    """Saldo de $8,500 y presupuesto de $25,000; set_balance toma una foto nueva y libera lo comprometido.
+    Con initialized=False imita una base sin fila de tesorería: set_monthly_budget no la crea."""
 
-    def __init__(self, month_spent_usd=0.0, committed_usd=0.0, snapshot_at=None):
+    def __init__(self, month_spent_usd=0.0, committed_usd=0.0, snapshot_at=None, monthly_budget_usd=25000.0,
+                 initialized=True):
         self.balance_usd = 8500.0
+        self.monthly_budget_usd = monthly_budget_usd
         self.month_spent_usd = month_spent_usd
         self.committed_usd = committed_usd
         self.snapshot_at = snapshot_at
+        self.initialized = initialized
 
     async def get(self, company_id):
-        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000,
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=self.monthly_budget_usd,
                               month_spent_usd=self.month_spent_usd, committed_usd=self.committed_usd,
                               snapshot_at=self.snapshot_at)
 
-    async def set_balance(self, company_id, balance_usd, as_of):
+    async def set_balance(self, company_id, balance_usd, as_of, monthly_budget_usd=None):
         self.balance_usd, self.committed_usd, self.snapshot_at = balance_usd, 0.0, as_of
+        self.monthly_budget_usd = monthly_budget_usd or self.monthly_budget_usd
+        self.initialized = True
+        return await self.get(company_id)
+
+    async def set_monthly_budget(self, company_id, monthly_budget_usd):
+        if not self.initialized:
+            raise TreasuryNotInitializedError(company_id)
+        self.monthly_budget_usd = monthly_budget_usd
         return await self.get(company_id)
 
 
@@ -142,19 +155,25 @@ class LedgerTreasury:
     """Saldo con foto: compromete lo aprobado en InMemoryInvoices después de snapshot_at.
     Lee y luego cede el control, como una consulta real: sin candado, dos evaluaciones ven el mismo disponible."""
 
-    def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None):
+    def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None, monthly_budget_usd=25000.0):
         self.invoices, self.balance_usd = invoices, balance_usd
+        self.monthly_budget_usd = monthly_budget_usd
         self.snapshot_at = snapshot_at or datetime.utcnow()
 
     async def get(self, company_id):
         committed = sum(i.usd_amount for i in self.invoices.items.values()
                         if i.decision_status in APPROVED and approved_at(i) > self.snapshot_at)
         await asyncio.sleep(0)  # el resultado llega después: puede quedar obsoleto si nadie serializa
-        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000, committed_usd=committed,
-                              snapshot_at=self.snapshot_at)
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=self.monthly_budget_usd,
+                              committed_usd=committed, snapshot_at=self.snapshot_at)
 
-    async def set_balance(self, company_id, balance_usd, as_of):
+    async def set_balance(self, company_id, balance_usd, as_of, monthly_budget_usd=None):
         self.balance_usd, self.snapshot_at = balance_usd, as_of
+        self.monthly_budget_usd = monthly_budget_usd or self.monthly_budget_usd
+        return await self.get(company_id)
+
+    async def set_monthly_budget(self, company_id, monthly_budget_usd):
+        self.monthly_budget_usd = monthly_budget_usd
         return await self.get(company_id)
 
 

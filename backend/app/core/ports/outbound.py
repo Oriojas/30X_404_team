@@ -94,8 +94,16 @@ class TreasuryRepository(Protocol):
 
     async def get(self, company_id: str) -> TreasuryStatus: ...
 
-    async def set_balance(self, company_id: str, balance_usd: float, as_of: datetime) -> TreasuryStatus:
-        """Toma una foto nueva del saldo a la fecha as_of (UTC): libera lo aprobado hasta esa fecha."""
+    async def set_balance(
+        self, company_id: str, balance_usd: float, as_of: datetime, monthly_budget_usd: Optional[float] = None
+    ) -> TreasuryStatus:
+        """Toma una foto nueva del saldo a la fecha as_of (UTC): libera lo aprobado hasta esa fecha.
+        Si llega monthly_budget_usd, lo guarda en la misma escritura."""
+        ...
+
+    async def set_monthly_budget(self, company_id: str, monthly_budget_usd: float) -> TreasuryStatus:
+        """Cambia solo el presupuesto: no mueve la foto ni el saldo y nunca crea la fila
+        (TreasuryNotInitializedError si no existe)."""
         ...
 
 

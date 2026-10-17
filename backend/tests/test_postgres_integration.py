@@ -360,3 +360,35 @@ def test_tesoreria_compromete_lo_aprobado_despues_de_la_foto_con_la_fecha_de_apr
         assert fresh.snapshot_at > photo.snapshot_at
 
     run_with_db(scenario)
+
+
+def test_presupuesto_solo_update_sin_mover_la_foto_ni_crear_la_fila():
+    """F7.1: set_monthly_budget nunca inserta (un upsert inventaría saldo y foto) y no mueve updated_at;
+    set_balance conserva el presupuesto guardado si no llega uno nuevo."""
+    from datetime import datetime, timedelta
+    import pytest as _pytest
+    from app.adapters.outbound.db.postgres_repository import PostgresTreasuryRepository
+    from app.core.domain.errors import TreasuryNotInitializedError
+    from app.core.domain.models import TreasuryStatus
+
+    async def scenario(db):
+        treasury = PostgresTreasuryRepository(db, TreasuryStatus(balance_usd=0.0, monthly_budget_usd=0.0))
+        pool = db.require_pool()
+
+        with _pytest.raises(TreasuryNotInitializedError):
+            await treasury.set_monthly_budget("EMPRESA", 12000)
+        assert await pool.fetchval("SELECT count(*) FROM treasury_accounts WHERE company_id = 'EMPRESA'") == 0
+
+        foto = datetime.utcnow().replace(microsecond=0) - timedelta(hours=1)
+        creada = await treasury.set_balance("EMPRESA", 8500, foto, monthly_budget_usd=25000)
+        assert (creada.balance_usd, creada.monthly_budget_usd, creada.snapshot_at) == (8500, 25000, foto)
+
+        cambiada = await treasury.set_monthly_budget("EMPRESA", 12000)
+        assert (cambiada.balance_usd, cambiada.monthly_budget_usd, cambiada.snapshot_at) == (8500, 12000, foto)
+
+        nueva_foto = foto + timedelta(minutes=30)
+        sin_presupuesto = await treasury.set_balance("EMPRESA", 9000, nueva_foto)
+        assert (sin_presupuesto.balance_usd, sin_presupuesto.monthly_budget_usd) == (9000, 12000)
+        assert sin_presupuesto.snapshot_at == nueva_foto
+
+    run_with_db(scenario)

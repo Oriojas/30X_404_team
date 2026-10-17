@@ -13,6 +13,7 @@ from typing import List, Optional
 
 import asyncpg
 
+from app.core.domain.errors import TreasuryNotInitializedError
 from app.core.domain.models import (
     CompanyRules,
     DecisionStatus,
@@ -325,13 +326,27 @@ class PostgresTreasuryRepository:
             snapshot_at=row["updated_at"],
         )
 
-    async def set_balance(self, company_id: str, balance_usd: float, as_of: datetime) -> TreasuryStatus:
+    async def set_balance(
+        self, company_id: str, balance_usd: float, as_of: datetime, monthly_budget_usd: Optional[float] = None
+    ) -> TreasuryStatus:
         # Foto nueva: as_of (UTC, reloj de la app) deja fuera de lo comprometido todo lo aprobado hasta ahora.
+        # Sin presupuesto en la solicitud, la fila existente conserva el suyo.
         await self.db.require_pool().execute(
             """INSERT INTO treasury_accounts (company_id, balance_usd, monthly_budget_usd, updated_at)
-               VALUES ($1, $2, $3, $4)
+               VALUES ($1, $2, COALESCE($3::numeric, $4::numeric), $5)
                ON CONFLICT (company_id) DO UPDATE SET
-                   balance_usd = EXCLUDED.balance_usd, updated_at = EXCLUDED.updated_at""",
-            company_id, balance_usd, self.defaults.monthly_budget_usd, as_of,
+                   balance_usd = EXCLUDED.balance_usd, updated_at = EXCLUDED.updated_at,
+                   monthly_budget_usd = COALESCE($3::numeric, treasury_accounts.monthly_budget_usd)""",
+            company_id, balance_usd, monthly_budget_usd, self.defaults.monthly_budget_usd, as_of,
         )
+        return await self.get(company_id)
+
+    async def set_monthly_budget(self, company_id: str, monthly_budget_usd: float) -> TreasuryStatus:
+        # Solo UPDATE: un upsert crearía un saldo inventado y una foto nueva que libera lo comprometido (F7.1).
+        result = await self.db.require_pool().execute(
+            "UPDATE treasury_accounts SET monthly_budget_usd = $2 WHERE company_id = $1",
+            company_id, monthly_budget_usd,
+        )
+        if result == "UPDATE 0":
+            raise TreasuryNotInitializedError(company_id)
         return await self.get(company_id)

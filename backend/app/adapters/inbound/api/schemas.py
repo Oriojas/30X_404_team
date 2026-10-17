@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, model_validator
 
 from app.core.domain.models import CompanyRules, ExtractedInvoice, HumanDecision, ProcessedInvoice, TreasuryStatus
 
@@ -118,8 +118,15 @@ class TreasuryResponse(BaseModel):
 
 
 class TreasuryBalanceUpdate(BaseModel):
-    """Saldo vigente de la cuenta Blinka: toma una foto nueva. El presupuesto se edita en la Fase 7 (F7.1)."""
-    balance_usd: float = Field(gt=0)
+    """Saldo vigente (toma una foto nueva) y/o presupuesto del periodo; al menos uno de los dos."""
+    balance_usd: Optional[float] = Field(default=None, gt=0)
+    monthly_budget_usd: Optional[float] = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _al_menos_un_campo(self) -> "TreasuryBalanceUpdate":
+        if self.balance_usd is None and self.monthly_budget_usd is None:
+            raise ValueError("Envía balance_usd, monthly_budget_usd o ambos.")
+        return self
 
 
 class CompanyRulesUpdate(BaseModel):

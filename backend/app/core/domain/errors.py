@@ -28,6 +28,16 @@ class UnconvertedAmountApprovalError(ConflictError):
         )
 
 
+class TreasuryNotInitializedError(ConflictError):
+    """Sin fila de tesorería no hay presupuesto que editar: crearla inventaría un saldo y una foto (F7.1, D2)."""
+
+    def __init__(self, company_id: str):
+        super().__init__(
+            f"La empresa {company_id} aún no tiene saldo registrado: envía primero balance_usd para tomar la foto "
+            "del saldo y luego edita el presupuesto."
+        )
+
+
 class InvalidDecisionStateError(ConflictError):
     def __init__(self, invoice_id: int, status: str):
         super().__init__(

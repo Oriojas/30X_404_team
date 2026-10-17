@@ -225,7 +225,7 @@ Sale con código `1` si algún caso falla. Supone el seed de demostración y las
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
 | `GET` | `/api/treasury` | Saldo de la foto, comprometido, disponible, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
-| `PATCH` | `/api/treasury` | Registra el saldo vigente (`balance_usd`) como foto nueva: lo aprobado antes deja de comprometerlo |
+| `PATCH` | `/api/treasury` | `balance_usd` registra el saldo vigente como foto nueva (lo aprobado antes deja de comprometerlo); `monthly_budget_usd` cambia el presupuesto del periodo (FIN-02) sin mover la foto. Al menos uno; con solo presupuesto y sin saldo registrado, `409` |
 
 ### Ingesta idempotente
 
@@ -248,7 +248,7 @@ curl -s -X POST localhost:8000/api/invoices/upload -H "Idempotency-Key: $(uuidge
 
 ### Tesorería comprometida
 
-- `balance_usd` es una **foto** del saldo a la fecha de `treasury_accounts.updated_at` (UTC). Lo aprobado después (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`) queda **comprometido**, y FIN-01 y FIN-03 evalúan contra el **disponible** (saldo − comprometido). `PATCH /api/treasury` con `{"balance_usd": ...}` toma una foto nueva.
+- `balance_usd` es una **foto** del saldo a la fecha de `treasury_accounts.updated_at` (UTC). Lo aprobado después (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`) queda **comprometido**, y FIN-01 y FIN-03 evalúan contra el **disponible** (saldo − comprometido). `PATCH /api/treasury` con `{"balance_usd": ...}` toma una foto nueva; con solo `{"monthly_budget_usd": ...}` cambia el presupuesto sin moverla, porque si la moviera liberaría lo comprometido sin que cambie el saldo.
 - Al aprobar desde el dashboard se revalida la solvencia: la persona siempre puede aprobar, y el Audit Log registra el disponible y las alertas FIN vigentes. Una factura sin conversión a USD (INTEG-04) responde `409`: solo se puede rechazar.
 - **Una sola réplica:** la lectura de la tesorería, la evaluación y el guardado se serializan con un `asyncio.Lock` compartido (ingesta, decisión humana y `PATCH`), creado en `container.py`. Solo protege dentro de un proceso. Con más réplicas o workers de `uvicorn`, hay que cambiarlo por `pg_advisory_xact_lock` en una transacción de PostgreSQL.
 
