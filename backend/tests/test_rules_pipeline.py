@@ -158,3 +158,27 @@ def test_cinco_facturas_que_caben_solas_pero_no_juntas():
     assert statuses == [DecisionStatus.AUTO_APPROVED] * 3 + [DecisionStatus.SCALED_TO_HUMAN] * 2
     assert committed == 5700 <= 8500 - RULES.min_treasury_buffer_usd
 
+
+
+def test_fin04_rechaza_por_encima_del_tope_duro_y_corta_la_capa_4():
+    rules = CompanyRules(company_id="TEST", max_payment_usd=1500)
+    decision = evaluate(1600, vendor=NUBE, rules=rules)
+    assert decision.status == DecisionStatus.REJECTED
+    assert codes(decision) == ["FIN-04"]
+    assert "$1,600.00" in decision.explanation and "$1,500.00" in decision.explanation
+    assert decision.evaluations["hitl_check"]["status"] == "NOT_EVALUATED"
+
+
+def test_fin04_no_dispara_en_el_tope_exacto():
+    decision = evaluate(1500, vendor=NUBE, rules=CompanyRules(company_id="TEST", max_payment_usd=1500))
+    assert "FIN-04" not in codes(decision)
+
+
+def test_fin04_no_se_evalua_sin_conversion_a_usd():
+    invoice = ExtractedInvoice(invoice_number="F-9", vendor_name=AWS.legal_name, original_amount=1_000_000,
+                               original_currency="GBP")
+    context = EvaluationContext(usd_amount=0.0, fx_rate=0.0, currency_supported=False,
+                                treasury=TreasuryStatus(8500, 25000), vendor=AWS, vendor_has_history=True)
+    decision = RulesPipeline().evaluate_invoice(invoice, context, CompanyRules(company_id="TEST", max_payment_usd=1))
+    assert codes(decision) == ["INTEG-04"]
+    assert decision.evaluations["solvency_check"]["status"] == "SKIPPED"

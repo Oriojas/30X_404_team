@@ -223,7 +223,7 @@ Sale con código `1` si algún caso falla. Supone el seed de demostración y las
 | `POST` | `/api/invoices/upload` | Canal de ingesta web: `multipart/form-data` con campo `file` (JPG, PNG, WEBP o PDF, máx. 10 MB). Acepta `Idempotency-Key` |
 | `POST` | `/api/invoices/{id}/decision` | Decisión humana sobre una factura `SCALED_TO_HUMAN`: `{"decision": "APPROVE" \| "REJECT", "decided_by": "...", "note": "..."}`. Responde `404` si no existe y `409` si no está escalada |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
-| `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
+| `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas, incluido el tope duro por pago (`max_payment_usd`, FIN-04). `422` con el campo si el tope queda por debajo de `max_autonomous_usd` |
 | `GET` | `/api/treasury` | Saldo de la foto, comprometido, disponible, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
 | `PATCH` | `/api/treasury` | `balance_usd` registra el saldo vigente como foto nueva (lo aprobado antes deja de comprometerlo); `monthly_budget_usd` cambia el presupuesto del periodo (FIN-02) sin mover la foto. Al menos uno; con solo presupuesto y sin saldo registrado, `409` |
 

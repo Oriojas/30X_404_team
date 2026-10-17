@@ -91,6 +91,7 @@ class CompanyRulesResponse(BaseModel):
     sarlaft_check_enabled: bool
     duplicate_check_days: int
     min_treasury_buffer_usd: float
+    max_payment_usd: float
 
     @classmethod
     def from_domain(cls, rules: CompanyRules) -> "CompanyRulesResponse":
@@ -135,3 +136,4 @@ class CompanyRulesUpdate(BaseModel):
     sarlaft_check_enabled: Optional[bool] = None
     duplicate_check_days: Optional[int] = Field(default=None, ge=1, le=365)
     min_treasury_buffer_usd: Optional[float] = Field(default=None, ge=0)
+    max_payment_usd: Optional[float] = Field(default=None, ge=0)

@@ -8,10 +8,12 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
+from app.core.domain.errors import (
+    InvalidDecisionStateError, InvoiceNotFoundError, PaymentCapExceededError, UnconvertedAmountApprovalError,
+)
 from app.core.domain.models import DecisionStatus, ExtractedInvoice, HumanDecision, ProcessedInvoice, Vendor
 from app.core.domain.rules_pipeline import RulesPipeline
-from app.core.use_cases import DecideInvoiceUseCase, ProcessInvoiceUseCase
+from app.core.use_cases import DecideInvoiceUseCase, ProcessInvoiceUseCase, UpdateRulesUseCase
 
 from .fakes import (
     FakeOCR, FakeRates, FixedTreasury, InMemoryInvoices, InMemoryRules, InMemoryVendors, LedgerTreasury, NoSanctions,
@@ -228,3 +230,33 @@ def test_container_comparte_un_solo_candado_de_solvencia():
     lock = container.process_invoice.solvency_lock
     assert container.decide_invoice.solvency_lock is lock and container.update_treasury.solvency_lock is lock
 
+
+
+def test_aprobar_por_encima_de_un_tope_rebajado_responde_conflicto_y_rechazar_si_funciona():
+    # Escaló con el tope por defecto; luego la empresa bajó el tope por debajo del monto (F7.2, D5)
+    use_case, invoices, notifier = build(cop_invoice())
+    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice
+    rules = InMemoryRules(max_autonomous_usd=100, max_payment_usd=100)
+    decide = DecideInvoiceUseCase(invoices, FixedTreasury(), rules, "TEST", notifier)
+
+    with pytest.raises(PaymentCapExceededError, match="FIN-04|tope máximo"):
+        asyncio.run(decide.execute(scaled.id, HumanDecision.APPROVE, "CFO"))
+    assert invoices.items[scaled.id].decision_status == DecisionStatus.SCALED_TO_HUMAN
+
+    rejected = asyncio.run(decide.execute(scaled.id, HumanDecision.REJECT, "CFO"))
+    assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
+
+
+def test_bajar_el_tope_cambia_la_decision_de_la_siguiente_factura():
+    rules = InMemoryRules()
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=InMemoryInvoices(), rules=rules,
+        vendors=InMemoryVendors(VENDOR), sanctions=NoSanctions(), treasury=FixedTreasury(), company_id="TEST",
+    )
+    first = asyncio.run(use_case.from_extracted(cop_invoice("DS-1"), "API")).invoice
+    assert first.decision_status != DecisionStatus.REJECTED
+
+    asyncio.run(UpdateRulesUseCase(rules, "TEST").execute({"max_autonomous_usd": 100, "max_payment_usd": 100}))
+    # Otro monto: con el mismo, INTEG-01 la rechazaría como duplicada antes de llegar a la Capa 3
+    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", amount=1_600_000), "API")).invoice
+    assert second.decision_status == DecisionStatus.REJECTED and "FIN-04" in second.audit_explanation

@@ -3,6 +3,7 @@
 from dataclasses import replace
 from typing import Any, Dict
 
+from app.core.domain.errors import InvalidRulesError
 from app.core.domain.models import CompanyRules
 from app.core.ports.outbound import RulesRepository
 
@@ -22,7 +23,14 @@ class UpdateRulesUseCase:
         self.company_id = company_id
 
     async def execute(self, changes: Dict[str, Any]) -> CompanyRules:
-        """Aplica solo los campos enviados (None se ignora)."""
+        """Aplica solo los campos enviados (None se ignora) y valida las reglas ya combinadas:
+        un cambio parcial solo puede compararse contra lo guardado."""
         current = await self.rules.get(self.company_id)
         updates = {k: v for k, v in changes.items() if v is not None and hasattr(current, k)}
-        return await self.rules.save(replace(current, **updates))
+        merged = replace(current, **updates)
+        if merged.max_payment_usd < merged.max_autonomous_usd:
+            # Se señala el campo que cambió: el que el usuario tiene que corregir
+            field = "max_payment_usd" if "max_payment_usd" in updates else "max_autonomous_usd"
+            raise InvalidRulesError(field, f"El tope por pago (${merged.max_payment_usd:,.2f}) no puede ser menor "
+                                           f"que el umbral de aprobación autónoma (${merged.max_autonomous_usd:,.2f}).")
+        return await self.rules.save(merged)

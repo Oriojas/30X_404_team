@@ -48,6 +48,7 @@ class CompanyRules:
     sarlaft_check_enabled: bool = True
     duplicate_check_days: int = 30
     min_treasury_buffer_usd: float = 1000.00
+    max_payment_usd: float = 20000.00  # FIN-04: tope duro por pago
 
 
 @dataclass

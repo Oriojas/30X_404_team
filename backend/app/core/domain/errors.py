@@ -13,6 +13,14 @@ class ConflictError(DomainError):
     """La operación choca con el estado actual del recurso (HTTP 409)."""
 
 
+class InvalidRulesError(DomainError):
+    """Reglas incoherentes entre sí (HTTP 422, con el campo que hay que corregir)."""
+
+    def __init__(self, field: str, message: str):
+        super().__init__(message)
+        self.field = field
+
+
 class InvoiceNotFoundError(NotFoundError):
     def __init__(self, invoice_id: int):
         super().__init__(f"La factura {invoice_id} no existe.")
@@ -36,6 +44,13 @@ class TreasuryNotInitializedError(ConflictError):
             f"La empresa {company_id} aún no tiene saldo registrado: envía primero balance_usd para tomar la foto "
             "del saldo y luego edita el presupuesto."
         )
+
+
+class PaymentCapExceededError(ConflictError):
+    """FIN-04: el tope duro por pago no admite excepción humana; la factura solo se puede rechazar."""
+
+    def __init__(self, invoice_id: int, message: str):
+        super().__init__(f"La factura {invoice_id} no se puede aprobar: {message} Solo se puede rechazar.")
 
 
 class InvalidDecisionStateError(ConflictError):

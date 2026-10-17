@@ -156,6 +156,10 @@ class RulesPipeline:
         t = ctx.treasury
         # Solvencia contra el disponible: el saldo de la foto menos lo ya aprobado después de ella (F6.2)
         available = t.available_usd
+        # FIN-04: tope duro. Sin conversión a USD, evaluate_invoice ya salta toda la Capa 3
+        if ctx.usd_amount > rules.max_payment_usd:
+            alerts.append(_reject("FIN-04", f"El pago de {format_usd(ctx.usd_amount)} supera el tope máximo por pago "
+                                            f"definido por la empresa ({format_usd(rules.max_payment_usd)})."))
         liquidity = (f"Saldo {format_usd(t.balance_usd)}, comprometido en pagos aprobados {format_usd(t.committed_usd)}, "
                      f"disponible {format_usd(available)}.")
         if ctx.usd_amount > available:

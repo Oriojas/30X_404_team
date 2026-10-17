@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS company_rules (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE company_rules ADD COLUMN IF NOT EXISTS min_treasury_buffer_usd NUMERIC(12,2) DEFAULT 1000.00;
+-- Tope duro por pago (FIN-04): por encima se rechaza; debe ser >= max_autonomous_usd
+ALTER TABLE company_rules ADD COLUMN IF NOT EXISTS max_payment_usd NUMERIC(12,2) DEFAULT 20000.00;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_company_rules_company_id ON company_rules(company_id);
 
 -- 2. Tesorería: saldo de la cuenta Blinka en USD y presupuesto mensual (Capa 3)

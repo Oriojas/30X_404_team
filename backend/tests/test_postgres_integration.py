@@ -101,6 +101,11 @@ def test_demo_suite_against_seeded_database(client):
 
     rules = client.post("/api/rules", json={"max_autonomous_usd": 5000}).json()
     assert rules["max_autonomous_usd"] == 5000 and client.get("/api/rules").json()["max_autonomous_usd"] == 5000
+    # F7.2: la columna nueva toma el default en la fila del seed y se guarda; nunca bajo el umbral
+    assert rules["max_payment_usd"] == 20000
+    assert client.post("/api/rules", json={"max_payment_usd": 4000}).status_code == 422
+    assert client.post("/api/rules", json={"max_payment_usd": 30000}).json()["max_payment_usd"] == 30000
+    assert client.get("/api/rules").json()["max_payment_usd"] == 30000
 
     upload = client.post("/api/invoices/upload", files={"file": ("f.png", b"\x89PNG fake", "image/png")})
     assert upload.status_code == 201 and upload.json()["decision_status"] == "SCALED_TO_HUMAN"

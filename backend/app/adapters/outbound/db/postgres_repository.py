@@ -217,7 +217,7 @@ class PostgresRulesRepository:
     async def get(self, company_id: str) -> CompanyRules:
         row = await self.db.require_pool().fetchrow(
             """SELECT company_id, max_autonomous_usd, sarlaft_check_enabled, duplicate_check_days,
-                      min_treasury_buffer_usd FROM company_rules WHERE company_id = $1""",
+                      min_treasury_buffer_usd, max_payment_usd FROM company_rules WHERE company_id = $1""",
             company_id,
         )
         if row is None:
@@ -228,21 +228,23 @@ class PostgresRulesRepository:
             sarlaft_check_enabled=row["sarlaft_check_enabled"],
             duplicate_check_days=row["duplicate_check_days"],
             min_treasury_buffer_usd=float(row["min_treasury_buffer_usd"]),
+            max_payment_usd=float(row["max_payment_usd"]),
         )
 
     async def save(self, rules: CompanyRules) -> CompanyRules:
         await self.db.require_pool().execute(
             """
             INSERT INTO company_rules (company_id, max_autonomous_usd, sarlaft_check_enabled,
-                duplicate_check_days, min_treasury_buffer_usd)
-            VALUES ($1,$2,$3,$4,$5)
+                duplicate_check_days, min_treasury_buffer_usd, max_payment_usd)
+            VALUES ($1,$2,$3,$4,$5,$6)
             ON CONFLICT (company_id) DO UPDATE SET max_autonomous_usd = EXCLUDED.max_autonomous_usd,
                 sarlaft_check_enabled = EXCLUDED.sarlaft_check_enabled,
                 duplicate_check_days = EXCLUDED.duplicate_check_days,
-                min_treasury_buffer_usd = EXCLUDED.min_treasury_buffer_usd
+                min_treasury_buffer_usd = EXCLUDED.min_treasury_buffer_usd,
+                max_payment_usd = EXCLUDED.max_payment_usd
             """,
             rules.company_id, rules.max_autonomous_usd, rules.sarlaft_check_enabled,
-            rules.duplicate_check_days, rules.min_treasury_buffer_usd,
+            rules.duplicate_check_days, rules.min_treasury_buffer_usd, rules.max_payment_usd,
         )
         return rules
 

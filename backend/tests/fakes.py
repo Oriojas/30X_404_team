@@ -90,13 +90,16 @@ class InMemoryInvoices:
 
 
 class InMemoryRules:
+    """Guarda lo que recibe en save: una regla cambiada afecta la siguiente evaluación."""
+
     def __init__(self, **overrides):
-        self.overrides = overrides
+        self.current = CompanyRules(company_id="TEST", **overrides)
 
     async def get(self, company_id):
-        return CompanyRules(company_id="TEST", **self.overrides)
+        return self.current
 
     async def save(self, rules):
+        self.current = rules
         return rules
 
 
