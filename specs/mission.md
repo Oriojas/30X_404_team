@@ -25,18 +25,20 @@ Las empresas constituidas en EE. UU. con equipos y proveedores en LatAm reciben 
 2. **Decisiones deterministas:** la IA solo extrae datos. La decisión la toma la tubería de 4 capas (Compliance/SARLAFT, Integridad, Solvencia, Gobierno HITL) definida en [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md).
 3. **Explicabilidad total:** cada decisión queda en el Audit Log con la regla disparada (código) y una explicación en lenguaje natural, capa por capa.
 4. **Los canales solo ingresan facturas:** Telegram, la subida web y los canales futuros reciben facturas e informan resultados. La aprobación humana ocurre **únicamente en el dashboard** y queda registrada (`HUMAN_APPROVED` / `HUMAN_REJECTED`, quién y cuándo).
-5. **$0.00 FX Markup:** los umbrales, el presupuesto y los reportes se expresan en USD. La solvencia se evalúa contra la billetera de la moneda de la factura y, si no alcanza, contra USD convertido sin markup. La billetera usada, la tasa y su fuente quedan explícitas en el registro.
+5. **$0.00 FX Markup:** los umbrales, el presupuesto y los reportes se expresan en USD, con la conversión explícita en el registro. Si la empresa tiene billeteras por moneda, la solvencia se evalúa primero contra la billetera de la moneda de la factura y, si no alcanza, contra USD convertido sin markup; la billetera usada, la tasa y su fuente quedan en el registro.
 
 ## Alcance del MVP (Hackathon 30X — entrega domingo 18 de octubre de 2026, 11:59 AM hora de Colombia)
 
 **Entra:**
 - Ingesta por Telegram y por subida de archivos en el dashboard.
 - Extracción multimodal con Gemini (OCR estructurado).
-- Tesorería multimoneda con billeteras por moneda y conversión a USD con tasas en vivo, con tasas de referencia fijas como respaldo.
+- Conversión a USD con tasas de referencia fijas; tesorería multimoneda con tasas en vivo como extensión opcional.
+- Reglas configurables desde el dashboard: tope por pago, umbral de aprobación humana, presupuesto del periodo y beneficiarios permitidos con su tarifa acordada.
+- Saldo comprometido: lo aprobado nunca supera el saldo ni el presupuesto del periodo.
 - Inicio de sesión con roles de demo (operador y aprobador) para las acciones que cambian datos.
 - Tubería de 4 capas con la matriz de reglas v3 y decisión `AUTO_APPROVED` / `SCALED_TO_HUMAN` / `REJECTED`.
 - Aprobación humana en el dashboard y aviso al canal de origen.
-- Audit Log explicable y reglas configurables desde el dashboard.
+- Audit Log explicable con la regla disparada y la razón de cada decisión.
 - Test Suite TC-01 a TC-06 demostrable con datos ficticios.
 
 **No entra (por definición del reto):**
