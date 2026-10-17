@@ -117,9 +117,9 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
                 <span className="font-bold text-white">{invoice.original_currency}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tasa Interbancaria en Vivo:</span>
+                <span>Tasa de Referencia:</span>
                 <span className="text-white">
-                  {invoice.original_currency === 'COP' ? '1 USD = 4,200.00 COP' : invoice.original_currency === 'MXN' ? '1 USD = 19.00 MXN' : '1.0000'}
+                  {invoice.original_currency === 'COP' ? '1 USD = 4,200.00 COP' : invoice.original_currency === 'MXN' ? '1 USD = 19.50 MXN' : '1.0000'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -156,31 +156,31 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
               <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${isRejected && invoice.audit_explanation.includes('duplicada') ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">2. Deduplicación Digital (SHA-256)</span>
+                  <span className="text-brand-steel font-sans text-xs">2. Integridad & Duplicados (30 días)</span>
                 </div>
                 <span className="font-bold text-[11px]">
                   {isRejected && invoice.audit_explanation.includes('duplicada') ? 'DUPLICADO DETECTADO' : 'ÚNICO 100%'}
                 </span>
               </div>
 
-              {/* Capa 3: Umbral de Autonomía */}
+              {/* Capa 3: Solvencia y Saldo */}
+              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-brand-steel font-sans text-xs">3. Solvencia & Saldo Blinka</span>
+                </div>
+                <span className="font-bold text-[11px] text-emerald-700">DISPONIBLE ($48,250 USD)</span>
+              </div>
+
+              {/* Capa 4: Gobierno HITL - Umbral de Autonomía */}
               <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${invoice.usd_amount > 2000 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">3. Umbral Autónomo ($2,000 USD)</span>
+                  <span className="text-brand-steel font-sans text-xs">4. Gobierno HITL ($2,000 USD)</span>
                 </div>
                 <span className="font-bold text-[11px]">
                   {invoice.usd_amount > 2000 ? 'EXCEDE ($2,000)' : 'DENTRO DE LÍMITE'}
                 </span>
-              </div>
-
-              {/* Capa 4: Liquidez en Tesorería */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-brand-steel font-sans text-xs">4. Verificación de Bóveda & Saldo</span>
-                </div>
-                <span className="font-bold text-[11px] text-emerald-700">DISPONIBLE ($48,250 USD)</span>
               </div>
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
                 onClick={() => onApproveHuman && onApproveHuman(invoice.id)}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white font-semibold text-xs transition-all shadow-sm active:scale-95"
               >
-                Autorizar Pago (2FA)
+                Aprobar Pago
               </button>
             </>
           ) : (

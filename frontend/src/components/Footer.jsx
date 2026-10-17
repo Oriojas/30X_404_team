@@ -16,7 +16,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-xs text-brand-muted max-w-sm leading-relaxed">
-              Infraestructura financiera autónoma de agentes de pago con aprobación gobernada, motor FX a $0 Markup y auditoría criptográfica en tiempo real.
+              Infraestructura financiera autónoma de agentes de pago con aprobación gobernada, motor FX a $0 Markup y auditoría explicable en tiempo real.
             </p>
           </div>
 
@@ -24,15 +24,15 @@ export default function Footer() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-brand-border shadow-2xs">
               <span className="material-symbols-outlined text-brand-teal text-[16px]">verified_user</span>
-              <span className="font-mono text-xs text-brand-navy font-semibold">SOC2 Type II</span>
+              <span className="font-mono text-xs text-brand-navy font-semibold">Reglas Deterministas</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-brand-border shadow-2xs">
               <span className="material-symbols-outlined text-brand-teal text-[16px]">lock</span>
-              <span className="font-mono text-xs text-brand-navy font-semibold">ISO 27001</span>
+              <span className="font-mono text-xs text-brand-navy font-semibold">Audit Log Explicable</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-brand-border shadow-2xs">
               <span className="material-symbols-outlined text-brand-teal text-[16px]">gavel</span>
-              <span className="font-mono text-xs text-brand-navy font-semibold">SARLAFT Compliant</span>
+              <span className="font-mono text-xs text-brand-navy font-semibold">Reglas SARLAFT</span>
             </div>
           </div>
         </div>
@@ -54,6 +54,9 @@ export default function Footer() {
             </a>
             <a href="#seguridad" className="hover:text-brand-navy transition-colors">
               Seguridad & KYC
+            </a>
+            <a href="#/pitch" id="footer-pitch-link" className="hover:text-brand-navy transition-colors">
+              Presentación
             </a>
           </div>
 
