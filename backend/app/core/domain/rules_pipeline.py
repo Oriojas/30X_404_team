@@ -50,7 +50,7 @@ class EvaluationContext:
 
 
 def _usd(value: float) -> str:
-    return f"${value:,.2f} USD"
+    return f"{'-' if value < 0 else ''}${abs(value):,.2f} USD"
 
 
 def _normalize(text: Optional[str]) -> str:

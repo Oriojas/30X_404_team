@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Notice from './Notice'
-import { formatUsd, headroomColor, headroomText, treasuryHeadroom } from '../api'
+import { availableUsd, budgetUsage, formatUsd, headroomColor, headroomText, treasuryHeadroom } from '../api'
 
 function FieldError({ message }) {
   if (!message) return null
@@ -20,7 +20,9 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
   const [fieldErrors, setFieldErrors] = useState({})
   const [generalError, setGeneralError] = useState(null)
   // La holgura sigue al valor que se está editando, antes de guardarlo
-  const headroom = treasuryHeadroom(treasury?.balance_usd, bufferUsd)
+  const available = availableUsd(treasury)
+  const headroom = treasuryHeadroom(available, bufferUsd)
+  const budget = budgetUsage(treasury)
 
   // Los campos reflejan las reglas vigentes cuando llegan de la API o tras guardarlas
   const rulesKey = JSON.stringify(currentRules)
@@ -306,13 +308,46 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
               </div>
 
               <div className="flex items-center justify-between font-mono text-[10px] text-brand-steel">
-                <span>Caja: {treasury ? `${formatUsd(treasury.balance_usd)} USD` : '—'}</span>
+                <span>Disponible: {available != null ? `${formatUsd(available)} USD` : '—'}</span>
                 <span className={`font-semibold ${headroomColor(headroom)}`}>
                   Holgura {headroomText(headroom)}
                 </span>
               </div>
               <FieldError message={fieldErrors.min_treasury_buffer_usd} />
             </div>
+          </div>
+        </div>
+
+        {/* Presupuesto del período (FIN-02): solo lectura hasta que se pueda editar (Fase 7) */}
+        <div className="mt-6 bg-white rounded-xl border border-brand-border p-5 sm:p-6 shadow-sm flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-brand-teal">
+                <span className="material-symbols-outlined text-[20px]">calendar_month</span>
+              </div>
+              <div>
+                <h3 className="font-display font-semibold text-base text-brand-navy">Presupuesto del Período</h3>
+                <p className="text-xs text-brand-muted">Escala a un humano los pagos que superan lo que queda del presupuesto mensual (FIN-02).</p>
+              </div>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-brand-steel border border-brand-border text-[11px] font-semibold">
+              Solvencia
+            </span>
+          </div>
+
+          <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${budget && !budget.ok ? 'bg-red-500' : 'bg-brand-teal'}`}
+              style={{ width: `${budget?.pct ?? 0}%` }}
+            ></div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs">
+            <span className="text-brand-steel">Presupuesto mensual: <strong className="text-brand-navy">{budget ? `${formatUsd(budget.budget)} USD` : '—'}</strong></span>
+            <span className="text-brand-steel sm:text-center">Gasto aprobado del mes: <strong className="text-brand-navy">{budget ? `${formatUsd(budget.spent)} USD` : '—'}</strong></span>
+            <span className={`sm:text-right font-semibold ${budget ? (budget.ok ? 'text-emerald-700' : 'text-red-600') : 'text-brand-muted'}`}>
+              Restante: {budget ? `${formatUsd(Math.max(0, budget.remaining))} USD` : '—'}
+            </span>
           </div>
         </div>
       </div>

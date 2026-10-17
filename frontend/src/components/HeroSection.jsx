@@ -1,8 +1,10 @@
 import React from 'react'
-import { formatUsd, headroomColor, headroomText, treasuryHeadroom } from '../api'
+import { availableUsd, formatUsd, headroomColor, headroomText, parseApiDate, treasuryHeadroom } from '../api'
 
 export default function HeroSection({ treasury, rules }) {
-  const headroom = treasuryHeadroom(treasury?.balance_usd, rules.min_treasury_buffer_usd)
+  const available = availableUsd(treasury)
+  const headroom = treasuryHeadroom(available, rules.min_treasury_buffer_usd)
+  const snapshot = parseApiDate(treasury?.snapshot_at)
 
   return (
     <section className="w-full py-12 lg:py-16 border-b border-brand-border/60 bg-transparent" id="producto">
@@ -110,7 +112,15 @@ export default function HeroSection({ treasury, rules }) {
               <div className="bg-slate-50 p-3.5 rounded-xl border border-brand-border/80 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-brand-muted font-medium">Tesorería Operativa Disponible</span>
-                  <span className="font-mono text-sm font-bold text-brand-navy">{treasury ? `${formatUsd(treasury.balance_usd, 2)} USD` : '—'}</span>
+                  <span className="font-mono text-sm font-bold text-brand-navy">{available != null ? `${formatUsd(available, 2)} USD` : '—'}</span>
+                </div>
+
+                {/* Saldo de la foto menos lo ya aprobado: el disponible con el que decide el agente */}
+                <div className="flex flex-wrap items-center justify-between gap-x-3 font-mono text-[10px] text-brand-muted">
+                  <span title={snapshot ? `Saldo registrado el ${snapshot.toLocaleString()}` : undefined}>
+                    Saldo: {treasury ? `${formatUsd(treasury.balance_usd, 2)} USD` : '—'}
+                  </span>
+                  <span>Comprometido: {treasury ? `${formatUsd(treasury.committed_usd ?? 0, 2)} USD` : '—'}</span>
                 </div>
 
                 {/* Liquidity Progress Bar */}

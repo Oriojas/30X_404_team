@@ -119,6 +119,18 @@ export default function App() {
   const [treasury, setTreasury] = useState(null)
   const shownTreasury = treasury ?? (apiAvailable === false ? DEFAULT_TREASURY : null)
 
+  // Lo comprometido cambia con cada aprobación: se relee tras subir, decidir o refrescar
+  const loadTreasury = useCallback(() => {
+    getTreasury()
+      .then((data) => {
+        if (data && typeof data === 'object') setTreasury(data)
+      })
+      .catch(() => {
+        // Sin tesorería: el hero y la tarjeta muestran "—" (o el seed en modo demostración);
+        // un refresco fallido conserva el último valor leído
+      })
+  }, [])
+
   // Con la API disponible se muestran siempre los datos reales, aunque la lista esté vacía
   const loadInvoices = useCallback(async () => {
     setLoadingInvoices(true)
@@ -153,14 +165,8 @@ export default function App() {
       .catch(() => {
         // Fallback a reglas predeterminadas
       })
-    getTreasury()
-      .then((data) => {
-        if (data && typeof data === 'object') setTreasury(data)
-      })
-      .catch(() => {
-        // Sin tesorería: el hero y la tarjeta muestran "—" (o el seed en modo demostración)
-      })
-  }, [loadInvoices])
+    loadTreasury()
+  }, [loadInvoices, loadTreasury])
 
   // Las reglas locales solo cambian con la respuesta de la API; un error (p. ej. 422) sube al panel
   const handleSaveRules = async (newRules) => {
@@ -184,6 +190,7 @@ export default function App() {
   const handleDecide = async (invoiceId, decision, note) => {
     try {
       upsertInvoice(await decideInvoice(invoiceId, decision, note))
+      loadTreasury()
     } catch (err) {
       if (err.status === 409) loadInvoices()
       throw err
@@ -220,12 +227,18 @@ export default function App() {
           loading={loadingInvoices}
           demoMode={apiAvailable === false}
           refreshError={refreshError}
-          onRefresh={loadInvoices}
+          onRefresh={() => {
+            loadInvoices()
+            loadTreasury()
+          }}
           onSelectInvoice={(inv) => setSelectedInvoice(inv)}
         >
           <InvoiceUpload
             readOnly={apiAvailable === false}
-            onUploaded={upsertInvoice}
+            onUploaded={(invoice) => {
+              upsertInvoice(invoice)
+              loadTreasury()
+            }}
             onOpenInvoice={(inv) => setSelectedInvoice(inv)}
           />
         </AuditTable>

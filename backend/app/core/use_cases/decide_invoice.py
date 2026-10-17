@@ -17,7 +17,7 @@ from app.core.ports.outbound import InvoiceRepository, NotificationPort, RulesRe
 
 
 def _usd(value: float) -> str:
-    return f"${value:,.2f} USD"
+    return f"{'-' if value < 0 else ''}${abs(value):,.2f} USD"
 
 
 class DecideInvoiceUseCase:
