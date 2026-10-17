@@ -16,7 +16,7 @@ flowchart TD
     Core --> Rejected["REJECTED"]
 
     Approved --> ActApproved["Notificación Telegram - + Registro Dashboard"]
-    Scaled --> ActScaled["Alerta Telegram + Botón de Aprobación - / Dashboard HITL"]
+    Scaled --> ActScaled["Aviso Telegram - + Aprobación en Dashboard HITL"]
     Rejected --> ActRejected["Notificación Telegram - + Razón de Rechazo"]
 
     style Approved fill:#dcfce7,stroke:#16a34a,stroke-width:2px
@@ -29,13 +29,14 @@ flowchart TD
 ## 2. Componentes de la Arquitectura
 
 ### Componente A: Bot de Telegram (Interfaz de Ingesta y Notificación Operativa)
-* **Función:** Actúa como el canal conversacional rápido para el equipo operativo y proveedores.
+* **Función:** Canal de ingesta rápido para el equipo operativo y proveedores. Recibe facturas e informa resultados; no toma decisiones de aprobación.
 * **Flujo de Usuario:**
   1. El usuario toma una foto a la factura física o reenvía el archivo PDF al chat del bot.
   2. El bot responde instantáneamente: `" Factura recibida. Analizando datos con OCR y evaluando reglas de seguridad..."`.
   3. Una vez procesada por el agente, Telegram recibe el dictamen final:
      * **Aprobada (`AUTO_APPROVED`):** Se notifica que el pago cumple con las reglas y queda programado.
-     * **Escalada (`SCALED_TO_HUMAN`):** Se muestra la razón de escalamiento (ej. *"Monto excede $2,000 USD"* o *"Proveedor Nuevo"*) junto con botones interactivos `[ APROBAR PAGO ]` / `[ RECHAZAR PAGO ]` directamente en el chat.
+     * **Escalada (`SCALED_TO_HUMAN`):** Se muestra la razón de escalamiento (ej. *"Monto excede $2,000 USD"* o *"Proveedor Nuevo"*) y se indica que la factura quedó en revisión en el dashboard. Telegram **no aprueba**: es solo canal de ingesta.
+  4. Cuando un operador aprueba o rechaza la factura en el dashboard, el bot avisa el resultado final al mismo chat.
      * **Rechazada (`REJECTED`):** Se notifica el motivo de bloqueo (ej. *"Cobro duplicado"* o *"Incompatibilidad SARLAFT"*).
 
 ---
@@ -71,7 +72,9 @@ flowchart TD
   * **Explicación del Flujo:** Cómo el bot de Telegram + OCR elimina el 90% de la carga manual.
   * **Demostración Interactiva / Live Dashboard:**
     * **Panel de Métricas:** Total procesado, % de autonomía, ahorro de tiempo estimado.
-    * **Historial de Facturas (Tabla de Auditoría):** Lista de facturas con su estado (`PAGAR`, `FRENAR`, `ESCALAR`) y el desglose de reglas evaluadas.
+    * **Historial de Facturas (Tabla de Auditoría):** Lista de facturas con su estado (`AUTO_APPROVED`, `SCALED_TO_HUMAN`, `REJECTED`, `HUMAN_APPROVED`, `HUMAN_REJECTED`) y el desglose de reglas evaluadas.
+    * **Aprobación Humana (HITL):** Único punto donde se aprueban o rechazan las facturas escaladas, registrando quién decidió y cuándo.
+    * **Subida de Facturas:** Canal de ingesta web (foto o PDF) para que el jurado pruebe el agente sin Telegram.
     * **Consola de Configuración de Reglas:** Slider o inputs para ajustar el límite de aprobación autónoma ($USD), habilitar checks SARLAFT y definir aprobadores humanos.
 
 ---
@@ -80,7 +83,7 @@ flowchart TD
 
 | Capa | Tecnología Sugerida | Justificación / Ventaja en Hackathon |
 | :--- | :--- | :--- |
-| **Interfaz Móvil** | Telegram Bot API (`python-telegram-bot` / `Telegraf`) | Fácil integración, no requiere instalar apps adicionales, soporta botones interactivos. |
+| **Interfaz Móvil** | Telegram Bot API (`python-telegram-bot` / `Telegraf`) | Fácil integración, no requiere instalar apps adicionales. |
 | **OCR / Visión** | OpenAI GPT-4o-mini / Gemini Flash Vision | Alta precisión en lectura de facturas arrugadas o fotos de baja calidad; entrega JSON estructurado directamente. |
 | **Backend / Agente** | Python (FastAPI) / Node.js | Rápido de construir, ejecuta las reglas deterministas en milisegundos. |
 | **Frontend / Landing** | Next.js + Tailwind CSS + v0.dev / Lovable | Permite desplegar una landing page y un dashboard estéticamente profesional en pocas horas. |
