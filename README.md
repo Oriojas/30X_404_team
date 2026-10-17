@@ -39,6 +39,7 @@ El repositorio está organizado como un **Monorepo Hexagonal** centralizado. Par
 * 📋 **[Plan de Trabajo Oficial](plan_de_trabajo.md):** Fases de ejecución, cronograma, entregables y asignación de responsabilidades.
 * 📐 **[Arquitectura de Solución v4](docs/arquitectura/arquitectura_solucion_v4.md):** Diagramas Mermaid del flujo end-to-end y modelo de datos de PostgreSQL.
 * 📖 **[Reglas de Negocio del Agente](docs/reglas-negocio/reglas_pago_agente_v3.md):** Definición detallada de las 4 capas de validación y casos de uso.
+* 📊 **[Presentación Comercial y Guion (Pitch)](docs/pitch_presentacion/presentacion_y_guion.md):** Estructura del slide deck y guion cronometrado de 3 minutos.
 
 ---
 
@@ -91,9 +92,19 @@ El proyecto está preparado para desplegarse dentro de un único Canvas en **Rai
 2. **Backend Service:** Construido a partir de [backend/Dockerfile](backend/Dockerfile).
 3. **Frontend Service:** Construido a partir de [frontend/Dockerfile](frontend/Dockerfile) y servido con Nginx.
 
+* 🌐 **Landing Page & Dashboard:** [https://30x404team-production.up.railway.app](https://30x404team-production.up.railway.app/)
+* 📽️ **Presentación en Vivo (Slide Deck):** [https://30x404team-production.up.railway.app/#/pitch/1](https://30x404team-production.up.railway.app/#/pitch/1)
+
 ---
 
 ## 👥 Equipo 404 (Hackathon 30X)
 
 * **Luis Felipe Marín Giraldo** — Lead Backend & Bot Developer (FastAPI, Telegram Webhook, Gemini OCR, FX Engine & PostgreSQL).
 * **Oscar Riojas** — Lead Frontend, Product & Pitch (Monorepo, Arquitectura, React Dashboard, Tailwind UI, Pitch & Video).
+
+---
+
+### 🎯 Presentación Comercial & Pitch
+Accede a la presentación interactiva directamente en producción:  
+👉 **[Ver Presentación (Slide Deck)](https://30x404team-production.up.railway.app/#/pitch/1)**  
+📄 Documentación y guion: [docs/pitch_presentacion/presentacion_y_guion.md](docs/pitch_presentacion/presentacion_y_guion.md)
