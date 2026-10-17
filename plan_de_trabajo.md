@@ -21,25 +21,25 @@ flowchart TD
         direction TB
 
         subgraph InAdapters ["ADAPTADORES DE ENTRADA (Canales de Ingesta)"]
-            Telegram["<b>Telegram Bot (MVP)</b><br/>• Ingesta de Fotos / PDF<br/>• Botones Interactivos HITL"]
-            OtherChannels["<b>Canales Secundarios (Ext)</b><br/>• Email / Webhook"]
+            Telegram["Telegram Bot (MVP) - Ingesta Fotos/PDF y Botones HITL"]
+            OtherChannels["Canales Secundarios (Ext) - Email y Webhook"]
         end
 
         subgraph OutAdapters ["ADAPTADOR DE SALIDA (UI / Capa de Presentación)"]
-            ReactUI["<b>React.js + Tailwind UI</b><br/>• Landing Page Comercial<br/>• Dashboard Stitch & Audit Log"]
+            ReactUI["React.js + Tailwind UI - Landing Page y Dashboard Stitch"]
         end
 
         subgraph Core ["CORE DEL SISTEMA (Lógica de Negocio Hexagonal)"]
-            OCR["<b>1. Lector Multimodal & OCR</b><br/>Gemini 1.5 Flash API"]
-            FX["<b>2. FX Engine</b><br/>Conversión Multidivisa USD/COP/MXN/EUR ($0 Markup)"]
-            Rules["<b>3. Motor de Reglas Blinka</b><br/>Tubería Determinista en 4 Capas"]
-            Audit["<b>4. Generador de Explicabilidad</b><br/>Registro Audit Log en lenguaje natural"]
+            OCR["1. Lector Multimodal & OCR (Gemini 1.5 Flash API)"]
+            FX["2. FX Engine (Conversión Multidivisa a $0 Markup)"]
+            Rules["3. Motor de Reglas Blinka (Tubería Determinista en 4 Capas)"]
+            Audit["4. Generador de Explicabilidad (Registro Audit Log)"]
 
             OCR --> FX --> Rules --> Audit
         end
 
         subgraph PersistAdapter ["ADAPTADOR DE PERSISTENCIA"]
-            DB[("<b>Base de Datos PostgreSQL (Railway Native)</b><br/>• Tabla invoices<br/>• Tabla audit_logs<br/>• Tabla company_rules")]
+            DB[("PostgreSQL (Railway Native) - invoices, audit_logs, company_rules")]
         end
 
         Telegram -->|"Documento (PDF/Foto)"| OCR
@@ -89,40 +89,65 @@ Uno de los requerimientos clave del Reto Blinka es la gestión de operaciones mu
 
 ## 4. División de Trabajo y Asignación de Responsabilidades
 
-| Integrante | Rol Principal | Entregables Clave |
-| :--- | :--- | :--- |
-| **Luis Felipe Marín Giraldo** | **Lead Backend & Bot Developer** | • Estructura del backend en FastAPI bajo Arquitectura Hexagonal.<br>• Adaptador para Bot de Telegram con manejo de webhooks y descarga de adjuntos.<br>• Integración con SDK de Gemini 1.5 Flash para OCR y motor de razonamiento.<br>• Lógica de la tubería de 4 capas y FX Engine.<br>• Conexión y persistencia con PostgreSQL en Railway. |
-| **Oscar Riojas** | **Lead Frontend, Product & Pitch** | • Documentación completa de arquitectura y Plan de Trabajo en el monorepo.<br>• Configuración del monorepo en GitHub (`Oriojas/30X_404_team`) y carpetas `/backend`, `/frontend`, `/docs`.<br>• Frontend en React + Tailwind CSS con el diseño Stitch para Dashboard móvil/desktop.<br>• Consumo de API REST para renderizar el Audit Log de facturas.<br>• Creación del guion comercial, edición del Video Pitch (3 min) y presentación para el Demo Day. |
+### 👨‍💻 Luis Felipe Marín Giraldo — Lead Backend & Bot Developer
+* **Estructura Backend:** Arquitectura Hexagonal en Python con FastAPI.
+* **Canal Telegram:** Webhook adapter con procesamiento de fotos y documentos PDF.
+* **Visión & OCR:** Integración del SDK de Gemini 1.5 Flash para extracción estructurada JSON.
+* **Lógica de Negocio:** Pipeline de validación en 4 capas y módulo de conversión de divisas (FX Engine).
+* **Persistencia:** Modelado, conexión y consultas en PostgreSQL (Railway Native).
+
+### 🎨 Oscar Riojas — Lead Frontend, Product & Pitch
+* **Documentación & Monorepo:** Arquitectura técnica, diagramas y Plan de Trabajo en GitHub (`Oriojas/30X_404_team`).
+* **Frontend React:** UI con Tailwind CSS adaptando el diseño Stitch para visualización móvil y desktop.
+* **Dashboard & Audit Log:** Integración REST con FastAPI para renderizar trazabilidad y explicabilidad en vivo.
+* **Comercial & Pitch:** Guion comercial, edición del Video Pitch (3 minutos) y presentación para el Demo Day.
 
 ---
 
 ## 5. Cronograma de Ejecución por Fases (Viernes 16 - Domingo 18)
 
 ```mermaid
-gantt
-    title Cronograma de Ejecución: Hackathon 30X (Equipo 404)
-    dateFormat YYYY-MM-DD HH:mm
-    axisFormat %a %H:%M
+flowchart LR
+    subgraph F1 ["FASE 1: Setup e Infraestructura (Viernes 16 Noche)"]
+        direction TB
+        T1["Monorepo Hexagonal en GitHub"]
+        T2["Proyecto en Railway con Postgres"]
+        T3["Acceso Git a colaboradores"]
+        T4["Script DDL de Base de Datos"]
+        T1 --> T2 --> T3 --> T4
+    end
 
-    section FASE 1: Setup
-    Monorepo e Infraestructura Railway :done, f1, 2026-10-16 18:00, 2026-10-16 23:59
-    Script DDL en PostgreSQL :active, f1_db, 2026-10-16 21:00, 2026-10-16 23:59
+    subgraph F2 ["FASE 2: Backend e IA (Sábado 17 Mañana)"]
+        direction TB
+        T5["Telegram Webhook Adapter"]
+        T6["Extracción OCR Gemini 1.5 Flash"]
+        T7["FX Engine y Reglas en 4 Capas"]
+        T8["Endpoints REST FastAPI"]
+        T5 --> T6 --> T7 --> T8
+    end
 
-    section FASE 2: Backend & IA
-    Telegram Webhook Adapter :f2_tg, 2026-10-17 08:00, 2026-10-17 11:00
-    Gemini OCR & Multimodal :f2_ocr, 2026-10-17 09:30, 2026-10-17 12:30
-    FX Engine & Reglas 4 Capas :f2_rules, 2026-10-17 11:00, 2026-10-17 14:00
-    Endpoints REST FastAPI :f2_api, 2026-10-17 13:00, 2026-10-17 15:00
+    subgraph F3 ["FASE 3: Frontend y E2E (Sábado 17 Tarde/Noche)"]
+        direction TB
+        T9["Dashboard React UI"]
+        T10["Tabla de Audit Log y Badges"]
+        T11["Pruebas E2E y Casos Trampa"]
+        T9 --> T10 --> T11
+    end
 
-    section FASE 3: Frontend & E2E
-    React Dashboard Stitch UI :f3_ui, 2026-10-17 14:00, 2026-10-17 18:00
-    Audit Log Table & Badges :f3_audit, 2026-10-17 16:00, 2026-10-17 20:00
-    Pruebas E2E (Casos Trampa) :f3_tests, 2026-10-17 19:00, 2026-10-17 23:00
+    subgraph F4 ["FASE 4: Cierre y Pitch (Domingo 18 Mañana)"]
+        direction TB
+        T12["Congelamiento de Código (09:30 AM)"]
+        T13["Grabación Video Pitch (3 min)"]
+        T14["Entrega Final HackRadar (11:59 AM)"]
+        T12 --> T13 --> T14
+    end
 
-    section FASE 4: Cierre & Pitch
-    Congelamiento de Código :crit, f4_freeze, 2026-10-18 09:00, 2026-10-18 09:30
-    Grabación Video Pitch (3 min) :crit, f4_pitch, 2026-10-18 09:30, 2026-10-18 11:00
-    Entrega Final en HackRadar :crit, f4_sub, 2026-10-18 11:00, 2026-10-18 11:59
+    F1 --> F2 --> F3 --> F4
+
+    style F1 fill:#fef2f2,stroke:#ef4444,stroke-width:2px
+    style F2 fill:#fefce8,stroke:#eab308,stroke-width:2px
+    style F3 fill:#f0fdf4,stroke:#22c55e,stroke-width:2px
+    style F4 fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
 ```
 
 ### 🔴 FASE 1: Setup e Infraestructura Monorepo (Viernes 16 - Noche)

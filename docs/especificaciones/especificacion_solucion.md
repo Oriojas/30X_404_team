@@ -9,15 +9,15 @@
 flowchart TD
     User["Usuario / Finanzas"] -->|"Foto / PDF"| Telegram["Bot de Telegram"]
     Telegram --> OCR["Extractor OCR / Visión"]
-    OCR -->|"JSON Estructurado"| Core["Agente Blinka Core<br/>(Pipeline 4 Capas de Reglas)"]
+    OCR -->|"JSON Estructurado"| Core["Agente Blinka Core - (Pipeline 4 Capas de Reglas)"]
 
     Core --> Approved["AUTO_APPROVED"]
     Core --> Scaled["SCALED_TO_HUMAN"]
     Core --> Rejected["REJECTED"]
 
-    Approved --> ActApproved["Notificación Telegram<br/>+ Registro Dashboard"]
-    Scaled --> ActScaled["Alerta Telegram + Botón de Aprobación<br/>/ Dashboard HITL"]
-    Rejected --> ActRejected["Notificación Telegram<br/>+ Razón de Rechazo"]
+    Approved --> ActApproved["Notificación Telegram - + Registro Dashboard"]
+    Scaled --> ActScaled["Alerta Telegram + Botón de Aprobación - / Dashboard HITL"]
+    Rejected --> ActRejected["Notificación Telegram - + Razón de Rechazo"]
 
     style Approved fill:#dcfce7,stroke:#16a34a,stroke-width:2px
     style Scaled fill:#fef9c3,stroke:#ca8a04,stroke-width:2px

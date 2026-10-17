@@ -29,11 +29,11 @@ Todo el ecosistema convive en un único proyecto dentro del **Lienzo (Canvas) de
 ```mermaid
 flowchart TD
     subgraph Railway ["PROYECTO RAILWAY: Blinka-PayAgent"]
-        Frontend["<b>SERVICIO 1: FRONTEND</b><br/><i>(React.js + Tailwind CSS)</i><br/>• Landing Page Blinka<br/>• Dashboard de Auditoría<br/>• Panel de Reglas<br/>• URL HTTPS Pública"]
+        Frontend["SERVICIO 1: FRONTEND - (React.js + Tailwind CSS) - • Landing Page Blinka - • Dashboard de Auditoría - • Panel de Reglas - • URL HTTPS Pública"]
 
-        Backend["<b>SERVICIO 2: BACKEND</b><br/><i>(FastAPI + Python)</i><br/>• Webhook de Telegram<br/>• OCR (Gemini 1.5 Flash)<br/>• Engine (DeepSeek LLM)<br/>• Motor de Reglas 4 Capas"]
+        Backend["SERVICIO 2: BACKEND - (FastAPI + Python) - • Webhook de Telegram - • OCR (Gemini 1.5 Flash) - • Engine (DeepSeek LLM) - • Motor de Reglas 4 Capas"]
 
-        Database[("<b>SERVICIO 3: DATABASE</b><br/><i>(PostgreSQL)</i><br/>• Tabla invoices<br/>• Tabla rules_config<br/>• Tabla audit_logs")]
+        Database[("SERVICIO 3: DATABASE - (PostgreSQL) - • Tabla invoices - • Tabla rules_config - • Tabla audit_logs")]
 
         Frontend -->|"REST API"| Backend
         Backend -->|"SQLAlchemy / psycopg2"| Database
@@ -52,13 +52,13 @@ flowchart TD
 ```mermaid
 flowchart TD
     User["Usuario en Telegram"] -->|"Sube foto / PDF"| Webhook["Webhook FastAPI en Railway"]
-    Webhook --> OCR["1. OCR: Gemini 1.5 Flash<br/>(Extrae datos a JSON estructurado)"]
-    OCR --> Engine["2. Engine: DeepSeek LLM<br/>(Evalúa pipeline de 4 capas de Blinka)"]
+    Webhook --> OCR["1. OCR: Gemini 1.5 Flash - (Extrae datos a JSON estructurado)"]
+    OCR --> Engine["2. Engine: DeepSeek LLM - (Evalúa pipeline de 4 capas de Blinka)"]
 
-    Engine --> DB[("3. Audit Log en PostgreSQL<br/>(Guarda estado y explicación)")]
-    Engine --> Notif["4. Notificación a Telegram<br/>(Envía dictamen + botones HITL)"]
+    Engine --> DB[("3. Audit Log en PostgreSQL - (Guarda estado y explicación)")]
+    Engine --> Notif["4. Notificación a Telegram - (Envía dictamen + botones HITL)"]
 
-    DB --> Dashboard["5. Dashboard React<br/>(Muestra tabla de auditoría en vivo)"]
+    DB --> Dashboard["5. Dashboard React - (Muestra tabla de auditoría en vivo)"]
 
     style User fill:#f8fafc,stroke:#64748b,stroke-width:2px
     style Webhook fill:#eff6ff,stroke:#3b82f6,stroke-width:2px

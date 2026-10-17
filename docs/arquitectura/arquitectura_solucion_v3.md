@@ -7,10 +7,10 @@ La solución **Blinka PayAgent** centraliza la lectura, validación y toma de de
 ```mermaid
 flowchart TD
     subgraph Railway ["ARQUITECTURA DE INFRAESTRUCTURA EN RAILWAY"]
-        Frontend["<b>FRONTEND (UI / Web)</b><br/>• React.js + Tailwind CSS<br/>• Dashboard & Audit Log<br/>• Landing Comercial"]
-        Backend["<b>BACKEND (Python FastAPI)</b><br/>• Telegram Webhook Engine<br/>• Engine de Reglas Blinka<br/>• Gemini SDK Client"]
-        Gemini["<b>GOOGLE GEMINI API</b><br/>• OCR & Extracción Multimodal<br/>• Razonamiento & Explicabilidad"]
-        Database[("<b>BASE DE DATOS</b><br/>• PostgreSQL (Railway Native)<br/>• Tablas: invoices, audit_logs")]
+        Frontend["FRONTEND (UI / Web) - • React.js + Tailwind CSS - • Dashboard & Audit Log - • Landing Comercial"]
+        Backend["BACKEND (Python FastAPI) - • Telegram Webhook Engine - • Engine de Reglas Blinka - • Gemini SDK Client"]
+        Gemini["GOOGLE GEMINI API - • OCR & Extracción Multimodal - • Razonamiento & Explicabilidad"]
+        Database[("BASE DE DATOS - • PostgreSQL (Railway Native) - • Tablas: invoices, audit_logs")]
 
         Frontend -->|"Consultas REST / API"| Backend
         Backend -->|"API Calls"| Gemini
@@ -70,7 +70,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    In["Foto / PDF de Factura en Telegram"] --> Step1["<b>(1) OCR & Extracción en JSON</b><br/>(Gemini 1.5 Flash)"]
+    In["Foto / PDF de Factura en Telegram"] --> Step1["(1) OCR & Extracción en JSON - (Gemini 1.5 Flash)"]
 
     subgraph Pipeline ["(2) Tubería de Reglas de Negocio (FastAPI / Gemini)"]
         L1["Capa 1: SARLAFT & Listas Restrictivas (OFAC/PEP)"]
@@ -82,13 +82,13 @@ flowchart TD
     end
 
     Step1 --> L1
-    L4 --> Step3["<b>(3) Generación de Dictamen & Explicación</b><br/>(Lenguaje Natural)"]
+    L4 --> Step3["(3) Generación de Dictamen & Explicación - (Lenguaje Natural)"]
 
-    Step3 --> Aprobado["<b>APROBADO</b><br/>(AUTO_APPROVED)"]
-    Step3 --> Escalado["<b>ESCALADO</b><br/>(SCALED_TO_HUMAN)"]
-    Step3 --> Rechazado["<b>RECHAZADO</b><br/>(REJECTED)"]
+    Step3 --> Aprobado["APROBADO - (AUTO_APPROVED)"]
+    Step3 --> Escalado["ESCALADO - (SCALED_TO_HUMAN)"]
+    Step3 --> Rechazado["RECHAZADO - (REJECTED)"]
 
-    Aprobado --> Step4["<b>(4) Persistencia y Notificación</b><br/>PostgreSQL + Telegram + Dashboard React"]
+    Aprobado --> Step4["(4) Persistencia y Notificación - PostgreSQL + Telegram + Dashboard React"]
     Escalado --> Step4
     Rechazado --> Step4
 

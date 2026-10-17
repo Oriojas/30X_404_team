@@ -16,32 +16,32 @@ flowchart TD
         direction TB
 
         subgraph InAdapters ["ADAPTADORES DE ENTRADA (Canales de Ingesta)"]
-            Telegram["<b>Telegram Bot (MVP)</b><br/>• Ingesta de Fotos / PDF<br/>• Botones Interactivos HITL"]
-            OtherChannels["<b>Canales Secundarios (Ext)</b><br/>• WhatsApp / Email Webhooks"]
+            Telegram["Telegram Bot (MVP) - Ingesta Fotos/PDF y Botones HITL"]
+            OtherChannels["Canales Secundarios (Ext) - WhatsApp y Email Webhooks"]
         end
 
-        subgraph OutAdapters ["ADAPTADOR DE PRESENTACIÓN (UI)"]
-            ReactUI["<b>React.js + Tailwind UI</b><br/>• Landing Comercial Blinka<br/>• Dashboard Stitch & Audit Log<br/>• Panel de Reglas"]
+        subgraph OutAdapters ["ADAPTADOR DE PRESENTACION (UI)"]
+            ReactUI["React.js y Tailwind UI - Landing Comercial y Dashboard Stitch"]
         end
 
-        subgraph Core ["CORE DEL SISTEMA (Lógica de Negocio Pura)"]
-            OCR["<b>1. Visión Multimodal & OCR</b><br/>Gemini 1.5 Flash API"]
-            FX["<b>2. Módulo de Conversión de Divisas (FX Engine)</b><br/>Normalización a USD ($0 Markup)"]
-            Rules["<b>3. Motor de Reglas Blinka</b><br/>Tubería de Decisión en 4 Capas"]
-            Audit["<b>4. Generador de Explicabilidad</b><br/>Audit Log estructurado en lenguaje natural"]
+        subgraph Core ["CORE DEL SISTEMA (Logica de Negocio Pura)"]
+            OCR["1. Vision Multimodal y OCR (Gemini 1.5 Flash API)"]
+            FX["2. Modulo de Conversion de Divisas (FX Engine a $0 Markup)"]
+            Rules["3. Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
+            Audit["4. Generador de Explicabilidad (Audit Log Estructurado)"]
 
             OCR --> FX --> Rules --> Audit
         end
 
         subgraph PersistAdapter ["ADAPTADOR DE PERSISTENCIA"]
-            DB[("<b>PostgreSQL (Railway Native)</b><br/>• Tabla invoices<br/>• Tabla audit_logs<br/>• Tabla company_rules")]
+            DB[("PostgreSQL (Railway Native) - invoices, audit_logs, company_rules")]
         end
 
         Telegram -->|"Documento (PDF/Foto)"| OCR
         OtherChannels -.->|"Documento"| OCR
-        Audit -->|"Persistir Decisión"| DB
+        Audit -->|"Persistir Decision"| DB
         ReactUI -->|"Consultas REST API"| Core
-        ReactUI -.->|"Lectura de Auditoría"| DB
+        ReactUI -.->|"Lectura de Auditoria"| DB
     end
 
     style System fill:#f8fafc,stroke:#475569,stroke-width:2px
@@ -91,13 +91,13 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Doc["Factura / Cuenta de Cobro (PDF/Imagen)"] --> OCR["<b>Extracción Multimodal (Gemini 1.5 Flash)</b><br/>Monto, Moneda, Proveedor, Cuenta Bancaria"]
+    Doc["Factura o Cuenta de Cobro (PDF/Imagen)"] --> OCR["Extraccion Multimodal (Gemini 1.5 Flash) - Monto, Moneda, Proveedor, Cuenta"]
 
-    subgraph Pipeline ["Tubería Determinista en 4 Capas"]
-        Capa1["<b>Capa 1: Compliance & SARLAFT</b><br/>¿Coincide con OFAC/ONU o cuenta no autorizada?"]
-        Capa2["<b>Capa 2: Integridad & Duplicados</b><br/>¿Factura duplicada en < 30 días o confianza OCR < 85%?"]
-        Capa3["<b>Capa 3: Solvencia & FX Engine</b><br/>Normalización a USD ($0 Markup) y chequeo de saldo"]
-        Capa4["<b>Capa 4: Gobierno & Human-in-the-Loop</b><br/>¿Monto > $2,000 USD o Proveedor Nuevo?"]
+    subgraph Pipeline ["Tuberia Determinista en 4 Capas"]
+        Capa1["Capa 1: Compliance y SARLAFT (Listas OFAC/ONU y Cuentas Autorizadas)"]
+        Capa2["Capa 2: Integridad y Duplicados (Chequeo 30 dias y Confianza OCR > 85%)"]
+        Capa3["Capa 3: Solvencia y FX Engine (Normalizacion USD a $0 Markup y Saldo Blinka)"]
+        Capa4["Capa 4: Gobierno y Human-in-the-Loop (Umbral $2,000 USD y Proveedor Nuevo)"]
 
         Capa1 -->|"Pasa"| Capa2
         Capa2 -->|"Pasa"| Capa3
@@ -106,11 +106,11 @@ flowchart TD
 
     OCR --> Capa1
 
-    Capa1 -->|"Alerta Crítica"| Rejected["<b>REJECTED</b><br/>Rechazo automático"]
+    Capa1 -->|"Alerta Critica"| Rejected["REJECTED - Rechazo Automatico"]
     Capa2 -->|"Duplicado"| Rejected
-    Capa3 -->|"Saldo Insuficiente"| Scaled["<b>SCALED_TO_HUMAN</b><br/>Escalamiento con Botón Telegram"]
+    Capa3 -->|"Saldo Insuficiente"| Scaled["SCALED_TO_HUMAN - Escalamiento con Boton Telegram"]
     Capa4 -->|"Excede Umbral"| Scaled
-    Capa4 -->|"100% Criterios Cumplidos"| Approved["<b>AUTO_APPROVED</b><br/>Aprobado de forma autónoma"]
+    Capa4 -->|"100% Criterios Cumplidos"| Approved["AUTO_APPROVED - Aprobado Autonomamente"]
 
     style Doc fill:#f8fafc,stroke:#64748b,stroke-width:2px
     style OCR fill:#fdf4ff,stroke:#c026d3,stroke-width:2px

@@ -8,14 +8,14 @@ El sistema combina ingesta conversacional multicanal (Telegram), análisis visua
 
 ```mermaid
 flowchart TD
-    User["Usuario / Finanzas"] -->|"Foto / PDF"| Telegram["Bot de Telegram<br/>(Ingesta / Notificaciones)"]
-    Telegram -->|"Foto / PDF (Webhook)"| FastAPI["Servidor FastAPI<br/>(Webhook & Controller)"]
+    User["Usuario / Finanzas"] -->|"Foto / PDF"| Telegram["Bot de Telegram - (Ingesta / Notificaciones)"]
+    Telegram -->|"Foto / PDF (Webhook)"| FastAPI["Servidor FastAPI - (Webhook & Controller)"]
     FastAPI -->|"Respuesta / Botón HITL"| Telegram
 
-    FastAPI --> OCR["Extracción Multimodal (OCR / Visión)<br/>(Gemini 1.5 Flash / GPT-4o-mini)"]
-    OCR -->|"JSON Estructurado"| Rules["Motor de Reglas Blinka (4 Capas)<br/>1. Compliance / SARLAFT<br/>2. Detección Duplicados e Integridad<br/>3. Saldo y Presupuesto Blinka<br/>4. Umbrales & Human-in-the-Loop"]
+    FastAPI --> OCR["Extracción Multimodal (OCR / Visión) - (Gemini 1.5 Flash / GPT-4o-mini)"]
+    OCR -->|"JSON Estructurado"| Rules["Motor de Reglas Blinka (4 Capas) - 1. Compliance / SARLAFT - 2. Detección Duplicados e Integridad - 3. Saldo y Presupuesto Blinka - 4. Umbrales & Human-in-the-Loop"]
 
-    Rules --> DB[("Base de Datos PostgreSQL<br/>(Audit Log & Historial)")]
+    Rules --> DB[("Base de Datos PostgreSQL - (Audit Log & Historial)")]
     Rules --> Dashboard["Landing Page & Dashboard Web"]
     Dashboard -->|"REST API"| DB
 

@@ -11,7 +11,7 @@ Las empresas globales constituidas en EE. UU. que operan en Latinoamérica enfre
 flowchart LR
     subgraph InScope ["✓ ENTRA EN EL ALCANCE (Agente de Inteligencia)"]
         direction TB
-        I1["Leer facturas/cuentas (PDF, imagen, texto)<br/>y extraer datos clave (quién, cuánto, moneda, fecha límite)"]
+        I1["Leer facturas/cuentas (PDF, imagen, texto) - y extraer datos clave (quién, cuánto, moneda, fecha límite)"]
         I2["Evaluar reglas de negocio configurables"]
         I3["Decidir: PAGAR, FRENAR o ESCALAR a humano"]
         I4["Generar Audit Log explicable por factura"]
@@ -77,19 +77,19 @@ flowchart TD
     Input["Factura / Cuenta de Cobro de Entrada"] --> L1
 
     subgraph Pipeline ["Pipeline Determinista de Evaluación"]
-        L1["CAPA 1: Compliance, SARLAFT & Seguridad<br/>¿Está en listas negras (OFAC/GAFI) o presenta cuenta no autorizada?"]
-        L2["CAPA 2: Integridad & Validación de Datos<br/>¿Es un cobro duplicado o excede la tarifa acordada?"]
-        L3["CAPA 3: Solvencia Financiera & Presupuesto<br/>¿Hay saldo suficiente en la cuenta Blinka y presupuesto en el periodo?"]
-        L4["CAPA 4: Gobierno Human-in-the-Loop (HITL)<br/>¿Excede el límite autónomo ($2,000 USD) o es un proveedor nuevo?"]
+        L1["CAPA 1: Compliance, SARLAFT & Seguridad - ¿Está en listas negras (OFAC/GAFI) o presenta cuenta no autorizada?"]
+        L2["CAPA 2: Integridad & Validación de Datos - ¿Es un cobro duplicado o excede la tarifa acordada?"]
+        L3["CAPA 3: Solvencia Financiera & Presupuesto - ¿Hay saldo suficiente en la cuenta Blinka y presupuesto en el periodo?"]
+        L4["CAPA 4: Gobierno Human-in-the-Loop (HITL) - ¿Excede el límite autónomo ($2,000 USD) o es un proveedor nuevo?"]
 
         L1 -->|"No / Pasó"| L2
         L2 -->|"No / Pasó"| L3
         L3 -->|"No / Pasó"| L4
     end
 
-    L4 --> Approved["AUTO_APPROVED<br/>(Pago Aprobado 100%)"]
-    L4 --> Scaled["SCALED_TO_HUMAN<br/>(Requiere Humano)"]
-    L4 --> Rejected["REJECTED<br/>(Frenado / Rechazado)"]
+    L4 --> Approved["AUTO_APPROVED - (Pago Aprobado 100%)"]
+    L4 --> Scaled["SCALED_TO_HUMAN - (Requiere Humano)"]
+    L4 --> Rejected["REJECTED - (Frenado / Rechazado)"]
 
     style Approved fill:#dcfce7,stroke:#16a34a,stroke-width:2px
     style Scaled fill:#fef9c3,stroke:#ca8a04,stroke-width:2px
