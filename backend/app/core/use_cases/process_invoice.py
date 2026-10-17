@@ -14,6 +14,7 @@ from app.core.domain.models import ExtractedInvoice, ProcessedInvoice
 from app.core.domain.rules_pipeline import EvaluationContext, RulesPipeline
 from app.core.ports.outbound import (
     FXRateProvider,
+    IngestionLog,
     InvoiceRepository,
     NotificationPort,
     OCRPort,
@@ -37,6 +38,7 @@ class ProcessInvoiceUseCase:
         treasury: TreasuryRepository,
         company_id: str,
         notifier: Optional[NotificationPort] = None,
+        ingestion: Optional[IngestionLog] = None,
     ):
         self.ocr = ocr
         self.fx_rates = fx_rates
@@ -48,6 +50,7 @@ class ProcessInvoiceUseCase:
         self.treasury = treasury
         self.company_id = company_id
         self.notifier = notifier
+        self.ingestion = ingestion
 
     async def from_document(
         self,

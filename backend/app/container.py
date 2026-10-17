@@ -6,6 +6,7 @@ Para cambiar Gemini, PostgreSQL o la fuente de tasas basta con modificar este ar
 
 from app.adapters.outbound.db.postgres_repository import (
     PostgresDatabase,
+    PostgresIngestionLog,
     PostgresInvoiceRepository,
     PostgresRulesRepository,
     PostgresSanctionsRepository,
@@ -60,6 +61,7 @@ class Container:
             treasury=PostgresTreasuryRepository(self.db, default_treasury),
             company_id=company_id,
             notifier=notifier,
+            ingestion=PostgresIngestionLog(self.db),
         )
         self.decide_invoice = DecideInvoiceUseCase(invoice_repo, notifier=notifier)
         self.list_invoices = ListInvoicesUseCase(invoice_repo)
