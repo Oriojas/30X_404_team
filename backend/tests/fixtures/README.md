@@ -9,6 +9,8 @@ En las dos facturas colombianas la moneda solo aparece como `$`: el modelo debe 
 | `factura_nube_andina.pdf` | `NA-4521` | Nube Andina Consultores S.A.S. (`901.223.450-1`) | `12600000.0` (`$ 12.600.000`) | `COP` | `2026-12-05` | `CO-DAVIVIENDA-55566677788` | `SCALED_TO_HUMAN` por HITL-01 (3.000 USD supera el límite de 2.000) |
 | `factura_global_trade.png` | `GTP-0091` | Global Trade Partners Ltd (`PA-155-7788`) | `900.0` (`US$ 900.00`) | `USD` | `2026-11-20` | `PA-BANCO-PACIFICO-998877` | `REJECTED` por COMP-01 (coincidencia con lista OFAC) |
 
+`tests/test_postgres_integration.py` sube las tres por la API contra PostgreSQL con el seed (cliente de Gemini simulado) y verifica estas decisiones cuando existe `TEST_DATABASE_URL`.
+
 Prueba manual con una `GEMINI_API_KEY` real:
 
 ```bash
