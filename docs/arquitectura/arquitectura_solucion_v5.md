@@ -6,6 +6,8 @@
 > Los principios y el alcance están en [specs/mission.md](../../specs/mission.md), el stack en [specs/tech-stack.md](../../specs/tech-stack.md) y lo pendiente en [specs/roadmap.md](../../specs/roadmap.md).
 > Las reglas de negocio detalladas (códigos COMP, INTEG, FIN, HITL) están en [reglas_pago_agente_v3.md](../reglas-negocio/reglas_pago_agente_v3.md).
 
+> Los diagramas usan la **notación C4** sobre `flowchart` de Mermaid, para que se lean bien en tema claro y oscuro: azul oscuro = persona, azul = sistema, azul medio = contenedor, celeste = componente, gris = sistema externo y línea punteada = límite. Las flechas punteadas `implementado por` van de un puerto al adaptador que lo cumple.
+
 **Novedades frente a la v4:**
 - La aprobación humana ocurre **solo en el dashboard**; los canales (Telegram, web) únicamente ingresan facturas.
 - Hexágono explícito: puertos, casos de uso y composition root, con una prueba automática de arquitectura.
@@ -18,27 +20,31 @@
 Quién usa el sistema y con qué sistemas externos se comunica.
 
 ```mermaid
-C4Context
-    title Contexto del sistema - Blinka PayAgent
+flowchart LR
+    operativo(["Equipo operativo / Proveedor"])
+    aprobador(["Aprobador financiero"])
+    auditor(["Auditor / Jurado"])
 
-    Person(operativo, "Equipo operativo / Proveedor", "Envía facturas en foto o PDF")
-    Person(aprobador, "Aprobador financiero", "CFO o tesorería: revisa excepciones y configura reglas")
-    Person(auditor, "Auditor / Jurado", "Consulta el Audit Log y prueba el agente")
+    payagent["Blinka PayAgent"]
 
-    System(payagent, "Blinka PayAgent", "Lee, convierte a USD, evalúa con reglas deterministas y explica cada factura")
+    telegram["Telegram Bot API"]
+    gemini["Google Gemini API"]
 
-    System_Ext(telegram, "Telegram", "Bot API: canal de ingesta y avisos")
-    System_Ext(gemini, "Google Gemini API", "OCR multimodal: extracción estructurada")
+    operativo -->|"Envía foto o PDF"| telegram
+    telegram <-->|"Webhook y avisos"| payagent
+    operativo -->|"Sube facturas"| payagent
+    aprobador -->|"Aprueba escalamientos y ajusta reglas"| payagent
+    auditor -->|"Consulta el Audit Log"| payagent
+    payagent -->|"OCR del documento"| gemini
 
-    Rel(operativo, telegram, "Envía foto o PDF")
-    Rel(telegram, payagent, "Entrega el update", "Webhook HTTPS")
-    Rel(payagent, telegram, "Descarga adjuntos y avisa el dictamen", "Bot API HTTPS")
-    Rel(operativo, payagent, "Sube facturas", "Dashboard web")
-    Rel(aprobador, payagent, "Aprueba o rechaza escalamientos; ajusta reglas", "Dashboard web")
-    Rel(auditor, payagent, "Lee decisiones y explicaciones", "Dashboard web")
-    Rel(payagent, gemini, "Envía el documento y recibe JSON", "HTTPS")
-
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+    classDef person fill:#08427B,stroke:#052E56,color:#FFFFFF
+    classDef system fill:#1168BD,stroke:#0B4884,color:#FFFFFF
+    classDef container fill:#438DD5,stroke:#2E6295,color:#FFFFFF
+    classDef component fill:#85BBF0,stroke:#5D82A8,color:#0B1F33
+    classDef external fill:#6B6B6B,stroke:#4D4D4D,color:#FFFFFF
+    class operativo,aprobador,auditor person
+    class payagent system
+    class telegram,gemini external
 ```
 
 **Fuera del sistema (por alcance del reto):** no se ejecutan pagos reales, no hay conexión con la cuenta bancaria de Blinka (el saldo vive en la tabla `treasury_accounts`) y no hay KYB.
@@ -50,31 +56,38 @@ C4Context
 Las piezas desplegables y cómo se comunican.
 
 ```mermaid
-C4Container
-    title Contenedores - Blinka PayAgent
+flowchart LR
+    operativo(["Operativo / Proveedor"])
+    aprobador(["Aprobador financiero"])
 
-    Person(operativo, "Operativo / Proveedor")
-    Person(aprobador, "Aprobador financiero")
+    subgraph sys ["Blinka PayAgent"]
+        direction TB
+        spa["Dashboard - React, Vite, Nginx"]
+        api["Backend API - FastAPI, asyncpg"]
+        db[("PostgreSQL")]
+        spa -->|"API REST JSON"| api
+        api -->|"SQL"| db
+    end
 
-    System_Ext(telegram, "Telegram Bot API")
-    System_Ext(gemini, "Google Gemini API")
+    telegram["Telegram Bot API"]
+    gemini["Google Gemini API"]
 
-    System_Boundary(sys, "Blinka PayAgent") {
-        Container(spa, "Dashboard", "React 18, Vite, Tailwind, Nginx", "Landing, Audit Log, aprobación humana, subida de facturas y reglas")
-        Container(api, "Backend API", "Python 3.12, FastAPI, asyncpg", "Núcleo hexagonal: OCR, FX, tubería de 4 capas, Audit Log y webhook de Telegram")
-        ContainerDb(db, "Base de datos", "PostgreSQL", "invoices, company_rules, vendors, sanctions_list, treasury_accounts")
-    }
+    operativo -->|"Foto o PDF"| telegram
+    operativo -->|"Sube facturas"| spa
+    aprobador -->|"Decide y configura"| spa
+    telegram -->|"Webhook + secret token"| api
+    api -->|"getFile y sendMessage"| telegram
+    api -->|"OCR"| gemini
 
-    Rel(operativo, telegram, "Foto o PDF")
-    Rel(aprobador, spa, "Usa", "HTTPS")
-    Rel(operativo, spa, "Sube facturas", "HTTPS")
-    Rel(spa, api, "Llama a la API REST", "JSON / HTTPS")
-    Rel(telegram, api, "POST /api/webhook/telegram", "HTTPS + secret token")
-    Rel(api, telegram, "getFile, sendMessage", "HTTPS")
-    Rel(api, gemini, "Extracción OCR", "HTTPS")
-    Rel(api, db, "Lee y escribe", "SQL / asyncpg")
-
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+    classDef person fill:#08427B,stroke:#052E56,color:#FFFFFF
+    classDef system fill:#1168BD,stroke:#0B4884,color:#FFFFFF
+    classDef container fill:#438DD5,stroke:#2E6295,color:#FFFFFF
+    classDef component fill:#85BBF0,stroke:#5D82A8,color:#0B1F33
+    classDef external fill:#6B6B6B,stroke:#4D4D4D,color:#FFFFFF
+    class operativo,aprobador person
+    class spa,api,db container
+    class telegram,gemini external
+    style sys fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
 ```
 
 | Contenedor | Tecnología | Responsabilidad | Código |
@@ -88,46 +101,44 @@ C4Container
 ## 3. Nivel 3 — Diagrama de Componentes del Backend (Hexágono)
 
 ```mermaid
-C4Component
-    title Componentes - Backend API (arquitectura hexagonal)
+flowchart TB
+    subgraph inbound ["Adaptadores de entrada"]
+        rest["API REST - routers FastAPI - desde el Dashboard"]
+        webhook["Webhook Telegram - valida el secret token"]
+    end
 
-    Container(spa, "Dashboard", "React")
-    System_Ext(telegram, "Telegram Bot API")
-    System_Ext(gemini, "Google Gemini API")
-    ContainerDb(db, "PostgreSQL")
+    subgraph core ["Core"]
+        usecases["Casos de uso - ProcessInvoice, DecideInvoice, ListInvoices, Rules"]
+        domain["Dominio - RulesPipeline, FXConverter, AuditLogger"]
+        ports["Puertos - contratos Protocol"]
+    end
 
-    Container_Boundary(api, "Backend API") {
-        Boundary(inbound, "Adaptadores de entrada") {
-            Component(rest, "API REST", "FastAPI routers", "invoices, rules, health")
-            Component(webhook, "Webhook Telegram", "FastAPI router", "Valida el secret token y extrae el adjunto")
-        }
-        Boundary(core, "Core") {
-            Component(usecases, "Casos de uso", "Python", "ProcessInvoice, DecideInvoice, ListInvoices, Get/UpdateRules")
-            Component(domain, "Dominio", "Python puro", "RulesPipeline, FXConverter, AuditLogger, entidades")
-            Component(ports, "Puertos", "typing.Protocol", "OCR, FX, Facturas, Reglas, Proveedores, Sanciones, Tesorería, Notificaciones")
-        }
-        Boundary(outbound, "Adaptadores de salida") {
-            Component(ocr, "GeminiOCRAdapter", "SDK Gemini", "Implementa OCRPort")
-            Component(repos, "Repositorios Postgres", "asyncpg", "Implementan los puertos de datos")
-            Component(notify, "Notificaciones", "ChannelNotificationRouter + TelegramClient", "Avisa al canal de origen")
-            Component(fx, "StaticFXRateProvider", "Python", "Tasas de referencia")
-        }
-    }
+    subgraph outbound ["Adaptadores de salida"]
+        ocr["GeminiOCRAdapter - hacia Gemini API"]
+        repos["Repositorios - hacia PostgreSQL"]
+        notify["Notificaciones - hacia Telegram"]
+        fx["StaticFXRateProvider - tasas fijas"]
+    end
 
-    Rel(spa, rest, "JSON / HTTPS")
-    Rel(telegram, webhook, "Update")
-    Rel(rest, usecases, "Invoca")
-    Rel(webhook, usecases, "Invoca")
-    Rel(usecases, domain, "Usa")
-    Rel(usecases, ports, "Depende de")
-    Rel(ocr, gemini, "HTTPS")
-    Rel(repos, db, "SQL")
-    Rel(notify, telegram, "sendMessage")
+    rest --> usecases
+    webhook --> usecases
+    usecases --> domain
+    usecases --> ports
+    ports -.->|"implementado por"| ocr
+    ports -.->|"implementado por"| repos
+    ports -.->|"implementado por"| notify
+    ports -.->|"implementado por"| fx
 
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+    classDef component fill:#85BBF0,stroke:#5D82A8,color:#0B1F33
+    classDef core fill:#438DD5,stroke:#2E6295,color:#FFFFFF
+    class rest,webhook,ocr,repos,notify,fx component
+    class usecases,domain,ports core
+    style inbound fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
+    style core fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
+    style outbound fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
 ```
 
-Los adaptadores de salida **implementan** los puertos; el Core nunca los importa. `container.py` (composition root) crea cada adaptador y lo inyecta en los casos de uso. Los routers reciben los casos de uso con `adapters/inbound/dependencies.py`, el único punto de los adaptadores que ve el contenedor.
+Celeste = adaptadores; azul = Core. Los sistemas externos (Dashboard, Telegram, Gemini, PostgreSQL) aparecen en el diagrama de contenedores. Los adaptadores de salida **implementan** los puertos; el Core nunca los importa. `container.py` (composition root) crea cada adaptador y lo inyecta en los casos de uso. Los routers reciben los casos de uso con `adapters/inbound/dependencies.py`, el único punto de los adaptadores que ve el contenedor.
 
 ### Regla de dependencias (verificada por `backend/tests/test_architecture.py`)
 
@@ -334,23 +345,33 @@ La relación entre `vendors` e `invoices` es **lógica** (por NIT o razón socia
 ## 9. Despliegue (Railway)
 
 ```mermaid
-C4Deployment
-    title Despliegue - Railway (un solo proyecto)
+flowchart LR
+    subgraph railway ["Railway - un solo proyecto"]
+        direction LR
+        subgraph fe ["Servicio Frontend - node:20-alpine + Nginx"]
+            spa["Dashboard - SPA estática"]
+        end
+        subgraph be ["Servicio Backend - python:3.12-slim + uvicorn"]
+            api["Backend API - FastAPI"]
+        end
+        subgraph pg ["PostgreSQL - Railway native"]
+            db[("Base de datos")]
+        end
+    end
 
-    Deployment_Node(railway, "Railway", "PaaS") {
-        Deployment_Node(fe, "Servicio Frontend", "Docker: node:20-alpine build + Nginx") {
-            Container(spa, "Dashboard", "React SPA estática")
-        }
-        Deployment_Node(be, "Servicio Backend", "Docker: python:3.12-slim + uvicorn") {
-            Container(api, "Backend API", "FastAPI")
-        }
-        Deployment_Node(pg, "PostgreSQL", "Railway native") {
-            ContainerDb(db, "Base de datos", "PostgreSQL")
-        }
-    }
+    spa -->|"HTTPS - VITE_API_BASE_URL"| api
+    api -->|"asyncpg - DATABASE_URL"| db
 
-    Rel(spa, api, "HTTPS", "VITE_API_BASE_URL")
-    Rel(api, db, "asyncpg", "DATABASE_URL")
+    classDef person fill:#08427B,stroke:#052E56,color:#FFFFFF
+    classDef system fill:#1168BD,stroke:#0B4884,color:#FFFFFF
+    classDef container fill:#438DD5,stroke:#2E6295,color:#FFFFFF
+    classDef component fill:#85BBF0,stroke:#5D82A8,color:#0B1F33
+    classDef external fill:#6B6B6B,stroke:#4D4D4D,color:#FFFFFF
+    class spa,api,db container
+    style railway fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
+    style fe fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
+    style be fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
+    style pg fill:none,stroke:#8A8A8A,stroke-width:2px,stroke-dasharray:6 4
 ```
 
 | Variable | Servicio | Uso |
