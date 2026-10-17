@@ -63,10 +63,6 @@ class InvoiceRepository(Protocol):
         """HITL-02: el proveedor tiene al menos un pago aprobado previo."""
         ...
 
-    async def sum_approved_usd_since(self, since: datetime) -> float:
-        """FIN-02: acumulado aprobado (autónomo o humano) del período."""
-        ...
-
 
 class RulesRepository(Protocol):
     """Lectura y actualización de reglas corporativas."""
@@ -93,7 +89,7 @@ class SanctionsRepository(Protocol):
 
 
 class TreasuryRepository(Protocol):
-    """Saldo y presupuesto de la cuenta Blinka."""
+    """Saldo y presupuesto de la cuenta Blinka, con el acumulado aprobado del mes en curso (FIN-02)."""
 
     async def get(self, company_id: str) -> TreasuryStatus: ...
 

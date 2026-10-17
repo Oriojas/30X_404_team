@@ -4,17 +4,18 @@
 
 ## 1. Endpoint de tesorería (backend, T1)
 
-1.1. `app/core/use_cases/query_treasury.py`: `month_start()` y `GetTreasuryUseCase(treasury, invoices, company_id)`, que devuelve `TreasuryStatus` con `month_spent_usd` (D1, D2).
-1.2. `ProcessInvoiceUseCase` usa `month_start()` en lugar de calcular el inicio de mes por su cuenta.
-1.3. `TreasuryResponse` en `schemas.py`, router `api/routers/treasury.py` con `GET /api/treasury`, dependencia `get_get_treasury` y registro en `main.py`.
-1.4. `Container`: un solo `PostgresTreasuryRepository`, compartido por la tubería y `GetTreasuryUseCase`.
-1.5. Pruebas: `tests/test_treasury_api.py` (suma solo lo aprobado) y una aserción de `/api/treasury` en `test_postgres_integration.py`.
-1.6. `backend/README.md`: agregar el endpoint a la tabla.
+1.1. `PostgresTreasuryRepository.get` devuelve `TreasuryStatus` con `month_spent_usd` (acumulado aprobado desde el 1.º del mes en UTC) en una sola consulta; se quita `sum_approved_usd_since` del puerto `InvoiceRepository` (D2).
+1.2. `ProcessInvoiceUseCase` deja de sumar por su cuenta: usa el `month_spent_usd` que trae la tesorería.
+1.3. `app/core/use_cases/query_treasury.py`: `GetTreasuryUseCase(treasury, company_id)` (D1).
+1.4. `TreasuryResponse.from_domain` en `schemas.py`, router `api/routers/treasury.py` con `GET /api/treasury`, dependencia `get_get_treasury` y registro en `main.py`.
+1.5. `Container`: un solo `PostgresTreasuryRepository`, compartido por la tubería y `GetTreasuryUseCase`.
+1.6. Pruebas: `tests/test_treasury_api.py` (forma de la respuesta) y, en `test_postgres_integration.py`, la ventana del mes (las aprobadas del seed de hace 35 a 50 días no cuentan) y la suma de `AUTO_APPROVED` + `HUMAN_APPROVED`.
+1.7. `backend/README.md`: agregar el endpoint a la tabla.
 
 ## 2. Cliente y estado (frontend, T2)
 
-2.1. `api.js`: `DEFAULT_RULES.min_treasury_buffer_usd = 1000`, `DEFAULT_TREASURY` (D4), `getTreasury()`, `treasuryHeadroom()` (D3) y `formatUsd()`.
-2.2. `App.jsx`: estado `treasury` cargado junto con las reglas al abrir la página; se pasa al hero y a `RuleControls`.
+2.1. `api.js`: `DEFAULT_RULES.min_treasury_buffer_usd = 1000`, `DEFAULT_TREASURY` (D4), `getTreasury()`, `treasuryHeadroom()` (D3), `headroomText()`, `headroomColor()` y `formatUsd()`.
+2.2. `App.jsx`: estado `treasury` (`null` hasta que responde la API) cargado junto con las reglas; el seed solo se usa en modo demostración (D4).
 
 ## 3. Hero y tarjeta de colchón (frontend, T3)
 

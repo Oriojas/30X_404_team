@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Notice from './Notice'
-import { formatUsd, treasuryHeadroom } from '../api'
+import { formatUsd, headroomColor, headroomText, treasuryHeadroom } from '../api'
 
 function FieldError({ message }) {
   if (!message) return null
@@ -20,7 +20,7 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
   const [fieldErrors, setFieldErrors] = useState({})
   const [generalError, setGeneralError] = useState(null)
   // La holgura sigue al valor que se está editando, antes de guardarlo
-  const headroom = treasuryHeadroom(treasury.balance_usd, bufferUsd)
+  const headroom = treasuryHeadroom(treasury?.balance_usd, bufferUsd)
 
   // Los campos reflejan las reglas vigentes cuando llegan de la API o tras guardarlas
   const rulesKey = JSON.stringify(currentRules)
@@ -302,13 +302,13 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
               </div>
 
               <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                <div className="bg-brand-teal h-full rounded-full transition-all duration-500" style={{ width: `${headroom.pct}%` }}></div>
+                <div className="bg-brand-teal h-full rounded-full transition-all duration-500" style={{ width: `${headroom?.pct ?? 0}%` }}></div>
               </div>
 
               <div className="flex items-center justify-between font-mono text-[10px] text-brand-steel">
-                <span>Caja: {formatUsd(treasury.balance_usd)} USD</span>
-                <span className={`font-semibold ${headroom.ok ? 'text-emerald-700' : 'text-red-600'}`}>
-                  Holgura {headroom.pct}% {headroom.ok ? 'OK' : 'bajo el colchón'}
+                <span>Caja: {treasury ? `${formatUsd(treasury.balance_usd)} USD` : '—'}</span>
+                <span className={`font-semibold ${headroomColor(headroom)}`}>
+                  Holgura {headroomText(headroom)}
                 </span>
               </div>
               <FieldError message={fieldErrors.min_treasury_buffer_usd} />

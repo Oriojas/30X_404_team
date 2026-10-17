@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
-from app.core.domain.models import CompanyRules, ExtractedInvoice, HumanDecision, ProcessedInvoice
+from app.core.domain.models import CompanyRules, ExtractedInvoice, HumanDecision, ProcessedInvoice, TreasuryStatus
 
 
 class InvoiceCreateRequest(BaseModel):
@@ -90,6 +90,10 @@ class TreasuryResponse(BaseModel):
     balance_usd: float
     monthly_budget_usd: float
     month_spent_usd: float
+
+    @classmethod
+    def from_domain(cls, treasury: TreasuryStatus) -> "TreasuryResponse":
+        return cls(**asdict(treasury))
 
 
 class CompanyRulesUpdate(BaseModel):

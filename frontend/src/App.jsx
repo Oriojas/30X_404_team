@@ -115,7 +115,9 @@ export default function App() {
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false)
 
   const [rules, setRules] = useState(DEFAULT_RULES)
-  const [treasury, setTreasury] = useState(DEFAULT_TREASURY)
+  // null hasta que responde GET /api/treasury; si falla con la API viva se muestra "—", no el saldo del seed
+  const [treasury, setTreasury] = useState(null)
+  const shownTreasury = treasury ?? (apiAvailable === false ? DEFAULT_TREASURY : null)
 
   // Con la API disponible se muestran siempre los datos reales, aunque la lista esté vacía
   const loadInvoices = useCallback(async () => {
@@ -153,12 +155,10 @@ export default function App() {
       })
     getTreasury()
       .then((data) => {
-        if (data && typeof data === 'object') {
-          setTreasury((prev) => ({ ...prev, ...data }))
-        }
+        if (data && typeof data === 'object') setTreasury(data)
       })
       .catch(() => {
-        // Fallback a la tesorería del seed de demostración
+        // Sin tesorería: el hero y la tarjeta muestran "—" (o el seed en modo demostración)
       })
   }, [loadInvoices])
 
@@ -201,7 +201,7 @@ export default function App() {
       {/* Main Sections */}
       <main className="w-full pt-16 flex-1 flex flex-col relative z-10">
         {/* Section 1: Hero & Treasury Node */}
-        <HeroSection treasury={treasury} rules={rules} />
+        <HeroSection treasury={shownTreasury} rules={rules} />
 
         {/* Section 2: Telegram Workflow & 3-Step Cognitive Process */}
         <AgentWorkflow onSelectInvoiceForInspection={(inv) => setSelectedInvoice(inv)} />
@@ -209,7 +209,7 @@ export default function App() {
         {/* Section 3: Governance & Business Rules */}
         <RuleControls
           currentRules={rules}
-          treasury={treasury}
+          treasury={shownTreasury}
           readOnly={apiAvailable === false}
           onSave={handleSaveRules}
         />

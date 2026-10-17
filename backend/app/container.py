@@ -69,7 +69,7 @@ class Container:
         self.list_invoices = ListInvoicesUseCase(invoice_repo)
         self.get_rules = GetRulesUseCase(rules_repo, company_id)
         self.update_rules = UpdateRulesUseCase(rules_repo, company_id)
-        self.get_treasury = GetTreasuryUseCase(treasury_repo, invoice_repo, company_id)
+        self.get_treasury = GetTreasuryUseCase(treasury_repo, company_id)
 
     def status(self) -> dict:
         return {

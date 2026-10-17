@@ -9,7 +9,8 @@
 
 - [x] `pytest` en `backend/` verde, incluida `tests/test_treasury_api.py`. *(70 pasadas, 6 omitidas sin `TEST_DATABASE_URL`)*
 - [x] `tests/test_postgres_integration.py` contra PostgreSQL 16 con seed: `/api/treasury` devuelve `balance_usd = 8500` y `monthly_budget_usd = 25000`. *(6 pasadas)*
-- [x] `month_spent_usd` suma solo facturas aprobadas (`AUTO_APPROVED` y `HUMAN_APPROVED`) del mes en curso; una `REJECTED` no cuenta.
+- [x] `month_spent_usd` suma solo facturas aprobadas del mes en curso: del seed solo cuenta DS-1042 (1.200 USD, hace 3 días) y no las aprobadas de hace 35 a 50 días; tras TC-01 (`AUTO_APPROVED`, 450) y la aprobación humana de TC-04 (`HUMAN_APPROVED`, 3.500) sube 3.950. *(integración con SQL real)*
+- [x] La tubería (FIN-02) y el endpoint leen el gasto del mes del mismo `TreasuryRepository.get`.
 - [x] La prueba de arquitectura sigue en verde (el Core no importa FastAPI).
 - [x] `npm run build` en `frontend/` sin errores.
 - [x] Ningún componente conserva los valores fijos `$48,250`, `$10,000` ni `79%` en el hero o en la tarjeta de colchón. *(queda solo el chat ilustrativo de `AgentWorkflow.jsx`, fuera de alcance)*
@@ -19,7 +20,10 @@
 - [x] El hero muestra "$8,500.00 USD", "Colchón protegido: $1,000 USD" y "Liquidez 88% OK"; el umbral autónomo muestra "$2,000".
 - [x] La tarjeta "Colchón Mínimo Tesorería" muestra "Caja: $8,500 USD" y "Holgura 88% OK".
 - [x] Al escribir 9000 en la reserva, sin guardar, la tarjeta muestra "Holgura 0% bajo el colchón" en rojo y la barra queda en 0.
-- [x] Sin errores en la consola del navegador.
+- [x] Con la reserva vacía, la tarjeta muestra "Holgura —" (no "100% OK"); con 8499.99 muestra "Holgura <1% OK".
+- [x] Con la API viva pero sin `GET /api/treasury` (backend de `master`, responde `404`): el hero y la tarjeta muestran "—", sin banner de demostración y sin el saldo del seed.
+- [x] Con la API caída: banner de demostración y valores del seed ($8,500, $1,000, 88 %).
+- [x] Sin errores de JavaScript en la consola (solo las solicitudes fallidas esperadas al apagar el backend o recibir el `404`).
 - [x] Sin modo demostración: los valores vienen de `GET /api/treasury` y `GET /api/rules`.
 
 ## Después del merge (producción)

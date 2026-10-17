@@ -87,9 +87,6 @@ class InMemoryInvoices:
     async def vendor_has_paid_history(self, vendor_tax_id, vendor_name):
         return any(i.vendor_name == vendor_name and i.decision_status in APPROVED for i in self.items.values())
 
-    async def sum_approved_usd_since(self, since: datetime):
-        return sum(i.usd_amount for i in self.items.values() if i.decision_status in APPROVED)
-
 
 class InMemoryRules:
     async def get(self, company_id):
@@ -113,8 +110,11 @@ class NoSanctions:
 
 
 class FixedTreasury:
+    def __init__(self, month_spent_usd=0.0):
+        self.month_spent_usd = month_spent_usd
+
     async def get(self, company_id):
-        return TreasuryStatus(balance_usd=8500, monthly_budget_usd=25000)
+        return TreasuryStatus(balance_usd=8500, monthly_budget_usd=25000, month_spent_usd=self.month_spent_usd)
 
 
 class SpyNotifier:
