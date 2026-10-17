@@ -4,9 +4,14 @@
 > Orden de implementación en fases muy pequeñas: cada una se puede terminar, probar y commitear sola.
 > Al cerrar una fase se marca `[x]`. El cronograma por días y los roles están en [plan_de_trabajo.md](../plan_de_trabajo.md).
 
-**Hitos fijos:** congelamiento de código el **domingo 18 de octubre de 2026 a las 09:30 AM** y entrega en HackRadar antes de las **11:59 AM**.
+**Hitos fijos** (el equipo trabaja entre Colombia, GMT-5, y Tailandia, GMT+7):
 
-**Orden acordado para lo pendiente:** OCR real → ingesta idempotente → integración del frontend → despliegue en Railway.
+| Hito | Colombia (GMT-5) | Tailandia (GMT+7) |
+| :--- | :--- | :--- |
+| Congelamiento de código | domingo 18-oct-2026, 09:30 AM | domingo 18-oct-2026, 09:30 PM |
+| Entrega en HackRadar | domingo 18-oct-2026, antes de las 11:59 AM | domingo 18-oct-2026, antes de las 11:59 PM |
+
+**Orden acordado para lo pendiente:** validaciones y casos trampa → tesorería comprometida → reglas configurables → seguridad y acceso → extensiones si queda tiempo (seguridad adicional, pruebas y CI, multimoneda) → cierre y entrega.
 
 ---
 
@@ -79,13 +84,99 @@ Hallazgo de la validación de la Fase 4: el hero y la tarjeta de colchón mostra
 
 **Listo cuando:** el dashboard público muestra la misma caja y el mismo colchón con los que decide el agente.
 
-## Fase 5 — Cierre y entrega
+## Fase 5 — Validaciones pendientes, casos trampa y CI
 
-- [ ] **F5.1 — Limpieza:** quitar dependencias sin uso (`python-telegram-bot`) y pasar `pytest` a desarrollo.
-- [ ] **F5.2 — Congelamiento:** último commit antes de las 09:30 AM del domingo.
-- [ ] **F5.3 — README final:** link de la demo desplegada y guía de prueba para el jurado.
-- [ ] **F5.4 — Video pitch (3 min):** problema, demo en vivo (Telegram + dashboard) e impacto.
-- [ ] **F5.5 — Entrega:** formulario de HackRadar antes de las 11:59 AM.
+Pruebas recomendadas de las Fases 2, 3 y 4 que quedaron sin marcar porque faltaba el despliegue, y el caso trampa de "no cuadra con lo acordado", que aún no está en la Test Suite de la demo.
+
+- [ ] **F5.1 — Aviso de la decisión humana:** enviar una factura por Telegram, aprobarla desde el Drawer del dashboard público y confirmar que el chat recibe el aviso del resultado (principio 4 de [mission.md](mission.md)).
+- [ ] **F5.2 — Update repetido:** reenviar con `curl` el mismo cuerpo de un update al webhook de producción (con el secret) y confirmar `200 {"status": "duplicate"}` y un solo aviso en el chat.
+- [ ] **F5.3 — Hash entre canales:** subir por la web un archivo que ya llegó por Telegram y ver el rechazo por INTEG-01 en el dashboard.
+- [ ] **F5.4 — Marcar lo ya cubierto:** `Idempotency-Key` `201` → `200` (segunda corrida de `humo_produccion.py`) y build con `frontend/Dockerfile` (Fase 4), con la referencia en cada `validation.md`.
+- [ ] **F5.5 — TC-07:** agregar a `casos_demo.py`, `humo_produccion.py` y la Test Suite de [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md) el caso trampa "factura que no cuadra con lo acordado" (TC-07, `SCALED_TO_HUMAN` por INTEG-02). El caso trampa de presupuesto (TC-08) depende de poder editar el presupuesto y queda en F7.6.
+- [ ] **F5.6 — Datos para el pitch:** tiempo de arranque en frío del backend y captura del dashboard en producción.
+- [ ] **F5.7 — CI:** workflow de GitHub Actions que corre `pytest` con los fakes (las pruebas de integración se omiten sin `TEST_DATABASE_URL`) y `npm run build` en cada PR. El servicio de PostgreSQL en el CI queda en F9.6.
+
+**Listo cuando:** las verificaciones recomendadas de las Fases 2 a 4 están marcadas con evidencia, la demo cubre los casos trampa del reto que ya permite el código (duplicado, beneficiario nuevo, no cuadra con lo acordado, monto sobre el límite, saldo insuficiente) y cada PR muestra el resultado de las pruebas.
+
+## Fase 6 — Tesorería comprometida
+
+El reto descalifica a quien apruebe un pago indebido. Hoy FIN-01 compara cada factura contra el saldo total por separado y la aprobación humana no vuelve a revisar la solvencia: con $8,500 de caja, cinco facturas de $1,900 de proveedores con historial salen `AUTO_APPROVED` aunque suman $9,500.
+
+- [ ] **F6.1 — Saldo como foto con fecha:** como no hay estado de pago ejecutado (el reto no mueve dinero), `treasury_accounts.balance_usd` es el saldo a la fecha de `treasury_accounts.updated_at`. Se compromete solo lo aprobado **después** de esa fecha: `disponible = saldo − Σ usd_amount de AUTO_APPROVED y HUMAN_APPROVED con fecha de aprobación (processed_at o decided_at) > updated_at`. El historial del seed (anterior a la foto) no compromete nada, así que TC-01 sigue `AUTO_APPROVED`. `PATCH /api/treasury` con el saldo toma una foto nueva (también actualiza `updated_at`) y libera lo comprometido; `casos_demo.py` y `humo_produccion.py` lo llaman antes de TC-01 para que las aprobaciones de corridas anteriores no hagan escalar la demo. `updated_at` se escribe siempre con `timezone('UTC', now())` (schema, seed y `UPDATE`), igual que las fechas de las facturas.
+- [ ] **F6.2 — Solvencia con el disponible:** FIN-01 y FIN-03 evalúan contra el disponible y la explicación cita saldo, comprometido y disponible. FIN-02 suma el gasto del mes con la misma fecha de aprobación que F6.1 (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`).
+- [ ] **F6.3 — Revalidación al aprobar:** `DecideInvoiceUseCase` recibe los puertos `TreasuryRepository` y `RulesRepository` (cableados en `container.py`) y recalcula la Capa 3 antes de un `HUMAN_APPROVED`. La persona siempre puede aprobar: el Audit Log registra el disponible y las alertas FIN vigentes al aprobar, como excepción aprobada por esa persona. La única excepción es una factura sin conversión a USD (INTEG-04, `usd_amount = 0`): responde `409`, porque comprometería $0 con un monto real desconocido; solo se puede rechazar. La variante estricta (`409` ante una alerta FIN nueva desde el escalamiento) queda en F9.7.
+- [ ] **F6.4 — Serializar la solvencia:** dos ingestas simultáneas (Telegram y web), o una ingesta y una aprobación, leen el mismo disponible. La lectura de tesorería, la evaluación y el guardado se serializan con **una sola** instancia de `asyncio.Lock` creada en `container.py` e inyectada en `ProcessInvoiceUseCase`, `DecideInvoiceUseCase` y el `PATCH /api/treasury` (el OCR queda fuera del candado). Vale porque el backend corre en una sola réplica en Railway; con más réplicas se cambia por `pg_advisory_xact_lock`, y la limitación queda documentada en el README.
+- [ ] **F6.5 — Endpoint y dashboard:** `GET /api/treasury` agrega `committed_usd`, `available_usd` y la fecha de la foto; el hero muestra el disponible y una tarjeta muestra el presupuesto mensual y el gasto del mes (FIN-02).
+- [ ] **F6.6 — Pruebas:** varias facturas que caben solas pero no juntas (la que desborda escala por FIN-01); historial anterior a la foto que no compromete; aprobación humana de TC-05 como excepción registrada; `409` al aprobar una factura INTEG-04; dos ingestas concurrentes de $4,000 con $8,500 de saldo y $1,000 de colchón (solo una sale `AUTO_APPROVED`). Las pruebas que construyen `DecideInvoiceUseCase(invoices, notifier)` se adaptan a los puertos nuevos en la misma fase. Antes de mergear, `test_postgres_integration.py` corre en local con PostgreSQL 16 en Docker: lo comprometido, la fecha de FIN-02 y el UTC son SQL que los fakes no cubren. TC-01 a TC-07 siguen dando lo esperado.
+
+**Listo cuando:** el agente nunca aprueba solo un pago que deje lo comprometido por encima del saldo o del presupuesto, ni siquiera con ingestas simultáneas, y cada pago que una persona aprueba fuera de esos límites queda registrado como excepción aprobada por ella.
+
+## Fase 7 — Reglas configurables completas
+
+El reto pide una pantalla donde la empresa define sus reglas: límites por pago y por periodo, beneficiarios permitidos y aprobación humana por encima de cierto monto. Hoy solo el umbral de aprobación, el colchón, la ventana de duplicados y SARLAFT se editan; el presupuesto, los beneficiarios y las tarifas acordadas viven solo en el seed.
+
+- [ ] **F7.1 — Presupuesto del periodo:** `monthly_budget_usd` vive en `treasury_accounts` (`TreasuryRepository`), no en `company_rules`: si se agregara a `CompanyRulesUpdate`, `UpdateRulesUseCase` lo descartaría en silencio. Se edita con el `PATCH /api/treasury` de F6.1 (con validación `422`); el panel de reglas lo muestra junto a los demás umbrales pero lo guarda por esa ruta. FIN-02 lo usa en la siguiente evaluación.
+- [ ] **F7.2 — Tope duro por pago:** nueva regla `max_payment_usd` en `company_rules`; una factura por encima queda `REJECTED` con un código nuevo (FIN-04), distinta del umbral de aprobación humana (HITL-01). Validar que `max_payment_usd ≥ max_autonomous_usd` y documentar la regla en [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md).
+- [ ] **F7.3 — Beneficiarios permitidos:** columna `vendors.active BOOLEAN DEFAULT TRUE` en `schema.sql` y `Vendor.active` en el dominio; `GET`/`POST`/`PATCH /api/vendors` para alta, edición (cuenta autorizada y tarifa acordada, que usan COMP-02 e INTEG-02) y baja lógica (`active = false`). `VendorRepository.find` sigue devolviendo el proveedor inactivo, para que COMP-02, COMP-04 e INTEG-02 sigan evaluándose contra su registro; es HITL-02 quien mira `active`. `vendors` e `invoices` siguen sin `company_id` (MVP de una empresa, igual que hoy); el modelo multiempresa queda para V4.
+- [ ] **F7.4 — HITL-02 = lista permitida:** el reto define el caso trampa como "beneficiario que no está en la lista permitida". HITL-02 pasa a dispararse cuando el proveedor no está registrado o está inactivo, y deja de exigir historial de pagos: el alta desde el dashboard por un aprobador es la verificación inicial y queda en el registro con quién y cuándo. Se documenta el cambio en [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md); TC-03 (proveedor fuera de la lista) sigue escalando por HITL-02.
+- [ ] **F7.5 — Panel en el dashboard:** tabla de beneficiarios con su cuenta, tarifa acordada y estado, y formulario de alta y edición; todas las llamadas por `api.js`.
+- [ ] **F7.6 — TC-08:** caso trampa "presupuesto del periodo insuficiente" (`SCALED_TO_HUMAN` por FIN-02) en `casos_demo.py`, `humo_produccion.py` y la Test Suite. Para que FIN-02 dispare sin FIN-01 ni FIN-03, el script baja el presupuesto con F7.1 justo por debajo de `gasto del mes + monto`, envía una factura de un proveedor de la lista, dentro de su tarifa y del umbral autónomo, y restaura el presupuesto (como se probó la ventana de duplicados en la Fase 4). No se infla el gasto del seed: con la Fase 6 ese gasto comprometería el saldo y dispararía FIN-01 en todos los casos.
+- [ ] **F7.7 — Pruebas:** validaciones `422`; un cambio de presupuesto, tope o tarifa que cambia la decisión de la siguiente factura; un proveedor dado de alta desde el dashboard cuya siguiente factura ya no escala por HITL-02; un proveedor dado de baja que vuelve a escalar por HITL-02 y conserva COMP-02/INTEG-02; TC-01 a TC-08 dan lo esperado. En la misma fase se adaptan las pruebas que esperan HITL-02 para un proveedor registrado sin historial (`test_process_invoice.py`, `test_ingestion_idempotency.py`) y se borran `vendor_has_paid_history` y el comentario del seed sobre HITL-02, para que el CI de F5.7 siga en verde.
+
+**Listo cuando:** desde el dashboard se definen el límite por pago, el umbral de aprobación humana, el presupuesto del periodo y los beneficiarios con su tarifa acordada, y la siguiente factura se evalúa con esos valores.
+
+## Fase 8 — Seguridad e inicio de sesión
+
+Hoy ningún endpoint exige autenticación: cualquiera con la URL del backend puede cambiar las reglas (incluso desactivar SARLAFT), aprobar facturas escaladas con un `decided_by` arbitrario o gastar cuota de Gemini. El jurado debe seguir pudiendo probar sin ayuda, así que las credenciales de demo se publican.
+
+- [ ] **F8.1 — Usuarios y roles:** dos roles con credenciales de demo en variables de entorno, comparadas con `hmac.compare_digest` (son públicas, así que no hace falta hash): `operador` (sube facturas) y `aprobador` (decide escalamientos, edita reglas y beneficiarios). La segregación queda por rol: el operador no puede aprobar.
+- [ ] **F8.2 — Token:** `POST /api/auth/login` entrega un token firmado (HMAC/JWT) con expiración; una dependencia de FastAPI lo exige en `POST /api/rules`, en los endpoints de beneficiarios de la Fase 7, en `POST /api/invoices`, `POST /api/invoices/upload` y `POST /api/invoices/{id}/decision`. Los `GET` siguen públicos. La clave que firma los tokens (`AUTH_SECRET`) sí es secreta: se carga en Railway y se declara con `preserve()` en `.railway/railway.ts`. Solo toca adaptadores de entrada y `config.py`, no el Core.
+- [ ] **F8.3 — Autor verificado:** `decided_by` sale del token, no del cuerpo de la solicitud; el Audit Log registra el usuario autenticado.
+- [ ] **F8.4 — Frontend:** pantalla de login con las credenciales de demo visibles, token en memoria, header `Authorization` en `api.js` y manejo de `401`/`403` (los botones del rol que falta quedan deshabilitados).
+- [ ] **F8.5 — Endurecimiento mínimo:** tope a `limit` en `GET /api/invoices`. `/docs` sigue encendido: con el token de la Fase 8, Swagger no permite cambiar nada sin credenciales y es la forma más fácil de que el jurado pruebe la API. El resto del endurecimiento queda en F9.2.
+- [ ] **F8.6 — Pruebas:** `401` sin token, `403` con el rol equivocado, `decided_by` tomado del token y humo de producción actualizado para autenticarse.
+
+**Listo cuando:** sin credenciales no se pueden cambiar reglas ni beneficiarios ni decidir facturas, el operador no puede aprobar, y el jurado entra con las credenciales de demo publicadas y recorre TC-01 a TC-08.
+
+## Fase 9 — Extensiones (si queda tiempo)
+
+Trabajo valioso que se retiró de las Fases 6 y 8 para que el plan quepa antes del congelamiento, más la multimoneda. Solo se empieza cuando las Fases 5 a 8 estén mergeadas y en producción, y nunca se come la ventana de la Fase 10 (domingo desde las 05:00 AM en Colombia / 05:00 PM en Tailandia). Cada bloque va en su propia rama y se mergea solo si cierra completo. Lo que no se alcance pasa sin cambios a la visión posterior al Demo Day. Orden sugerido: 9A y 9B son cortos; 9C es el más largo y el más arriesgado.
+
+### 9A — Seguridad adicional
+
+- [ ] **F9.1 — Segregación por persona:** columna `invoices.submitted_by`, llenada por cada canal: el usuario del token en web y API, y `telegram:<chat_id>` en Telegram. `DecideInvoiceUseCase` rechaza la decisión si `decided_by == submitted_by` (regla del Core, con su error de dominio → `403`). Limitación documentada: un chat de Telegram no está ligado a un usuario del dashboard, así que un aprobador que envía por Telegram y aprueba desde el dashboard no se detecta; el Audit Log sí muestra quién envió y quién aprobó.
+- [ ] **F9.2 — Endurecimiento completo:** `/docs` y `/openapi.json` apagados en producción (si el jurado ya no los necesita), verificación de los bytes del archivo (firma de JPG/PNG/WEBP/PDF), del `mime_type` y del tamaño de los documentos de Telegram, y `ALLOWED_ORIGINS` sin `*` por defecto en `config.py`.
+- [ ] **F9.3 — Límite de uso:** límite de solicitudes por IP en la subida web y por chat en Telegram, para proteger la cuota de Gemini.
+- [ ] **F9.4 — Contenedores:** backend sin root y sin `build-essential` en la imagen final; Nginx con cabeceras `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options` y `Referrer-Policy`.
+- [ ] **F9.5 — Contraseñas con hash:** guardar las credenciales en las variables de entorno como hash (bcrypt o `hashlib.scrypt`) en vez de compararlas en claro, para cuando dejen de ser credenciales de demo.
+
+### 9B — Pruebas y CI adicionales
+
+- [ ] **F9.6 — PostgreSQL en el CI:** servicio de PostgreSQL 16 en GitHub Actions con `TEST_DATABASE_URL`, para que `test_postgres_integration.py` corra en cada PR y no solo en local.
+- [ ] **F9.7 — Revalidación estricta:** al aprobar, distinguir las alertas FIN que la factura ya traía al escalar de las nuevas; ante una alerta FIN **nueva** (otro pago consumió el saldo o el presupuesto), responder `409` con la razón y dejar la factura en `SCALED_TO_HUMAN` para que el aprobador decida con la información vigente. Con su prueba.
+- [ ] **F9.8 — Aprobaciones concurrentes:** prueba de dos aprobaciones simultáneas que no pueden comprometer más que el disponible (el candado de F6.4 ya las serializa; falta la prueba).
+
+### 9C — Tesorería multimoneda
+
+El reto menciona los pagos en otra moneda como parte del dolor actual, pero no la exige. La cuenta Blinka tiene billeteras por moneda. Una factura en COP se paga primero desde la billetera COP y, si no alcanza, desde USD con conversión explícita a $0.00 FX Markup. Los umbrales siguen en USD (principio 5 de [mission.md](mission.md)).
+
+- [ ] **F9.9 — Esquema:** tabla `treasury_balances (company_id, currency, balance, updated_at)` con `PRIMARY KEY (company_id, currency)` como **única** fuente de saldos. `schema.sql` migra `treasury_accounts.balance_usd` a la fila USD si no existe, y desde ahí `treasury_accounts` solo guarda el presupuesto; nadie vuelve a leer `balance_usd` (se puede borrar después del Demo Day). Saldos ficticios en `seed.sql` (USD, COP, MXN). Cada billetera tiene su propia foto (`updated_at`), igual que en F6.1.
+- [ ] **F9.10 — Compromisos por billetera:** columnas `invoices.payment_wallet` (moneda de la billetera elegida) y `invoices.payment_amount` (monto en esa moneda). Lo comprometido se calcula por billetera: una factura en COP pagada desde COP descuenta pesos de la billetera COP y no toca la de USD; una que cae a USD descuenta su equivalente en USD. `TreasuryStatus` expone los disponibles por moneda y el total equivalente en USD; el Core decide la fuente del pago (billetera local o USD) y la guarda en la factura.
+- [ ] **F9.11 — Solvencia:** FIN-01 y FIN-03 evalúan contra la billetera de la moneda de la factura y, si no alcanza, contra USD convertido; el Audit Log registra la billetera usada y la tasa aplicada.
+- [ ] **F9.12 — Tasas en vivo con respaldo:** `FXRateProvider` contra una API de tasas, con las tasas fijas como respaldo ante error o timeout; la fuente de la tasa queda en el registro. Se agrega a [tech-stack.md](tech-stack.md) en el mismo cambio.
+- [ ] **F9.13 — Endpoint y dashboard:** `GET /api/treasury` devuelve el desglose por moneda y el hero muestra cada billetera y el total en USD.
+- [ ] **F9.14 — Pruebas:** factura COP pagada desde la billetera COP, dos facturas COP seguidas (la segunda ve la billetera COP ya comprometida y la de USD intacta), factura COP que cae a USD, moneda sin billetera ni tasa (escala por INTEG-04) y falla del proveedor de tasas (usa las fijas); TC-01 a TC-08 siguen dando lo esperado.
+
+**Listo cuando** (por bloque): 9A, los endpoints y contenedores cumplen lo descrito con sus pruebas; 9B, el CI corre las pruebas de integración y la revalidación estricta está probada; 9C, el dashboard muestra los saldos por moneda y cada decisión explica desde qué billetera se pagaría y con qué tasa.
+
+
+## Fase 10 — Cierre y entrega
+
+- [ ] **F10.1 — Limpieza:** quitar dependencias sin uso (`python-telegram-bot`) y pasar `pytest` a desarrollo.
+- [ ] **F10.2 — Congelamiento:** último commit antes del domingo 09:30 AM (Colombia) / 09:30 PM (Tailandia).
+- [ ] **F10.3 — README final:** link de la demo desplegada, credenciales de demo por rol y guía de prueba para el jurado con TC-01 a TC-08.
+- [ ] **F10.4 — Video pitch (3 min):** problema, demo en vivo (Telegram + dashboard) e impacto, contado con los tres criterios del reto (autonomía, seguridad y explicabilidad). La capa de Compliance (OFAC, PEP, SARLAFT) se presenta como opcional: el reto deja fuera las decisiones de cumplimiento.
+- [ ] **F10.5 — Entrega:** formulario de HackRadar antes del domingo 11:59 AM (Colombia) / 11:59 PM (Tailandia).
 
 ---
 
@@ -94,8 +185,8 @@ Hallazgo de la validación de la Fase 4: el hero y la tarjeta de colchón mostra
 Fases candidatas, en orden sugerido, alineadas con la visión de [mission.md](mission.md):
 
 - [ ] **V1 — Canal de correo:** adaptador de entrada de email que reutiliza `ProcessInvoiceUseCase`.
-- [ ] **V2 — Tasas en vivo:** `FXRateProvider` con una API de tasas y las fijas como respaldo.
-- [ ] **V3 — Tesorería real:** saldo y movimientos leídos desde la cuenta Blinka.
-- [ ] **V4 — Multiempresa y roles:** reglas, proveedores y aprobadores por empresa, con autenticación en el dashboard.
+- [ ] **V2 — Tasas en vivo:** movida a las extensiones (F9.12, si queda tiempo). Queda para después: elegir un proveedor de tasas con SLA y cachear las tasas.
+- [ ] **V3 — Tesorería real:** saldos por billetera y movimientos leídos desde la cuenta Blinka (F9.9 a F9.14 los modelan con datos ficticios).
+- [ ] **V4 — Multiempresa y roles:** reglas, proveedores y aprobadores por empresa. La autenticación y los dos roles de demo llegan en la Fase 8; queda la gestión de usuarios real (alta, baja, SSO) y los roles por empresa.
 - [ ] **V5 — Canal de WhatsApp.**
 - [ ] **V6 — Ejecución de pagos vía Blinka:** programar el pago al aprobar, manteniendo el Audit Log.
