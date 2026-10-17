@@ -133,7 +133,7 @@ Hoy ningún endpoint exige autenticación: cualquiera con la URL del backend pue
 - [ ] **F8.2 — Token:** `POST /api/auth/login` entrega un token firmado (HMAC/JWT) con expiración; una dependencia de FastAPI lo exige en `POST /api/rules`, en los endpoints de beneficiarios de la Fase 7, en `POST /api/invoices`, `POST /api/invoices/upload` y `POST /api/invoices/{id}/decision`. Los `GET` siguen públicos. La clave que firma los tokens (`AUTH_SECRET`) sí es secreta: se carga en Railway y se declara con `preserve()` en `.railway/railway.ts`. Solo toca adaptadores de entrada y `config.py`, no el Core.
 - [ ] **F8.3 — Autor verificado:** `decided_by` sale del token, no del cuerpo de la solicitud; el Audit Log registra el usuario autenticado.
 - [ ] **F8.4 — Frontend:** pantalla de login con las credenciales de demo visibles, token en memoria, header `Authorization` en `api.js` y manejo de `401`/`403` (los botones del rol que falta quedan deshabilitados).
-- [ ] **F8.5 — Endurecimiento mínimo:** `/docs` y `/openapi.json` apagados en producción y tope a `limit` en `GET /api/invoices`. El resto del endurecimiento queda en F9.2.
+- [ ] **F8.5 — Endurecimiento mínimo:** tope a `limit` en `GET /api/invoices`. `/docs` sigue encendido: con el token de la Fase 8, Swagger no permite cambiar nada sin credenciales y es la forma más fácil de que el jurado pruebe la API. El resto del endurecimiento queda en F9.2.
 - [ ] **F8.6 — Pruebas:** `401` sin token, `403` con el rol equivocado, `decided_by` tomado del token y humo de producción actualizado para autenticarse.
 
 **Listo cuando:** sin credenciales no se pueden cambiar reglas ni beneficiarios ni decidir facturas, el operador no puede aprobar, y el jurado entra con las credenciales de demo publicadas y recorre TC-01 a TC-08.
@@ -145,7 +145,7 @@ Trabajo valioso que se retiró de las Fases 6 y 8 para que el plan quepa antes d
 ### 9A — Seguridad adicional
 
 - [ ] **F9.1 — Segregación por persona:** columna `invoices.submitted_by`, llenada por cada canal: el usuario del token en web y API, y `telegram:<chat_id>` en Telegram. `DecideInvoiceUseCase` rechaza la decisión si `decided_by == submitted_by` (regla del Core, con su error de dominio → `403`). Limitación documentada: un chat de Telegram no está ligado a un usuario del dashboard, así que un aprobador que envía por Telegram y aprueba desde el dashboard no se detecta; el Audit Log sí muestra quién envió y quién aprobó.
-- [ ] **F9.2 — Endurecimiento completo:** verificación de los bytes del archivo (firma de JPG/PNG/WEBP/PDF), del `mime_type` y del tamaño de los documentos de Telegram, y `ALLOWED_ORIGINS` sin `*` por defecto en `config.py`.
+- [ ] **F9.2 — Endurecimiento completo:** `/docs` y `/openapi.json` apagados en producción (si el jurado ya no los necesita), verificación de los bytes del archivo (firma de JPG/PNG/WEBP/PDF), del `mime_type` y del tamaño de los documentos de Telegram, y `ALLOWED_ORIGINS` sin `*` por defecto en `config.py`.
 - [ ] **F9.3 — Límite de uso:** límite de solicitudes por IP en la subida web y por chat en Telegram, para proteger la cuota de Gemini.
 - [ ] **F9.4 — Contenedores:** backend sin root y sin `build-essential` en la imagen final; Nginx con cabeceras `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options` y `Referrer-Policy`.
 - [ ] **F9.5 — Contraseñas con hash:** guardar las credenciales en las variables de entorno como hash (bcrypt o `hashlib.scrypt`) en vez de compararlas en claro, para cuando dejen de ser credenciales de demo.
