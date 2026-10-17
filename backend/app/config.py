@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     db_seed_demo: bool = False     # carga seed.sql con datos ficticios: solo para demo / desarrollo
     telegram_bot_token: str | None = None
     telegram_webhook_secret: str | None = None
+    telegram_webhook_url: str | None = None   # https://<backend>/api/webhook/telegram (scripts/registrar_webhook.py)
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.8-flash"
 
