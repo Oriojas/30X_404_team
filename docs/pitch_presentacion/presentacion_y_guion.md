@@ -101,6 +101,9 @@
 
 Para asegurar que la grabación del video y la revisión de los jurados sea impecable:
 
+> [!WARNING]
+> **Repetir una toma crea un duplicado.** INTEG-01 rechaza otra factura del mismo proveedor con el mismo número **o** el mismo monto en USD dentro de 30 días. Si hay que regrabar una prueba en producción, cambia el monto (y el número) de la factura; si no, la segunda toma sale `REJECTED`.
+
 > [!IMPORTANT]
 > **Precondición de datos (seed):** la regla `HITL-02` escala a todo proveedor sin historial de pagos, y el agente busca al proveedor por NIT o por su razón social exacta. Las pruebas usan los proveedores del seed (`backend/app/adapters/outbound/db/seed.sql`), que ya tienen historial: la factura debe traer el mismo NIT o el mismo nombre que el seed. Con otro nombre y sin NIT (por ejemplo "AWS Cloud Services"), la Prueba 1 terminará en `SCALED_TO_HUMAN` por `HITL-02` y no en `AUTO_APPROVED`.
 
@@ -120,8 +123,9 @@ Para asegurar que la grabación del video y la revisión de los jurados sea impe
    * *Factura:* $10,000 USD con saldo Blinka de $4,000 USD.
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`FIN-01`).
 6. **Prueba 6 (opcional) — No cuadra con lo acordado · TC-07:**
-   * *Factura:* "Amazon Web Services LATAM" (con historial) por $1,500 USD, cuando la tarifa pactada en contrato es de $1,000 USD.
+   * *Factura:* "Amazon Web Services LATAM" (NIT `US-91-1646860`, con historial) por $1,450 USD, cuando la tarifa pactada en contrato es de $1,000 USD.
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`INTEG-02`: "El valor cobrado supera la tarifa acordada en el contrato"). Está bajo el umbral autónomo y hay saldo: la única razón para escalar es que el monto no cuadra con lo acordado.
+   * *Ojo:* no usar $1,500, que es el monto de TC-07 en `casos_demo.py`. La prueba de humo ya creó esa factura en producción (id 20), y INTEG-01 trata como duplicado otra factura del mismo proveedor con el mismo monto en USD dentro de 30 días: el video mostraría `REJECTED` en vez de `SCALED_TO_HUMAN`. Cualquier monto entre $1,000 y $2,000 que no se haya usado sirve.
 
 ---
 
