@@ -205,8 +205,8 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
 
             {/* Tope duro por pago (FIN-04): por encima se rechaza, sin aprobación humana posible */}
             <div className="p-3.5 rounded-lg bg-slate-50 border border-brand-border/80 space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-brand-muted font-sans text-[11px]">Tope por pago:</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs font-mono">
+                <span className="text-brand-muted font-sans text-[11px] whitespace-nowrap">Tope por pago:</span>
                 <span className="flex items-center gap-1 font-bold text-brand-navy">
                   $
                   <input
