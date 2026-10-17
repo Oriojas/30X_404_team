@@ -26,7 +26,7 @@ def client(monkeypatch):
 
     async def reset():
         conn = await asyncpg.connect(TEST_DATABASE_URL)
-        await conn.execute("DROP TABLE IF EXISTS invoices, vendors, sanctions_list, treasury_accounts, company_rules")
+        await conn.execute("DROP TABLE IF EXISTS ingested_messages, invoices, vendors, sanctions_list, treasury_accounts, company_rules")
         await conn.close()
 
     asyncio.run(reset())

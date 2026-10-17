@@ -71,8 +71,23 @@ ALTER TABLE invoices ADD COLUMN IF NOT EXISTS source_chat_id BIGINT;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS decided_by VARCHAR(100);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS decided_at TIMESTAMP;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS human_note TEXT;
+-- SHA-256 del documento: refuerza INTEG-01 entre canales aunque el OCR no lea número ni monto
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS file_sha256 CHAR(64);
+
+-- 6. Registro de entregas por canal (idempotencia de transporte)
+-- Cada (canal, id externo) se procesa una sola vez: update_id en Telegram, Idempotency-Key en web y API
+CREATE TABLE IF NOT EXISTS ingested_messages (
+    channel VARCHAR(20) NOT NULL,
+    external_id VARCHAR(200) NOT NULL,
+    invoice_id INTEGER REFERENCES invoices(id),
+    -- 'PROCESSING', 'COMPLETED'
+    status VARCHAR(20) NOT NULL DEFAULT 'PROCESSING',
+    received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (channel, external_id)
+);
 
 -- Índices para optimizar búsquedas de duplicados y filtros en Audit Log
 CREATE INDEX IF NOT EXISTS idx_invoices_vendor_number ON invoices(vendor_tax_id, invoice_number);
 CREATE INDEX IF NOT EXISTS idx_invoices_decision_status ON invoices(decision_status);
 CREATE INDEX IF NOT EXISTS idx_invoices_processed_at ON invoices(processed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_file_sha256 ON invoices(file_sha256);
