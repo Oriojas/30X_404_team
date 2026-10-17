@@ -8,48 +8,57 @@
 
 Siguiendo el consenso técnico entre **Oscar Riojas** y **Luis Felipe Marín Giraldo**, la arquitectura de **Blinka PayAgent** adopta un patrón **Hexagonal (Puertos y Adaptadores)** dentro de un **Monorepo** en GitHub.
 
-Esta arquitectura separa completamente los adaptadores de canales de entrada (Telegram, Webhooks) y los adaptadores de almacenamiento (PostgreSQL) del **Núcleo de Negocio (Core)**, garantizando que nuevas fuentes de ingesta (como correo electrónico o WhatsApp) se puedan conectar sin modificar las reglas de procesamiento.
+Esta arquitectura separa completamente los adaptadores de entrada (Telegram, API REST) y los adaptadores de salida (Gemini, tasas FX, PostgreSQL, notificaciones de Telegram) del **Núcleo de Negocio (Core)**, garantizando que nuevas fuentes de ingesta (como correo electrónico o WhatsApp) se puedan conectar sin modificar las reglas de procesamiento.
 
 ```mermaid
 flowchart TD
     subgraph System ["ARQUITECTURA HEXAGONAL: BLINKA PAYAGENT"]
         direction TB
 
-        subgraph InAdapters ["ADAPTADORES DE ENTRADA (Canales de Ingesta)"]
-            Telegram["Telegram Bot (MVP) - Ingesta Fotos/PDF y Botones HITL"]
+        subgraph InAdapters ["ADAPTADORES DE ENTRADA (adapters/inbound)"]
+            Telegram["Telegram Webhook (MVP) - Ingesta Fotos/PDF y Botones HITL"]
+            RestAPI["API REST FastAPI - /api/invoices y /api/rules"]
             OtherChannels["Canales Secundarios (Ext) - WhatsApp y Email Webhooks"]
         end
 
-        subgraph OutAdapters ["ADAPTADOR DE PRESENTACION (UI)"]
-            ReactUI["React.js y Tailwind UI - Landing Comercial y Dashboard Stitch"]
+        subgraph Core ["CORE DEL SISTEMA (core/ - Logica de Negocio Pura)"]
+            UseCases["Casos de Uso - ProcessInvoice, ListInvoices, Get/UpdateRules"]
+            FX["FX Engine (Conversion a USD a $0 Markup)"]
+            Rules["Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
+            Audit["Generador de Explicabilidad (Audit Log Estructurado)"]
+            Ports["Puertos de Salida - OCRPort, FXRateProvider, InvoiceRepository, RulesRepository, NotificationPort"]
+
+            UseCases --> FX --> Rules --> Audit
+            UseCases --> Ports
         end
 
-        subgraph Core ["CORE DEL SISTEMA (Logica de Negocio Pura)"]
-            OCR["1. Vision Multimodal y OCR (Gemini 1.5 Flash API)"]
-            FX["2. Modulo de Conversion de Divisas (FX Engine a $0 Markup)"]
-            Rules["3. Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
-            Audit["4. Generador de Explicabilidad (Audit Log Estructurado)"]
-
-            OCR --> FX --> Rules --> Audit
+        subgraph OutAdapters ["ADAPTADORES DE SALIDA (adapters/outbound)"]
+            Gemini["Gemini 1.5 Flash - OCR Multimodal"]
+            Rates["Proveedor de Tasas FX"]
+            DB[("PostgreSQL (Railway Native) - invoices, company_rules")]
+            TgClient["Cliente API Telegram - Notificaciones HITL"]
         end
 
-        subgraph PersistAdapter ["ADAPTADOR DE PERSISTENCIA"]
-            DB[("PostgreSQL (Railway Native) - invoices, audit_logs, company_rules")]
-        end
+        ReactUI["React.js y Tailwind UI - Landing Comercial y Dashboard Stitch"]
 
-        Telegram -->|"Documento (PDF/Foto)"| OCR
-        OtherChannels -.->|"Documento"| OCR
-        Audit -->|"Persistir Decision"| DB
-        ReactUI -->|"Consultas REST API"| Core
-        ReactUI -.->|"Lectura de Auditoria"| DB
+        ReactUI -->|"HTTP"| RestAPI
+        Telegram -->|"Documento (PDF/Foto)"| UseCases
+        RestAPI --> UseCases
+        OtherChannels -.->|"Documento"| UseCases
+        Ports -.->|"implementa"| Gemini
+        Ports -.->|"implementa"| Rates
+        Ports -.->|"implementa"| DB
+        Ports -.->|"implementa"| TgClient
     end
 
     style System fill:#f8fafc,stroke:#475569,stroke-width:2px
     style InAdapters fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
-    style OutAdapters fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style OutAdapters fill:#e0f2fe,stroke:#0284c7,stroke-width:2px
     style Core fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
-    style PersistAdapter fill:#e0f2fe,stroke:#0284c7,stroke-width:2px
+    style ReactUI fill:#fefce8,stroke:#ca8a04,stroke-width:2px
 ```
+
+**Regla de dependencias:** los adaptadores dependen del Core, nunca al revés. El Core solo conoce los puertos; el *composition root* (`backend/app/container.py`) decide qué adaptador concreto implementa cada puerto.
 
 ---
 
@@ -59,17 +68,23 @@ flowchart TD
 30X_404_team/
 ├── backend/                        # API FastAPI & Core Hexagonal
 │   ├── app/
-│   │   ├── adapters/               # Adaptadores de entrada y salida
-│   │   │   ├── channels/           # Ingesta (Telegram, Email, etc.)
-│   │   │   │   └── telegram_bot.py
-│   │   │   └── db/                 # Persistencia PostgreSQL
-│   │   │       └── postgres_adapter.py
-│   │   ├── core/                   # Lógica central del Agente
-│   │   │   ├── ocr_engine.py       # Cliente Gemini 1.5 Flash Multimodal
-│   │   │   ├── fx_converter.py     # Conversión de divisas (COP/MXN/EUR -> USD)
-│   │   │   ├── rules_pipeline.py   # Tubería de 4 capas de validación
-│   │   │   └── audit_logger.py     # Generador de explicabilidad en lenguaje natural
-│   │   └── main.py                 # Punto de entrada FastAPI & Webhooks
+│   │   ├── core/                   # Hexágono: lógica de negocio pura
+│   │   │   ├── domain/             # models.py, fx_converter.py, rules_pipeline.py, audit_logger.py
+│   │   │   ├── ports/              # outbound.py: contratos que implementan los adaptadores
+│   │   │   └── use_cases/          # process_invoice.py, query_invoices.py, manage_rules.py
+│   │   ├── adapters/
+│   │   │   ├── inbound/            # Adaptadores de entrada
+│   │   │   │   ├── api/            # Routers REST, DTOs Pydantic, dependencias
+│   │   │   │   └── telegram/       # Webhook de Telegram
+│   │   │   └── outbound/           # Adaptadores de salida
+│   │   │       ├── ocr/            # Gemini 1.5 Flash
+│   │   │       ├── fx/             # Proveedor de tasas de cambio
+│   │   │       ├── db/             # PostgreSQL + schema.sql
+│   │   │       └── telegram/       # Cliente API Telegram (notificaciones HITL)
+│   │   ├── config.py               # Settings desde el .env raíz
+│   │   ├── container.py            # Composition root (inyección de dependencias)
+│   │   └── main.py                 # Arranque FastAPI y montaje de routers
+│   ├── tests/                      # Pruebas del Core con adaptadores falsos
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/                       # Aplicación React + Tailwind CSS
@@ -79,9 +94,9 @@ flowchart TD
 │   ├── package.json
 │   └── Dockerfile
 ├── docs/                           # Documentación & Especificaciones
-│   ├── arquitectura_solucion_v4.md
-│   ├── plan_de_trabajo.md
-│   └── reglas-pago-agente-v3.md
+│   ├── arquitectura/arquitectura_solucion_v4.md
+│   └── reglas-negocio/reglas_pago_agente_v3.md
+├── plan_de_trabajo.md
 └── README.md                       # Presentación del proyecto y guías
 ```
 

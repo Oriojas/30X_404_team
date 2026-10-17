@@ -20,40 +20,47 @@ flowchart TD
     subgraph System ["ARQUITECTURA HEXAGONAL DE BLINKA PAYAGENT"]
         direction TB
 
-        subgraph InAdapters ["ADAPTADORES DE ENTRADA (Canales de Ingesta)"]
-            Telegram["Telegram Bot (MVP) - Ingesta Fotos/PDF y Botones HITL"]
-            OtherChannels["Canales Secundarios (Ext) - Email y Webhook"]
+        subgraph InAdapters ["ADAPTADORES DE ENTRADA (adapters/inbound)"]
+            Telegram["Telegram Webhook (MVP) - Ingesta Fotos/PDF y Botones HITL"]
+            RestAPI["API REST FastAPI - /api/invoices y /api/rules"]
+            OtherChannels["Canales Secundarios (Ext) - WhatsApp y Email Webhooks"]
         end
 
-        subgraph OutAdapters ["ADAPTADOR DE SALIDA (UI / Capa de Presentación)"]
-            ReactUI["React.js + Tailwind UI - Landing Page y Dashboard Stitch"]
+        subgraph Core ["CORE DEL SISTEMA (core/ - Logica de Negocio Pura)"]
+            UseCases["Casos de Uso - ProcessInvoice, ListInvoices, Get/UpdateRules"]
+            FX["FX Engine (Conversion a USD a $0 Markup)"]
+            Rules["Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
+            Audit["Generador de Explicabilidad (Audit Log Estructurado)"]
+            Ports["Puertos de Salida - OCRPort, FXRateProvider, InvoiceRepository, RulesRepository, NotificationPort"]
+
+            UseCases --> FX --> Rules --> Audit
+            UseCases --> Ports
         end
 
-        subgraph Core ["CORE DEL SISTEMA (Lógica de Negocio Hexagonal)"]
-            OCR["1. Lector Multimodal & OCR (Gemini 1.5 Flash API)"]
-            FX["2. FX Engine (Conversión Multidivisa a $0 Markup)"]
-            Rules["3. Motor de Reglas Blinka (Tubería Determinista en 4 Capas)"]
-            Audit["4. Generador de Explicabilidad (Registro Audit Log)"]
-
-            OCR --> FX --> Rules --> Audit
+        subgraph OutAdapters ["ADAPTADORES DE SALIDA (adapters/outbound)"]
+            Gemini["Gemini 1.5 Flash - OCR Multimodal"]
+            Rates["Proveedor de Tasas FX"]
+            DB[("PostgreSQL (Railway Native) - invoices, company_rules")]
+            TgClient["Cliente API Telegram - Notificaciones HITL"]
         end
 
-        subgraph PersistAdapter ["ADAPTADOR DE PERSISTENCIA"]
-            DB[("PostgreSQL (Railway Native) - invoices, audit_logs, company_rules")]
-        end
+        ReactUI["React.js y Tailwind UI - Landing Comercial y Dashboard Stitch"]
 
-        Telegram -->|"Documento (PDF/Foto)"| OCR
-        OtherChannels -.->|"Documento"| OCR
-        Audit -->|"Persistir Decisión"| DB
-        ReactUI -->|"Consultas REST API"| Core
-        ReactUI -.->|"Lectura Audit Log"| DB
+        ReactUI -->|"HTTP"| RestAPI
+        Telegram -->|"Documento (PDF/Foto)"| UseCases
+        RestAPI --> UseCases
+        OtherChannels -.->|"Documento"| UseCases
+        Ports -.->|"implementa"| Gemini
+        Ports -.->|"implementa"| Rates
+        Ports -.->|"implementa"| DB
+        Ports -.->|"implementa"| TgClient
     end
 
     style System fill:#f8fafc,stroke:#475569,stroke-width:2px
     style InAdapters fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
-    style OutAdapters fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style OutAdapters fill:#e0f2fe,stroke:#0284c7,stroke-width:2px
     style Core fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
-    style PersistAdapter fill:#e0f2fe,stroke:#0284c7,stroke-width:2px
+    style ReactUI fill:#fefce8,stroke:#ca8a04,stroke-width:2px
 ```
 
 ---
@@ -106,7 +113,7 @@ Uno de los requerimientos clave del Reto Blinka es la gestión de operaciones mu
 ## 4. División de Trabajo y Asignación de Responsabilidades
 
 ### 👨‍💻 Luis Felipe Marín Giraldo — Lead Backend & Bot Developer
-* **Estructura Backend:** Arquitectura Hexagonal en Python con FastAPI.
+* **Estructura Backend:** Arquitectura Hexagonal en Python con FastAPI (`core/` con dominio, puertos y casos de uso; `adapters/inbound` y `adapters/outbound`; detalle en [backend/README.md](backend/README.md)).
 * **Canal Telegram:** Webhook adapter con procesamiento de fotos y documentos PDF.
 * **Visión & OCR:** Integración del SDK de Gemini 1.5 Flash para extracción estructurada JSON.
 * **Lógica de Negocio:** Pipeline de validación en 4 capas y módulo de conversión de divisas (FX Engine).

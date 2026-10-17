@@ -35,7 +35,7 @@ docs/
 Para evaluar la solución durante la Hackathon, los documentos oficiales de referencia son:
 
 1. **[Arquitectura de Solución (v4)](arquitectura/arquitectura_solucion_v4.md):**  
-   Define la **Arquitectura Hexagonal (Puertos y Adaptadores)** en monorepo, adaptadores de canal (Telegram), adaptadores de persistencia (PostgreSQL en Railway), el Core con Gemini 1.5 Flash y el módulo de conversión de divisas (**FX Engine** a $0 markup).
+   Define la **Arquitectura Hexagonal (Puertos y Adaptadores)** en monorepo, adaptadores de entrada (Telegram, API REST), puertos y casos de uso del Core, adaptadores de salida (Gemini 1.5 Flash, PostgreSQL en Railway, notificaciones de Telegram) y el módulo de conversión de divisas (**FX Engine** a $0 markup).
 
 2. **[Plan de Trabajo Oficial](../plan_de_trabajo.md):**  
    Cronograma por fases (Viernes 16 a Domingo 18), asignación de roles entre Oscar Riojas y Luis Felipe Marín Giraldo, y suite de casos de prueba.

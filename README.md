@@ -86,7 +86,7 @@ Dashboard disponible en `http://localhost:3000`.
 ## ☁️ Despliegue en Railway (All-in-One)
 
 El proyecto está preparado para desplegarse dentro de un único Canvas en **Railway**:
-1. **PostgreSQL Native Service:** Base de datos relacional administrada. Ejecutar el DDL desde [backend/app/adapters/db/schema.sql](backend/app/adapters/db/schema.sql).
+1. **PostgreSQL Native Service:** Base de datos relacional administrada. Ejecutar el DDL desde [backend/app/adapters/outbound/db/schema.sql](backend/app/adapters/outbound/db/schema.sql).
 2. **Backend Service:** Construido a partir de [backend/Dockerfile](backend/Dockerfile).
 3. **Frontend Service:** Construido a partir de [frontend/Dockerfile](frontend/Dockerfile) y servido con Nginx.
 

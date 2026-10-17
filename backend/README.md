@@ -6,23 +6,45 @@ Servicio backend desarrollado en **Python 3.12** con **FastAPI** bajo **Arquitec
 
 ## 🏛️ Arquitectura Hexagonal
 
+El Core no importa FastAPI, Pydantic, SQL ni SDKs externos. Se comunica con el exterior solo a través de **puertos** (`core/ports/`), y los **adaptadores** (`adapters/`) los implementan. `container.py` es el único lugar que elige qué adaptador concreto usar.
+
 ```text
 backend/app/
+├── core/                              # Hexágono: lógica de negocio pura
+│   ├── domain/
+│   │   ├── models.py                  # Entidades: ExtractedInvoice, CompanyRules, Decision, ProcessedInvoice
+│   │   ├── fx_converter.py            # FX Engine: normalización a USD a $0.00 FX Markup
+│   │   ├── rules_pipeline.py          # Tubería determinista de 4 capas (Cumplimiento, Integridad, Solvencia, HITL)
+│   │   └── audit_logger.py            # Generador de explicabilidad en lenguaje natural
+│   ├── ports/
+│   │   └── outbound.py                # Contratos: OCRPort, FXRateProvider, InvoiceRepository, RulesRepository, NotificationPort
+│   └── use_cases/                     # Puertos de entrada: lo que los adaptadores pueden invocar
+│       ├── process_invoice.py         # OCR -> FX -> Reglas -> Audit Log -> Persistencia -> Notificación
+│       ├── query_invoices.py          # Historial del Audit Log
+│       └── manage_rules.py            # Consultar / actualizar umbrales
 ├── adapters/
-│   ├── channels/
-│   │   └── telegram_bot.py      # Adaptador de entrada: Webhook de Telegram (fotos y PDFs)
-│   └── db/
-│       ├── postgres_adapter.py  # Adaptador de salida: Conexión y operaciones PostgreSQL
-│       └── schema.sql           # DDL inicial de tablas (company_rules, invoices)
-├── core/                        # Lógica de Negocio Pura (Independiente del framework)
-│   ├── ocr_engine.py            # Extracción estructurada JSON con Gemini 1.5 Flash
-│   ├── fx_converter.py          # Conversión multidivisa (COP/MXN/EUR -> USD) a tasa interbancaria
-│   ├── rules_pipeline.py        # Tubería determinista de 4 capas (Cumplimiento, Integridad, Solvencia, HITL)
-│   └── audit_logger.py          # Generador de explicabilidad en lenguaje natural
-├── models/
-│   └── schemas.py               # Modelos de datos y contratos Pydantic
-└── main.py                      # Punto de entrada FastAPI, middlewares y rutas REST
+│   ├── inbound/                       # Adaptadores de entrada (driving)
+│   │   ├── api/
+│   │   │   ├── routers/               # health.py, invoices.py, rules.py
+│   │   │   ├── schemas.py             # DTOs Pydantic <-> entidades del dominio
+│   │   │   └── dependencies.py        # Inyección de casos de uso en FastAPI
+│   │   └── telegram/
+│   │       └── webhook.py             # Webhook de Telegram: extrae el adjunto y llama a ProcessInvoice
+│   └── outbound/                      # Adaptadores de salida (driven)
+│       ├── ocr/gemini_ocr.py          # OCRPort -> Gemini 1.5 Flash
+│       ├── fx/static_rates.py         # FXRateProvider -> tasas de referencia
+│       ├── db/
+│       │   ├── postgres_repository.py # InvoiceRepository y RulesRepository -> PostgreSQL
+│       │   └── schema.sql             # DDL inicial de tablas (company_rules, invoices)
+│       └── telegram/telegram_client.py# NotificationPort -> API de Telegram (dictamen y botones HITL)
+├── config.py                          # Settings (pydantic-settings) leídos del .env raíz
+├── container.py                       # Composition root: conecta adaptadores con puertos
+└── main.py                            # Arranque FastAPI, CORS y montaje de routers
 ```
+
+**Regla de dependencias:** `adapters` → `core/use_cases` → `core/domain` + `core/ports`. Nunca al revés.
+
+**Para agregar un canal** (por ejemplo email o WhatsApp), crea un adaptador en `adapters/inbound/` que llame a `ProcessInvoiceUseCase`. **Para cambiar un proveedor** (otro OCR, tasas en vivo), crea una clase que cumpla el puerto y conéctala en `container.py`.
 
 ---
 
@@ -38,6 +60,8 @@ Las variables requeridas para el backend son:
 * `TELEGRAM_WEBHOOK_URL`: URL pública del webhook expuesto para recibir actualizaciones de Telegram.
 * `GEMINI_API_KEY`: Clave de API de Google AI Studio para Gemini 1.5 Flash.
 * `GEMINI_MODEL`: Modelo a utilizar (por defecto `gemini-1.5-flash`).
+* `ALLOWED_ORIGINS`: Orígenes CORS permitidos, separados por coma (por defecto `*`).
+* `COMPANY_ID`, `MAX_AUTONOMOUS_USD`, `SARLAFT_CHECK_ENABLED`, `DUPLICATE_CHECK_DAYS`: Reglas por defecto mientras no se lean de `company_rules`.
 
 Consulta la plantilla completa en [.env.example](../.env.example).
 
@@ -69,6 +93,13 @@ uvicorn app.main:app --reload --port 8000
 
 La documentación interactiva Swagger estará disponible en `http://localhost:8000/docs`.
 
+### 4. Ejecutar las pruebas
+Desde la carpeta `backend/`:
+```bash
+pytest
+```
+Las pruebas usan adaptadores falsos, así que no necesitan Gemini, PostgreSQL ni Telegram.
+
 ---
 
 ## 🐳 Despliegue con Docker (Railway)
@@ -88,9 +119,9 @@ En Railway, la variable `$PORT` es asignada en runtime y el contenedor arranca a
 
 | Método | Ruta | Descripción |
 | :--- | :--- | :--- |
-| `GET` | `/api/health` | Verificación de estado del servicio y PostgreSQL |
+| `GET` | `/api/health` | Verificación de estado del servicio |
 | `POST` | `/api/webhook/telegram` | Webhook de ingesta para fotos y documentos de Telegram |
-| `GET` | `/api/invoices` | Listado histórico de facturas y decisiones del Audit Log |
+| `GET` | `/api/invoices` | Listado histórico de facturas y decisiones del Audit Log (arreglo JSON) |
 | `POST` | `/api/invoices` | Creación y evaluación manual de facturas |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
