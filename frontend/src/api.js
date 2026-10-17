@@ -11,7 +11,9 @@ export const DEFAULT_RULES = {
   max_autonomous_usd: 2000,
   sarlaft_check_enabled: true,
   duplicate_check_days: 30,
-  min_treasury_buffer_usd: 1000
+  min_treasury_buffer_usd: 1000,
+  // Tope duro por pago (FIN-04): mismo default que el backend
+  max_payment_usd: 20000
 }
 
 // Tesorería del seed de demostración: solo en modo demostración (con la API viva nunca se finge un saldo)
@@ -23,6 +25,16 @@ export const DEFAULT_TREASURY = {
   monthly_budget_usd: 25000,
   month_spent_usd: 0
 }
+
+// Lista permitida del seed de demostración: solo en modo demostración (el formulario queda deshabilitado)
+export const DEFAULT_VENDORS = [
+  { id: 1, tax_id: 'US-91-1646860', legal_name: 'Amazon Web Services LATAM', bank_account: 'US-CHASE-000123456', is_pep: false, contract_amount_usd: 1000, active: true },
+  { id: 2, tax_id: '900.584.112-4', legal_name: 'DevStudio LatAm S.A.S.', bank_account: 'CO-BANCOLOMBIA-11122233344', is_pep: false, contract_amount_usd: 1500, active: true },
+  { id: 3, tax_id: '901.223.450-1', legal_name: 'Nube Andina Consultores S.A.S.', bank_account: 'CO-DAVIVIENDA-55566677788', is_pep: false, contract_amount_usd: 5000, active: true },
+  { id: 4, tax_id: 'LEM850101AB1', legal_name: 'Logística Express MX S.A. de C.V.', bank_account: 'MX-BBVA-012180001234567890', is_pep: false, contract_amount_usd: 15000, active: true },
+  { id: 5, tax_id: 'PA-155-7788', legal_name: 'Global Trade Partners Ltd', bank_account: 'PA-BANCO-PACIFICO-998877', is_pep: false, contract_amount_usd: 3000, active: true },
+  { id: 6, tax_id: '900.777.321-9', legal_name: 'Consultora Riesgo Político S.A.S.', bank_account: 'CO-BOGOTA-99988877766', is_pep: true, contract_amount_usd: 2000, active: true }
+].map((v) => ({ ...v, updated_by: null, updated_at: null }))
 
 // Disponible = saldo de la foto − pagos aprobados después de ella (FIN-01 y FIN-03 deciden con este valor).
 // Un backend anterior a la Fase 6 no envía available_usd: el disponible es el saldo.
@@ -190,5 +202,30 @@ export async function getTreasury() {
 
 export async function saveRules(rules) {
   const { data } = await request('/api/rules', jsonBody('POST', rules))
+  return data
+}
+
+// Presupuesto del período (FIN-02) y/o saldo: solo el saldo toma una foto nueva.
+// 409 si se envía solo el presupuesto y aún no hay saldo registrado.
+export async function updateTreasury(changes) {
+  const { data } = await request('/api/treasury', jsonBody('PATCH', changes))
+  return data
+}
+
+export async function getVendors() {
+  const { data } = await request('/api/vendors')
+  return Array.isArray(data) ? data : []
+}
+
+// Alta en la lista permitida. El autor es el mismo aprobador de las decisiones (sin autenticación en el MVP).
+// 409 si el NIT o la razón social ya existen, aun con otro formato.
+export async function createVendor(vendor) {
+  const { data } = await request('/api/vendors', jsonBody('POST', { ...vendor, updated_by: DECIDED_BY }))
+  return data
+}
+
+// Edición o baja lógica ({ active: false }). tax_id e is_pep no se envían: el backend responde 422.
+export async function updateVendor(vendorId, changes) {
+  const { data } = await request(`/api/vendors/${vendorId}`, jsonBody('PATCH', { ...changes, updated_by: DECIDED_BY }))
   return data
 }
