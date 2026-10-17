@@ -55,6 +55,9 @@ export default function Footer() {
             <a href="#seguridad" className="hover:text-brand-navy transition-colors">
               Seguridad & KYC
             </a>
+            <a href="#/pitch" id="footer-pitch-link" className="hover:text-brand-navy transition-colors">
+              Presentación
+            </a>
           </div>
 
           <div className="text-center md:text-right">
