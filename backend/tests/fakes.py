@@ -5,7 +5,8 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
-from app.core.domain.errors import TreasuryNotInitializedError
+from app.core.domain.errors import TreasuryNotInitializedError, VendorAlreadyExistsError, VendorNotFoundError
+from app.core.domain.rules_pipeline import _normalize
 from app.core.domain.models import (
     CompanyRules,
     DecisionStatus,
@@ -104,11 +105,49 @@ class InMemoryRules:
 
 
 class InMemoryVendors:
+    """Lista permitida en memoria, con la misma llave que vendor_key en PostgreSQL (_normalize): NIT y razón social
+    se comparan sin mayúsculas, tildes ni signos, tanto en find como en la unicidad."""
+
     def __init__(self, *vendors):
-        self.vendors = vendors
+        # Copias con id: las pruebas comparten constantes como VENDOR y no deben verlas cambiar
+        self.vendors = [replace(v, id=v.id or i) for i, v in enumerate(vendors, start=1)]
 
     async def find(self, tax_id, name):
-        return next((v for v in self.vendors if v.tax_id == tax_id or v.legal_name == name), None)
+        by_tax_id = next((v for v in self.vendors if tax_id and _normalize(v.tax_id) == _normalize(tax_id)), None)
+        if by_tax_id or not _normalize(name):
+            return by_tax_id
+        return next((v for v in self.vendors if _normalize(v.legal_name) == _normalize(name)), None)
+
+    async def list_all(self):
+        return sorted(self.vendors, key=lambda v: v.legal_name.lower())
+
+    async def get(self, vendor_id):
+        return next((v for v in self.vendors if v.id == vendor_id), None)
+
+    async def create(self, vendor):
+        self._check_unique(vendor)
+        saved = replace(vendor, id=max((v.id for v in self.vendors), default=0) + 1)
+        self.vendors.append(saved)
+        return saved
+
+    async def update(self, vendor):
+        index = next((i for i, v in enumerate(self.vendors) if v.id == vendor.id), None)
+        if index is None:
+            raise VendorNotFoundError(vendor.id)
+        self._check_unique(vendor)
+        # tax_id e is_pep no se editan, igual que el UPDATE de PostgreSQL
+        current = self.vendors[index]
+        self.vendors[index] = replace(vendor, tax_id=current.tax_id, is_pep=current.is_pep)
+        return self.vendors[index]
+
+    def _check_unique(self, vendor):
+        for other in self.vendors:
+            if other.id == vendor.id:
+                continue
+            if _normalize(other.tax_id) == _normalize(vendor.tax_id):
+                raise VendorAlreadyExistsError("tax_id", vendor.tax_id)
+            if _normalize(other.legal_name) == _normalize(vendor.legal_name):
+                raise VendorAlreadyExistsError("legal_name", vendor.legal_name)
 
 
 class NoSanctions:

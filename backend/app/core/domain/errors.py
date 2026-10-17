@@ -26,6 +26,20 @@ class InvoiceNotFoundError(NotFoundError):
         super().__init__(f"La factura {invoice_id} no existe.")
 
 
+class VendorNotFoundError(NotFoundError):
+    def __init__(self, vendor_id: int):
+        super().__init__(f"El beneficiario {vendor_id} no existe.")
+
+
+class VendorAlreadyExistsError(ConflictError):
+    """NIT o razón social ya registrados: find() empata por cualquiera de los dos."""
+
+    def __init__(self, field: str, value: str):
+        label = "NIT" if field == "tax_id" else "razón social"
+        super().__init__(f"Ya existe un beneficiario con {label} {value}.")
+        self.field = field
+
+
 class UnconvertedAmountApprovalError(ConflictError):
     """INTEG-04: sin conversión a USD, aprobar comprometería $0 por un monto real desconocido."""
 

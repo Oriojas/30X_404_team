@@ -13,7 +13,7 @@ from typing import List, Optional
 
 import asyncpg
 
-from app.core.domain.errors import TreasuryNotInitializedError
+from app.core.domain.errors import TreasuryNotInitializedError, VendorAlreadyExistsError, VendorNotFoundError
 from app.core.domain.models import (
     CompanyRules,
     DecisionStatus,
@@ -256,18 +256,69 @@ class PostgresVendorRepository:
         self.db = db
 
     async def find(self, tax_id: Optional[str], name: Optional[str]) -> Optional[Vendor]:
+        # Llave normalizada (vendor_key en schema.sql): el OCR no siempre respeta puntos, guiones ni tildes.
+        # El NIT manda; la razón social solo empata si su llave no queda vacía.
         row = await self.db.require_pool().fetchrow(
-            """SELECT * FROM vendors WHERE tax_id = $1 OR lower(legal_name) = lower($2)
-               ORDER BY (tax_id = $1) DESC NULLS LAST LIMIT 1""",
-            tax_id, name or "",
+            """SELECT * FROM vendors
+               WHERE vendor_key(tax_id) = vendor_key($1)
+                  OR (vendor_key($2) <> '' AND vendor_key(legal_name) = vendor_key($2))
+               ORDER BY (vendor_key(tax_id) = vendor_key($1)) DESC NULLS LAST LIMIT 1""",
+            tax_id, name,
         )
+        return _vendor(row) if row else None
+
+    async def list_all(self) -> List[Vendor]:
+        rows = await self.db.require_pool().fetch("SELECT * FROM vendors ORDER BY lower(legal_name)")
+        return [_vendor(row) for row in rows]
+
+    async def get(self, vendor_id: int) -> Optional[Vendor]:
+        row = await self.db.require_pool().fetchrow("SELECT * FROM vendors WHERE id = $1", vendor_id)
+        return _vendor(row) if row else None
+
+    async def create(self, vendor: Vendor) -> Vendor:
+        try:
+            row = await self.db.require_pool().fetchrow(
+                """INSERT INTO vendors (tax_id, legal_name, bank_account, is_pep, contract_amount_usd, active,
+                                      updated_by, updated_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *""",
+                vendor.tax_id, vendor.legal_name, vendor.bank_account, vendor.is_pep, vendor.contract_amount_usd,
+                vendor.active, vendor.updated_by, vendor.updated_at,
+            )
+        except asyncpg.UniqueViolationError as exc:
+            raise _duplicate(exc, vendor) from exc
+        return _vendor(row)
+
+    async def update(self, vendor: Vendor) -> Vendor:
+        # tax_id e is_pep no se editan (D7): no están en el SET
+        try:
+            row = await self.db.require_pool().fetchrow(
+                """UPDATE vendors SET legal_name = $2, bank_account = $3, contract_amount_usd = $4, active = $5,
+                                      updated_by = $6, updated_at = $7
+                   WHERE id = $1 RETURNING *""",
+                vendor.id, vendor.legal_name, vendor.bank_account, vendor.contract_amount_usd, vendor.active,
+                vendor.updated_by, vendor.updated_at,
+            )
+        except asyncpg.UniqueViolationError as exc:
+            raise _duplicate(exc, vendor) from exc
         if row is None:
-            return None
-        contract = row["contract_amount_usd"]
-        return Vendor(
-            tax_id=row["tax_id"], legal_name=row["legal_name"], bank_account=row["bank_account"],
-            is_pep=row["is_pep"], contract_amount_usd=float(contract) if contract is not None else None,
-        )
+            raise VendorNotFoundError(vendor.id)
+        return _vendor(row)
+
+
+def _vendor(row) -> Vendor:
+    contract = row["contract_amount_usd"]
+    return Vendor(
+        tax_id=row["tax_id"], legal_name=row["legal_name"], bank_account=row["bank_account"],
+        is_pep=row["is_pep"], contract_amount_usd=float(contract) if contract is not None else None,
+        active=row["active"] is not False, id=row["id"], updated_by=row["updated_by"], updated_at=row["updated_at"],
+    )
+
+
+def _duplicate(exc: asyncpg.UniqueViolationError, vendor: Vendor) -> VendorAlreadyExistsError:
+    # vendors_tax_id_key y uq_vendors_tax_id_key son del NIT; uq_vendors_legal_name_key, de la razón social
+    if exc.constraint_name == "uq_vendors_legal_name_key":
+        return VendorAlreadyExistsError("legal_name", vendor.legal_name)
+    return VendorAlreadyExistsError("tax_id", vendor.tax_id)
 
 
 class PostgresSanctionsRepository:

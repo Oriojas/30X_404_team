@@ -226,6 +226,9 @@ Sale con código `1` si algún caso falla. Supone el seed de demostración y las
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas, incluido el tope duro por pago (`max_payment_usd`, FIN-04). `422` con el campo si el tope queda por debajo de `max_autonomous_usd` |
 | `GET` | `/api/treasury` | Saldo de la foto, comprometido, disponible, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
 | `PATCH` | `/api/treasury` | `balance_usd` registra el saldo vigente como foto nueva (lo aprobado antes deja de comprometerlo); `monthly_budget_usd` cambia el presupuesto del periodo (FIN-02) sin mover la foto. Al menos uno; con solo presupuesto y sin saldo registrado, `409` |
+| `GET` | `/api/vendors` | Lista permitida de beneficiarios (activos e inactivos) con cuenta autorizada, tarifa acordada, PEP y último cambio (`updated_by`, `updated_at`) |
+| `POST` | `/api/vendors` | Alta en la lista permitida: `{tax_id, legal_name, bank_account, contract_amount_usd?, updated_by}`. Queda activa y con `is_pep = false`. `409` si el NIT o la razón social ya existen, aun con otro formato (se comparan sin mayúsculas, tildes ni signos con `vendor_key`) |
+| `PATCH` | `/api/vendors/{id}` | Edita `legal_name`, `bank_account`, `contract_amount_usd` (`null` la quita) o `active` (`false` es la baja lógica). `tax_id` e `is_pep` no se editan (`422`). `404` si no existe |
 
 ### Ingesta idempotente
 

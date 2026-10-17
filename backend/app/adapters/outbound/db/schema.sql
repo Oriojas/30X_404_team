@@ -41,6 +41,23 @@ CREATE TABLE IF NOT EXISTS vendors (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Lista permitida (F7.3): baja lógica y último cambio desde el dashboard (quién y cuándo, en UTC)
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS updated_by VARCHAR(100);
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+-- Llave de comparación: minúsculas, sin tildes y solo letras y dígitos, igual que _normalize en rules_pipeline.py.
+-- El OCR lee el NIT y la razón social "tal como aparecen" ("900584112-4", "DevStudio LatAm SAS"): find() y la
+-- unicidad comparan esta llave para no escalar por HITL-02 a un proveedor registrado ni duplicarlo.
+CREATE OR REPLACE FUNCTION vendor_key(value TEXT) RETURNS TEXT
+    LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+    SELECT regexp_replace(
+        translate(lower(value), 'áàäâãåéèëêíìïîóòöôõúùüûñçý', 'aaaaaaeeeeiiiiooooouuuuncy'),
+        '[^a-z0-9]', '', 'g')
+$$;
+-- Con NIT o razón social repetidos, find() tomaría la cuenta, la tarifa o el estado del otro proveedor
+CREATE UNIQUE INDEX IF NOT EXISTS uq_vendors_tax_id_key ON vendors (vendor_key(tax_id));
+CREATE UNIQUE INDEX IF NOT EXISTS uq_vendors_legal_name_key ON vendors (vendor_key(legal_name));
+
 -- 4. Listas restrictivas OFAC / ONU / GAFI (COMP-01)
 CREATE TABLE IF NOT EXISTS sanctions_list (
     id SERIAL PRIMARY KEY,

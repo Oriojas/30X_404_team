@@ -75,7 +75,21 @@ class RulesRepository(Protocol):
 class VendorRepository(Protocol):
     """Registro de proveedores verificados."""
 
-    async def find(self, tax_id: Optional[str], name: Optional[str]) -> Optional[Vendor]: ...
+    async def find(self, tax_id: Optional[str], name: Optional[str]) -> Optional[Vendor]:
+        """Por NIT o razón social, activo o no: las capas 1 y 2 evalúan contra su registro; HITL-02 mira active."""
+        ...
+
+    async def list_all(self) -> List[Vendor]: ...
+
+    async def get(self, vendor_id: int) -> Optional[Vendor]: ...
+
+    async def create(self, vendor: Vendor) -> Vendor:
+        """VendorAlreadyExistsError si el NIT o la razón social (sin distinguir mayúsculas) ya existen."""
+        ...
+
+    async def update(self, vendor: Vendor) -> Vendor:
+        """Guarda los campos editables de vendor.id; VendorNotFoundError o VendorAlreadyExistsError."""
+        ...
 
 
 class SanctionsRepository(Protocol):

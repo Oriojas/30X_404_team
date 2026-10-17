@@ -59,6 +59,10 @@ class Vendor:
     bank_account: Optional[str] = None
     is_pep: bool = False
     contract_amount_usd: Optional[float] = None
+    active: bool = True  # lista permitida: inactivo = baja lógica (HITL-02), conserva su registro
+    id: Optional[int] = None
+    updated_by: Optional[str] = None
+    updated_at: Optional[datetime] = None  # UTC, reloj de la app
 
 
 @dataclass

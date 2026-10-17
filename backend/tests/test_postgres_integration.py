@@ -397,3 +397,94 @@ def test_presupuesto_solo_update_sin_mover_la_foto_ni_crear_la_fila():
         assert sin_presupuesto.snapshot_at == nueva_foto
 
     run_with_db(scenario)
+
+
+def test_lista_permitida_con_el_seed_alta_unicidad_y_baja_logica(client):
+    """F7.3: la migración deja activos a los proveedores del seed; NIT y razón social (sin mayúsculas) son únicos;
+    la baja es lógica y find la sigue devolviendo para COMP-02/INTEG-02."""
+    vendors = client.get("/api/vendors").json()
+    assert len(vendors) == 6 and all(v["active"] for v in vendors)
+    aws = next(v for v in vendors if v["tax_id"] == "US-91-1646860")
+
+    new = {"tax_id": "901.555.010-2", "legal_name": "Diseño Creativo Bogotá S.A.S.",
+           "bank_account": "CO-BANCOLOMBIA-55500011122", "updated_by": "CFO Demo"}
+    created = client.post("/api/vendors", json=new)
+    assert created.status_code == 201 and created.json()["updated_at"].endswith("Z")
+    assert client.post("/api/vendors", json={**new, "legal_name": "Otro"}).status_code == 409          # NIT
+    assert client.post("/api/vendors", json={**new, "tax_id": "OTRO",
+                                             "legal_name": "DISEÑO CREATIVO bogotá s.a.s."}).status_code == 409
+    assert client.patch(f"/api/vendors/{aws['id']}",
+                        json={"legal_name": new["legal_name"].lower(), "updated_by": "CFO"}).status_code == 409
+    assert client.patch("/api/vendors/99999", json={"active": False, "updated_by": "CFO"}).status_code == 404
+
+    off = client.patch(f"/api/vendors/{aws['id']}", json={"active": False, "updated_by": "CFO Demo"}).json()
+    assert off["active"] is False and off["updated_by"] == "CFO Demo" and off["contract_amount_usd"] == 1000
+    assert len(client.get("/api/vendors").json()) == 7
+
+    async def find_inactive():
+        import asyncpg
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        row = await conn.fetchrow("SELECT active, updated_at FROM vendors WHERE tax_id = 'US-91-1646860'")
+        await conn.close()
+        return row
+
+    import asyncio
+    row = asyncio.run(find_inactive())
+    assert row["active"] is False
+    assert abs((row["updated_at"] - datetime.utcnow()).total_seconds()) < 60  # UTC, aunque la base esté en Bogotá
+
+    async def find_with_repository():
+        # Pool propio: el de la app vive en el event loop del TestClient
+        from app.adapters.outbound.db.postgres_repository import PostgresDatabase, PostgresVendorRepository
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=False)
+        try:
+            return await PostgresVendorRepository(db).find("US-91-1646860", None)
+        finally:
+            await db.close()
+
+    found = asyncio.run(find_with_repository())
+    assert found.active is False and found.bank_account == "US-CHASE-000123456"
+
+
+def test_vendor_key_de_postgres_coincide_con_normalize_y_find_tolera_formatos(client):
+    """F7.3: find() y la unicidad usan vendor_key (schema.sql), la misma llave que _normalize del Core.
+    Los formatos son los que el OCR puede devolver para proveedores del seed."""
+    import asyncio
+    import asyncpg
+    from app.adapters.outbound.db.postgres_repository import PostgresDatabase, PostgresVendorRepository
+    from app.core.domain.rules_pipeline import _normalize
+
+    samples = ["900.584.112-4", "Logística Express MX S.A. de C.V.", "Diseño Creativo Bogotá S.A.S.",
+               "  ÁÉÍÓÚ ñ Ü ç  ", "PA-155-7788", "...", ""]
+    lookups = [
+        ("900584112-4", None, "900.584.112-4"),
+        ("lem850101ab1", None, "LEM850101AB1"),
+        (None, "Logistica Express MX SA de CV", "LEM850101AB1"),   # sin tildes ni puntos
+        (None, "NUBE ANDINA CONSULTORES SAS", "901.223.450-1"),
+        ("US-91-1646860", "Nube Andina Consultores S.A.S.", "US-91-1646860"),  # el NIT manda sobre el nombre
+        (None, "...", None),
+        (None, None, None),
+    ]
+
+    async def scenario():
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        keys = [await conn.fetchval("SELECT vendor_key($1)", s) for s in samples]
+        await conn.close()
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=False)
+        try:
+            repo = PostgresVendorRepository(db)
+            found = [await repo.find(tax_id, name) for tax_id, name, _ in lookups]
+        finally:
+            await db.close()
+        return keys, found
+
+    keys, found = asyncio.run(scenario())
+    assert keys == [_normalize(s) for s in samples]
+    assert [f.tax_id if f else None for f in found] == [expected for *_, expected in lookups]
+
+    new = {"tax_id": "9005841124", "legal_name": "Otro S.A.S.", "bank_account": "X", "updated_by": "CFO"}
+    assert client.post("/api/vendors", json=new).status_code == 409                       # NIT de DevStudio
+    assert client.post("/api/vendors", json={**new, "tax_id": "NUEVO-1",
+                                             "legal_name": "Devstudio Latam SAS"}).status_code == 409

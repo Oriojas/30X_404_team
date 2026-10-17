@@ -41,6 +41,7 @@ Lee el documento adjunto y responde solo con el JSON del esquema. Reglas:
    (por ejemplo "$" sin país identificable), devuelve null.
 5. "due_date": fecha de vencimiento en formato AAAA-MM-DD ("15/11/2026" -> "2026-11-15").
 6. "vendor_tax_id" y "bank_account": tal como aparecen en el documento, sin espacios extra al inicio o al final.
+   En "vendor_tax_id" va solo el número, sin la etiqueta ("NIT 900.584.112-4" -> "900.584.112-4").
 7. "confidence": número entre 0 y 1 con tu seguridad sobre la legibilidad y exactitud de los datos extraídos.
 """
 

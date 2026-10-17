@@ -30,12 +30,13 @@
 
 ## 3. Beneficiarios permitidos (backend, F7.3)
 
-3.1. `schema.sql`: `vendors.active BOOLEAN DEFAULT TRUE`, `vendors.updated_by VARCHAR(100)`, `vendors.updated_at TIMESTAMP` y `CREATE UNIQUE INDEX IF NOT EXISTS uq_vendors_legal_name ON vendors (lower(legal_name))`, todo idempotente (D12, D17).
+3.1. `schema.sql`: `vendors.active BOOLEAN DEFAULT TRUE`, `vendors.updated_by VARCHAR(100)`, `vendors.updated_at TIMESTAMP`, la función `vendor_key(text)` (`CREATE OR REPLACE`, `IMMUTABLE`) y los índices únicos `uq_vendors_tax_id_key` y `uq_vendors_legal_name_key` sobre `vendor_key(...)`, todo idempotente (D12, D17).
 3.2. `Vendor` en `models.py`: `id`, `active`, `updated_by`, `updated_at` (D10).
-3.3. Puerto `VendorRepository`: `list_all()`, `get(id)`, `create(vendor)` y `update(id, changes)`. Un `tax_id` o una razón social repetidos (sin distinguir mayúsculas) lanzan `VendorAlreadyExistsError(ConflictError)`; un id inexistente, `VendorNotFoundError(NotFoundError)`. `find` sigue devolviendo inactivos (D8). Adaptador PostgreSQL (traduce `UniqueViolationError` de asyncpg al error de dominio) y `InMemoryVendors` con los mismos métodos y la misma unicidad.
+3.3. Puerto `VendorRepository`: `list_all()`, `get(id)`, `create(vendor)` y `update(vendor)`. Un NIT o una razón social repetidos, aun con otro formato, lanzan `VendorAlreadyExistsError(ConflictError)` (el adaptador traduce `UniqueViolationError` por el nombre del índice); un id inexistente, `VendorNotFoundError(NotFoundError)`. `find` sigue devolviendo inactivos (D8). `InMemoryVendors` implementa lo mismo con `_normalize`.
 3.4. Caso de uso `manage_vendors.py`: `ListVendorsUseCase`, `CreateVendorUseCase` y `UpdateVendorUseCase`, con `updated_at` del reloj de la app (UTC, D9) y solo los campos editables de D7.
 3.5. Router `vendors.py` (`GET`, `POST` → `201`, `PATCH /{id}`) con `VendorCreate`, `VendorUpdate` (`extra="forbid"`) y `VendorResponse` (fechas UTC con `Z`, como F5.8), con los límites de D14. Los `404`/`409` salen de los handlers por base del paso 0.2. Registrar el router en `main.py`.
 3.6. `backend/README.md`: endpoints de beneficiarios y el `PATCH /api/treasury` ampliado.
+3.7. `find` empata por `vendor_key(tax_id)` y, si no, por `vendor_key(legal_name)` no vacía, prefiriendo el NIT (D17). Prompt de Gemini (`gemini_ocr.py`, regla 6): `vendor_tax_id` sin la etiqueta. Pruebas: formatos distintos de NIT y razón social encuentran al proveedor (fake y PostgreSQL), alta duplicada con otro formato → `409`, y `vendor_key` de PostgreSQL igual a `_normalize` en ejemplos con tildes, puntos y guiones.
 
 ## 4. HITL-02 como lista permitida (Core, F7.4)
 
@@ -65,7 +66,7 @@
 
 7.1. Unitarias del pipeline: FIN-04 `REJECTED` por encima del tope y Capa 3 `SKIPPED` con INTEG-04; HITL-02 por proveedor no registrado, por inactivo y ausente para un proveedor activo sin historial; un inactivo conserva COMP-02 e INTEG-02; el texto de `AUTO_APPROVED` ya no menciona historial.
 7.2. Casos de uso: un cambio de presupuesto, tope o tarifa cambia la decisión de la siguiente factura; un proveedor dado de alta deja de escalar por HITL-02; uno dado de baja vuelve a escalar; el `PATCH` con solo presupuesto no mueve `snapshot_at` (en los dos fakes de tesorería); aprobar por encima de un tope rebajado → `409`.
-7.3. API: `422` (presupuesto ≤ 0, cuerpo vacío, tope < umbral con `loc` del campo, umbral subido sobre el tope, `updated_by` vacío o > 100, textos más largos que la columna, `tax_id`/`is_pep` en el `PATCH`); `409` por `tax_id` repetido, por razón social repetida (también con otras mayúsculas) y por presupuesto sin fila de tesorería; `404` por id inexistente. Las pruebas `404`/`409`/`422` actuales siguen en verde.
+7.3. API: `422` (presupuesto ≤ 0, cuerpo vacío, tope < umbral con `loc` del campo, umbral subido sobre el tope, `updated_by` vacío o > 100, textos más largos que la columna, `tax_id`/`is_pep` en el `PATCH`); `409` por NIT o razón social repetidos (también con otro formato: puntos, guiones, tildes o mayúsculas) y por presupuesto sin fila de tesorería; `404` por id inexistente. Las pruebas `404`/`409`/`422` actuales siguen en verde.
 7.4. `test_postgres_integration.py`: columnas nuevas, índice único de razón social, `find` con inactivos, `set_monthly_budget` sin fila no inserta nada, TC-01 a TC-08.
 7.5. `pytest` y `npm run build`; integración con PostgreSQL 16 en Docker (`TEST_DATABASE_URL`); `schema.sql` y `seed.sql` dos veces.
 7.6. Recorrido en el navegador con backend local y seed (checklist de [validation.md](validation.md)).

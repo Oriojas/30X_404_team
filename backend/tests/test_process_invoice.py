@@ -260,3 +260,19 @@ def test_bajar_el_tope_cambia_la_decision_de_la_siguiente_factura():
     # Otro monto: con el mismo, INTEG-01 la rechazaría como duplicada antes de llegar a la Capa 3
     second = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", amount=1_600_000), "API")).invoice
     assert second.decision_status == DecisionStatus.REJECTED and "FIN-04" in second.audit_explanation
+
+
+@pytest.mark.parametrize("tax_id, name", [
+    ("900584112-4", "Otro nombre"),                  # NIT sin puntos: el NIT manda
+    (None, "DevStudio LatAm SAS"),                   # sin NIT, razón social sin puntos
+    (None, "devstudio latam s.a.s"),
+])
+def test_proveedor_registrado_se_encuentra_aunque_el_ocr_lo_lea_con_otro_formato(tax_id, name):
+    # La etiqueta ("NIT 900...") sí cambiaría la llave: el prompt de Gemini pide el número sin ella
+    found = asyncio.run(InMemoryVendors(VENDOR).find(tax_id, name))
+    assert found is not None and found.tax_id == VENDOR.tax_id
+
+
+def test_razon_social_vacia_o_solo_signos_no_empata():
+    assert asyncio.run(InMemoryVendors(VENDOR).find(None, "...")) is None
+    assert asyncio.run(InMemoryVendors(VENDOR).find(None, None)) is None

@@ -15,7 +15,7 @@
 - [ ] `POST /api/rules` con `max_payment_usd` por debajo de `max_autonomous_usd` (también en una actualización parcial contra las reglas guardadas, y al subir el umbral por encima del tope) responde `422` con `detail[0].loc` terminando en el campo; las reglas no cambian.
 - [ ] Aprobar desde el caso de uso una factura escalada cuyo monto supera un tope rebajado después responde `409` y la factura sigue `SCALED_TO_HUMAN`; rechazarla sí funciona. El docstring de `decide_invoice.py` ya no dice que la persona siempre puede aprobar.
 - [ ] Subir la tarifa de un proveedor quita INTEG-02 de su siguiente factura (TC-07 deja de escalar con la tarifa en $1,500).
-- [ ] `POST /api/vendors` crea un proveedor (`201`) con `active = true`, `is_pep = false`, `updated_by` y `updated_at` en UTC; con `tax_id` repetido o con una razón social que ya existe (aunque cambien las mayúsculas) responde `409`; sin `updated_by`, con textos vacíos o más largos que la columna, o con tarifa ≤ 0, `422` (nunca `500`).
+- [ ] `POST /api/vendors` crea un proveedor (`201`) con `active = true`, `is_pep = false`, `updated_by` y `updated_at` en UTC; con un NIT o una razón social que ya existen, aun con otro formato (`900584112-4`, `Devstudio Latam SAS`), responde `409`; sin `updated_by`, con textos vacíos o más largos que la columna, o con tarifa ≤ 0, `422` (nunca `500`).
 - [ ] `PATCH /api/vendors/{id}` edita cuenta, tarifa, razón social y estado; con `tax_id` o `is_pep` en el cuerpo responde `422`; con id inexistente, `404`.
 - [ ] Un proveedor dado de alta por la API: su siguiente factura ya no escala por HITL-02.
 - [ ] Un proveedor dado de baja: su siguiente factura escala por HITL-02 ("inactivo") y sigue evaluando COMP-02 e INTEG-02 contra su registro.
@@ -31,7 +31,9 @@
 - [ ] `schema.sql` agrega `company_rules.max_payment_usd` (default $20,000), `vendors.active`, `vendors.updated_by` y `vendors.updated_at` sobre una base que ya tenía el esquema de la Fase 6; la fila de reglas existente toma el default.
 - [ ] `schema.sql` y `seed.sql` siguen siendo idempotentes (`psql -v ON_ERROR_STOP=1`, dos veces cada uno).
 - [ ] `PostgresVendorRepository.find` devuelve un proveedor inactivo con `active = false`.
-- [ ] El índice `uq_vendors_legal_name` existe y un `INSERT` con la misma razón social en otras mayúsculas se traduce a `409`, no a `500`.
+- [ ] Los índices `uq_vendors_tax_id_key` y `uq_vendors_legal_name_key` existen tras migrar una base con el esquema de `master`, y un `INSERT` con el mismo NIT o razón social en otro formato se traduce a `409`, no a `500`.
+- [ ] `vendor_key` de PostgreSQL devuelve lo mismo que `_normalize` del Core para textos con tildes, `ñ`, puntos, guiones y espacios.
+- [ ] `find` encuentra a los proveedores del seed con formatos que puede devolver el OCR: `900584112-4`, `lem850101ab1`, `Logistica Express MX SA de CV`, `NUBE ANDINA CONSULTORES SAS`; el NIT manda sobre el nombre, y un nombre vacío o de solo signos no empata.
 - [ ] TC-08 restaura el presupuesto original al terminar, también cuando el caso falla.
 
 ### Recorrido local (backend + PostgreSQL con seed + `npm run dev`)
