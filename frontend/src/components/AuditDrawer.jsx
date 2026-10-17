@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import StatusBadge from './StatusBadge'
 import { statusInfo } from '../status'
+import { DECIDED_BY } from '../api'
 
 // Capas de la tubería, en el orden de evaluación del backend (rules_pipeline.LAYERS)
 const LAYERS = [
@@ -53,8 +54,26 @@ function fxRateText(invoice) {
   return `1 USD = ${rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${currency}`
 }
 
-export default function AuditDrawer({ invoice, onClose, onApproveHuman, onRejectHuman }) {
+const NOTE_MAX = 1000
+
+export default function AuditDrawer({ invoice, readOnly = false, onClose, onDecide }) {
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(null) // 'APPROVE' | 'REJECT' | null
+  const [error, setError] = useState(null)
+
   if (!invoice) return null
+
+  const decide = async (decision) => {
+    setSubmitting(decision)
+    setError(null)
+    try {
+      await onDecide(invoice.id, decision, note)
+    } catch (err) {
+      setError(err.message || 'No se pudo registrar la decisión.')
+    } finally {
+      setSubmitting(null)
+    }
+  }
 
   const isScaled = invoice.decision_status === 'SCALED_TO_HUMAN'
   const layers = layerRows(invoice)
@@ -222,21 +241,51 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
         </div>
 
         {/* Drawer Footer con Acciones Human-in-the-Loop */}
-        <div className="p-4 sm:p-5 bg-white border-t border-brand-border flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 bg-white border-t border-brand-border space-y-3">
+          {error && (
+            <p className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">{error}</p>
+          )}
+
           {isScaled ? (
             <>
-              <button
-                onClick={() => onRejectHuman && onRejectHuman(invoice.id)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs transition-colors shadow-xs"
-              >
-                Rechazar Pago
-              </button>
-              <button
-                onClick={() => onApproveHuman && onApproveHuman(invoice.id)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white font-semibold text-xs transition-all shadow-sm active:scale-95"
-              >
-                Aprobar Pago
-              </button>
+              {readOnly ? (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Modo demostración: la decisión humana se habilita cuando la API responde.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <label htmlFor="human-note" className="text-[11px] text-brand-muted flex justify-between">
+                    <span>Nota para el Audit Log (opcional) · decide como <span className="font-semibold">{DECIDED_BY}</span></span>
+                    <span>{note.length}/{NOTE_MAX}</span>
+                  </label>
+                  <textarea
+                    id="human-note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
+                    disabled={submitting !== null}
+                    rows={2}
+                    placeholder="Ej.: Validado con el proveedor por teléfono."
+                    className="w-full px-3 py-2 rounded-xl border border-brand-border bg-slate-50 text-xs text-brand-navy outline-none focus:border-brand-teal resize-none"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => decide('REJECT')}
+                  disabled={readOnly || submitting !== null}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting === 'REJECT' ? 'Rechazando...' : 'Rechazar Pago'}
+                </button>
+                <button
+                  onClick={() => decide('APPROVE')}
+                  disabled={readOnly || submitting !== null}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white font-semibold text-xs transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                >
+                  {submitting === 'APPROVE' ? 'Aprobando...' : 'Aprobar Pago'}
+                </button>
+              </div>
             </>
           ) : (
             <button

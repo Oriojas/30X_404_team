@@ -337,7 +337,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
                   3. Decisión Explicable & Audit Log
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Emite la decisión (aprobar, frenar o escalar a un humano con botones en Telegram), convierte a USD con <strong>$0.00 FX Markup</strong> garantizado por Blinka y registra la justificación en lenguaje natural. No mueve dinero real.
+                  Emite la decisión (aprobar, frenar o escalar a un humano que decide en el dashboard), convierte a USD con <strong>$0.00 FX Markup</strong> garantizado por Blinka y registra la justificación en lenguaje natural. No mueve dinero real.
                 </p>
               </div>
               <div className="pt-3 border-t border-brand-border/60">

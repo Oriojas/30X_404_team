@@ -8,7 +8,7 @@ import AuditDrawer from './components/AuditDrawer'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
 import TopographyBackground from './components/TopographyBackground'
-import { listInvoices, getRules } from './api'
+import { listInvoices, getRules, decideInvoice } from './api'
 
 // Datos de demostración (misma forma que InvoiceResponse): solo se muestran si la API no responde.
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
@@ -121,7 +121,10 @@ export default function App() {
   const loadInvoices = useCallback(async () => {
     setLoadingInvoices(true)
     try {
-      setInvoices(await listInvoices())
+      const data = await listInvoices()
+      setInvoices(data)
+      // El Drawer abierto refleja el estado vigente (p. ej. tras un 409)
+      setSelectedInvoice((prev) => (prev ? data.find((inv) => inv.id === prev.id) || prev : prev))
       setApiAvailable(true)
     } catch {
       setInvoices(INITIAL_INVOICES)
@@ -156,51 +159,25 @@ export default function App() {
     }
   }
 
-  // Acciones Human-in-the-Loop desde el Drawer
-  const handleApproveHuman = (invoiceId) => {
+  // Reemplaza (o agrega al inicio) una factura devuelta por la API
+  const upsertInvoice = useCallback((invoice) => {
     setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invoiceId
-          ? {
-              ...inv,
-              decision_status: 'AUTO_APPROVED',
-              audit_explanation: `Aprobado manualmente por el gerente de finanzas en Telegram el ${new Date().toLocaleTimeString()}. Pago aprobado y registrado en el Audit Log.`
-            }
-          : inv
-      )
+      prev.some((inv) => inv.id === invoice.id)
+        ? prev.map((inv) => (inv.id === invoice.id ? invoice : inv))
+        : [invoice, ...prev]
     )
-    setSelectedInvoice((prev) =>
-      prev && prev.id === invoiceId
-        ? {
-            ...prev,
-            decision_status: 'AUTO_APPROVED',
-            audit_explanation: `Aprobado manualmente por el gerente de finanzas en Telegram el ${new Date().toLocaleTimeString()}. Pago aprobado y registrado en el Audit Log.`
-          }
-        : prev
-    )
-  }
+    setSelectedInvoice((prev) => (prev && prev.id === invoice.id ? invoice : prev))
+  }, [])
 
-  const handleRejectHuman = (invoiceId) => {
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invoiceId
-          ? {
-              ...inv,
-              decision_status: 'REJECTED',
-              audit_explanation: `Rechazado manualmente por el comité financiero el ${new Date().toLocaleTimeString()}. Factura devuelta al proveedor.`
-            }
-          : inv
-      )
-    )
-    setSelectedInvoice((prev) =>
-      prev && prev.id === invoiceId
-        ? {
-            ...prev,
-            decision_status: 'REJECTED',
-            audit_explanation: `Rechazado manualmente por el comité financiero el ${new Date().toLocaleTimeString()}. Factura devuelta al proveedor.`
-          }
-        : prev
-    )
+  // Decisión humana (solo en el dashboard). Un 409 significa que otra persona ya decidió:
+  // se recarga el listado y el error sube al Drawer para mostrar el mensaje.
+  const handleDecide = async (invoiceId, decision, note) => {
+    try {
+      upsertInvoice(await decideInvoice(invoiceId, decision, note))
+    } catch (err) {
+      if (err.status === 409) loadInvoices()
+      throw err
+    }
   }
 
   return (
@@ -240,10 +217,11 @@ export default function App() {
 
       {/* Decision Inspector Drawer (Caja Blanca) */}
       <AuditDrawer
+        key={selectedInvoice?.id}
         invoice={selectedInvoice}
+        readOnly={apiAvailable === false}
         onClose={() => setSelectedInvoice(null)}
-        onApproveHuman={handleApproveHuman}
-        onRejectHuman={handleRejectHuman}
+        onDecide={handleDecide}
       />
 
       {/* Institutional Footer */}

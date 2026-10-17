@@ -108,7 +108,7 @@ export default function RuleControls({
               </div>
               <h3 className="font-display font-semibold text-base text-brand-navy">Límite Máximo Autónomo</h3>
               <p className="text-xs text-brand-muted leading-relaxed">
-                Pagos superiores al umbral escalan a aprobación humana en Telegram (botones de aprobar/rechazar).
+                Pagos superiores al umbral escalan a aprobación humana en el dashboard; Telegram solo informa el resultado.
               </p>
             </div>
 
