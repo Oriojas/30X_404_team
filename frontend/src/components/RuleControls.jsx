@@ -119,13 +119,13 @@ export default function RuleControls({ currentRules, readOnly = false, onSave })
         </div>
 
         {saveSuccess && (
-          <Notice tone="success">Reglas guardadas. Las próximas facturas se evalúan con estos valores.</Notice>
+          <Notice tone="success" size="lg">Reglas guardadas. Las próximas facturas se evalúan con estos valores.</Notice>
         )}
         {generalError && (
-          <Notice tone="error">{generalError}</Notice>
+          <Notice tone="error" size="lg">{generalError}</Notice>
         )}
         {readOnly && (
-          <Notice>Modo demostración: guardar reglas se habilita cuando la API responde.</Notice>
+          <Notice size="lg">Modo demostración: guardar reglas se habilita cuando la API responde.</Notice>
         )}
 
         {/* 4-Card Responsive Grid */}

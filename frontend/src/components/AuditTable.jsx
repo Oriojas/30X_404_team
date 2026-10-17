@@ -109,13 +109,13 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
 
         {/* Demo mode banner */}
         {demoMode && (
-          <Notice icon="cloud_off">
+          <Notice size="lg" icon="cloud_off">
             <span className="font-semibold">Modo demostración:</span> la API no responde, así que se muestran datos
             ficticios. Subir facturas, decidir y guardar reglas está deshabilitado hasta que vuelva la conexión.
           </Notice>
         )}
         {refreshError && (
-          <Notice tone="error" icon="sync_problem">
+          <Notice tone="error" size="lg" icon="sync_problem">
             No se pudo actualizar el Audit Log: {refreshError} Se muestran los últimos datos cargados.
           </Notice>
         )}

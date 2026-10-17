@@ -4,7 +4,8 @@ export const STATUS = {
   AUTO_APPROVED: {
     label: 'Auto-Aprobados',
     badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    dot: 'bg-[#10B981]'
+    dot: 'bg-[#10B981]',
+    pulse: true
   },
   SCALED_TO_HUMAN: {
     label: 'Escalados',
