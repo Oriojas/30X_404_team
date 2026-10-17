@@ -86,7 +86,7 @@ Hallazgo de la validación de la Fase 4: el hero y la tarjeta de colchón mostra
 
 ## Fase 5 — Validaciones pendientes, casos trampa y CI
 
-Pruebas recomendadas de las Fases 2, 3 y 4 que quedaron sin marcar porque faltaba el despliegue, y los dos casos trampa del reto que aún no están en la Test Suite de la demo. Ventana sugerida: sábado 07:00–09:00 AM (Colombia) / 07:00–09:00 PM (Tailandia).
+Pruebas recomendadas de las Fases 2, 3 y 4 que quedaron sin marcar porque faltaba el despliegue, y el caso trampa de "no cuadra con lo acordado", que aún no está en la Test Suite de la demo.
 
 - [ ] **F5.1 — Aviso de la decisión humana:** enviar una factura por Telegram, aprobarla desde el Drawer del dashboard público y confirmar que el chat recibe el aviso del resultado (principio 4 de [mission.md](mission.md)).
 - [ ] **F5.2 — Update repetido:** reenviar con `curl` el mismo cuerpo de un update al webhook de producción (con el secret) y confirmar `200 {"status": "duplicate"}` y un solo aviso en el chat.
@@ -100,7 +100,7 @@ Pruebas recomendadas de las Fases 2, 3 y 4 que quedaron sin marcar porque faltab
 
 ## Fase 6 — Tesorería comprometida
 
-El reto descalifica a quien apruebe un pago indebido. Hoy FIN-01 compara cada factura contra el saldo total por separado y la aprobación humana no vuelve a revisar la solvencia: con $8,500 de caja, cinco facturas de $1,900 de proveedores con historial salen `AUTO_APPROVED` aunque suman $9,500. Ventana sugerida: sábado 09:00 AM – 12:00 PM (Colombia) / sábado 09:00 PM – domingo 12:00 AM (Tailandia).
+El reto descalifica a quien apruebe un pago indebido. Hoy FIN-01 compara cada factura contra el saldo total por separado y la aprobación humana no vuelve a revisar la solvencia: con $8,500 de caja, cinco facturas de $1,900 de proveedores con historial salen `AUTO_APPROVED` aunque suman $9,500.
 
 - [ ] **F6.1 — Saldo como foto con fecha:** como no hay estado de pago ejecutado (el reto no mueve dinero), `treasury_accounts.balance_usd` es el saldo a la fecha de `treasury_accounts.updated_at`. Se compromete solo lo aprobado **después** de esa fecha: `disponible = saldo − Σ usd_amount de AUTO_APPROVED y HUMAN_APPROVED con fecha de aprobación (processed_at o decided_at) > updated_at`. El historial del seed (anterior a la foto) no compromete nada, así que TC-01 sigue `AUTO_APPROVED`. `PATCH /api/treasury` con el saldo toma una foto nueva (también actualiza `updated_at`) y libera lo comprometido; `casos_demo.py` y `humo_produccion.py` lo llaman antes de TC-01 para que las aprobaciones de corridas anteriores no hagan escalar la demo. `updated_at` se escribe siempre con `timezone('UTC', now())` (schema, seed y `UPDATE`), igual que las fechas de las facturas.
 - [ ] **F6.2 — Solvencia con el disponible:** FIN-01 y FIN-03 evalúan contra el disponible y la explicación cita saldo, comprometido y disponible. FIN-02 suma el gasto del mes con la misma fecha de aprobación que F6.1 (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`).
@@ -113,7 +113,7 @@ El reto descalifica a quien apruebe un pago indebido. Hoy FIN-01 compara cada fa
 
 ## Fase 7 — Reglas configurables completas
 
-El reto pide una pantalla donde la empresa define sus reglas: límites por pago y por periodo, beneficiarios permitidos y aprobación humana por encima de cierto monto. Hoy solo el umbral de aprobación, el colchón, la ventana de duplicados y SARLAFT se editan; el presupuesto, los beneficiarios y las tarifas acordadas viven solo en el seed. Ventana sugerida: sábado 12:00–03:00 PM (Colombia) / domingo 12:00–03:00 AM (Tailandia).
+El reto pide una pantalla donde la empresa define sus reglas: límites por pago y por periodo, beneficiarios permitidos y aprobación humana por encima de cierto monto. Hoy solo el umbral de aprobación, el colchón, la ventana de duplicados y SARLAFT se editan; el presupuesto, los beneficiarios y las tarifas acordadas viven solo en el seed.
 
 - [ ] **F7.1 — Presupuesto del periodo:** `monthly_budget_usd` vive en `treasury_accounts` (`TreasuryRepository`), no en `company_rules`: si se agregara a `CompanyRulesUpdate`, `UpdateRulesUseCase` lo descartaría en silencio. Se edita con el `PATCH /api/treasury` de F6.1 (con validación `422`); el panel de reglas lo muestra junto a los demás umbrales pero lo guarda por esa ruta. FIN-02 lo usa en la siguiente evaluación.
 - [ ] **F7.2 — Tope duro por pago:** nueva regla `max_payment_usd` en `company_rules`; una factura por encima queda `REJECTED` con un código nuevo (FIN-04), distinta del umbral de aprobación humana (HITL-01). Validar que `max_payment_usd ≥ max_autonomous_usd` y documentar la regla en [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md).
@@ -127,7 +127,7 @@ El reto pide una pantalla donde la empresa define sus reglas: límites por pago 
 
 ## Fase 8 — Seguridad e inicio de sesión
 
-Hoy ningún endpoint exige autenticación: cualquiera con la URL del backend puede cambiar las reglas (incluso desactivar SARLAFT), aprobar facturas escaladas con un `decided_by` arbitrario o gastar cuota de Gemini. El jurado debe seguir pudiendo probar sin ayuda, así que las credenciales de demo se publican. Ventana sugerida: sábado 03:00–07:00 PM (Colombia) / domingo 03:00–07:00 AM (Tailandia).
+Hoy ningún endpoint exige autenticación: cualquiera con la URL del backend puede cambiar las reglas (incluso desactivar SARLAFT), aprobar facturas escaladas con un `decided_by` arbitrario o gastar cuota de Gemini. El jurado debe seguir pudiendo probar sin ayuda, así que las credenciales de demo se publican.
 
 - [ ] **F8.1 — Usuarios y roles:** dos roles con credenciales de demo en variables de entorno, comparadas con `hmac.compare_digest` (son públicas, así que no hace falta hash): `operador` (sube facturas) y `aprobador` (decide escalamientos, edita reglas y beneficiarios). La segregación queda por rol: el operador no puede aprobar.
 - [ ] **F8.2 — Token:** `POST /api/auth/login` entrega un token firmado (HMAC/JWT) con expiración; una dependencia de FastAPI lo exige en `POST /api/rules`, en los endpoints de beneficiarios de la Fase 7, en `POST /api/invoices`, `POST /api/invoices/upload` y `POST /api/invoices/{id}/decision`. Los `GET` siguen públicos. La clave que firma los tokens (`AUTH_SECRET`) sí es secreta: se carga en Railway y se declara con `preserve()` en `.railway/railway.ts`. Solo toca adaptadores de entrada y `config.py`, no el Core.
@@ -171,8 +171,6 @@ El reto menciona los pagos en otra moneda como parte del dolor actual, pero no l
 
 
 ## Fase 10 — Cierre y entrega
-
-Ventana sugerida: domingo 05:00–09:30 AM (Colombia) / 05:00–09:30 PM (Tailandia) hasta el congelamiento; la entrega, antes de las 11:59.
 
 - [ ] **F10.1 — Limpieza:** quitar dependencias sin uso (`python-telegram-bot`) y pasar `pytest` a desarrollo.
 - [ ] **F10.2 — Congelamiento:** último commit antes del domingo 09:30 AM (Colombia) / 09:30 PM (Tailandia).
