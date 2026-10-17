@@ -67,9 +67,25 @@ class ProcessInvoiceUseCase:
     ) -> IngestionResult:
         """Procesa un documento (foto/PDF) recibido por un canal de ingesta."""
 
+        async def load_file() -> bytes:
+            return file_bytes
+
+        return await self.from_remote_document(load_file, mime_type, channel_source, chat_id, external_id)
+
+    async def from_remote_document(
+        self,
+        load_file: Callable[[], Awaitable[bytes]],
+        mime_type: str,
+        channel_source: str,
+        chat_id: Optional[int] = None,
+        external_id: Optional[str] = None,
+    ) -> IngestionResult:
+        """Como from_document, pero el archivo se descarga solo si la entrega no es una repetición."""
+
         async def work() -> ProcessedInvoice:
             if self.notifier:
                 await self.notifier.notify_received(channel_source, chat_id)
+            file_bytes = await load_file()
             company_rules = await self.rules.get(self.company_id)
             file_sha256 = hashlib.sha256(file_bytes).hexdigest()
             original = await self.invoices.find_by_file_hash(file_sha256, company_rules.duplicate_check_days)
