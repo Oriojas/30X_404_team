@@ -31,7 +31,7 @@ INSERT INTO sanctions_list (list_source, entity_name, tax_id, bank_account) VALU
     ('ONU',  'Inversiones Sombra S.A.',   NULL,          'VE-BANCO-SOMBRA-000111')
 ON CONFLICT (list_source, entity_name) DO NOTHING;
 
--- Historial de pagos (solo si la tabla está vacía): da antigüedad a los proveedores (HITL-02)
+-- Historial de pagos (solo si la tabla está vacía): gasto del mes para FIN-02 y antecedentes para el Audit Log
 -- processed_at es TIMESTAMP sin zona y la app lo escribe en UTC: el seed también, sea cual sea la zona de la base.
 -- y deja una factura reciente de DevStudio para el caso de duplicado (TC-02).
 INSERT INTO invoices (invoice_number, vendor_name, vendor_tax_id, original_amount, original_currency,

@@ -1,10 +1,14 @@
 """
-Casos de demostración TC-01..TC-07 sobre el seed (DB_SEED_DEMO=true) y las reglas por defecto.
+Casos de demostración TC-01..TC-08 sobre el seed (DB_SEED_DEMO=true) y las reglas por defecto.
 Fuente única para tests/test_postgres_integration.py y scripts/humo_produccion.py.
 Cada caso: (id, decision_status esperado, regla que debe aparecer en audit_explanation o None, payload).
 
 Antes de TC-01 se toma una foto del saldo con PATCH /api/treasury y SALDO_DEMO_USD (Fase 6): así lo aprobado
 en corridas anteriores deja de comprometer el saldo y TC-01 no escala por FIN-01/FIN-03.
+
+TC-08 (presupuesto del período insuficiente) no va en CASOS porque necesita preparar la tesorería: se baja el
+presupuesto justo por debajo de gasto del mes + monto, se envía la factura y se restaura el presupuesto.
+Así dispara FIN-02 sin FIN-01 ni FIN-03, sin inflar el gasto del seed (que comprometería el saldo).
 """
 
 # Saldo del seed (treasury_accounts): TC-05 lo supera
@@ -33,3 +37,15 @@ CASOS = [
         "invoice_number": "AWS-2026-10-EXTRA", "vendor_name": "Amazon Web Services LATAM",
         "vendor_tax_id": "US-91-1646860", "original_amount": 1500}),
 ]
+
+# Presupuesto del período insuficiente: proveedor de la lista, dentro de su tarifa ($1,000) y del umbral autónomo
+MONTO_TC08_USD = 400.00
+TC_08 = ("TC-08", "SCALED_TO_HUMAN", "FIN-02", {
+    "invoice_number": "AWS-2026-10-PPTO", "vendor_name": "Amazon Web Services LATAM",
+    "vendor_tax_id": "US-91-1646860", "original_amount": MONTO_TC08_USD})
+
+
+def presupuesto_para_tc08(month_spent_usd: float) -> float:
+    """Un dólar por debajo de gasto del mes + monto de TC-08: la factura no cabe solo por FIN-02."""
+    return month_spent_usd + MONTO_TC08_USD - 1
+

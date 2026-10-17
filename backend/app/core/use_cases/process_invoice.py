@@ -206,15 +206,13 @@ class ProcessInvoiceUseCase:
             self.treasury.get(self.company_id),
         )
 
-        # Las consultas de historial usan la identidad del registro si el proveedor existe
+        # La búsqueda de duplicados usa la identidad del registro si el proveedor existe
         tax_id = vendor.tax_id if vendor else invoice.vendor_tax_id
         name = vendor.legal_name if vendor else invoice.vendor_name
         # Sin monto válido (moneda no soportada u OCR vacío) no se compara por monto
         comparable_amount = usd_amount if usd_amount and usd_amount > 0 else None
-        is_duplicate, has_history = await asyncio.gather(
-            self.invoices.exists_duplicate(tax_id, name, invoice.invoice_number, comparable_amount, duplicate_days),
-            self.invoices.vendor_has_paid_history(tax_id, name),
-        )
+        is_duplicate = await self.invoices.exists_duplicate(
+            tax_id, name, invoice.invoice_number, comparable_amount, duplicate_days)
 
         return EvaluationContext(
             usd_amount=usd_amount or 0.0,
@@ -224,5 +222,4 @@ class ProcessInvoiceUseCase:
             vendor=vendor,
             sanctions_match=sanctions_match,
             is_duplicate=is_duplicate,
-            vendor_has_history=has_history,
         )

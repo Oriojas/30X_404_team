@@ -5,6 +5,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
+from app.core.domain.errors import TreasuryNotInitializedError, VendorAlreadyExistsError, VendorNotFoundError
 from app.core.domain.models import (
     CompanyRules,
     DecisionStatus,
@@ -13,6 +14,7 @@ from app.core.domain.models import (
     IngestionStatus,
     TreasuryStatus,
 )
+from app.core.domain.rules_pipeline import _normalize
 
 APPROVED = {DecisionStatus.AUTO_APPROVED, DecisionStatus.HUMAN_APPROVED}
 
@@ -84,27 +86,65 @@ class InMemoryInvoices:
                    and i.decision_status not in {DecisionStatus.REJECTED, DecisionStatus.HUMAN_REJECTED}]
         return matches[-1] if matches else None
 
-    async def vendor_has_paid_history(self, vendor_tax_id, vendor_name):
-        return any(i.vendor_name == vendor_name and i.decision_status in APPROVED for i in self.items.values())
-
 
 class InMemoryRules:
+    """Guarda lo que recibe en save: una regla cambiada afecta la siguiente evaluación."""
+
     def __init__(self, **overrides):
-        self.overrides = overrides
+        self.current = CompanyRules(company_id="TEST", **overrides)
 
     async def get(self, company_id):
-        return CompanyRules(company_id="TEST", **self.overrides)
+        return self.current
 
     async def save(self, rules):
+        self.current = rules
         return rules
 
 
 class InMemoryVendors:
+    """Lista permitida en memoria, con la misma llave que vendor_key en PostgreSQL (_normalize): NIT y razón social
+    se comparan sin mayúsculas, tildes ni signos, tanto en find como en la unicidad."""
+
     def __init__(self, *vendors):
-        self.vendors = vendors
+        # Copias con id: las pruebas comparten constantes como VENDOR y no deben verlas cambiar
+        self.vendors = [replace(v, id=v.id or i) for i, v in enumerate(vendors, start=1)]
 
     async def find(self, tax_id, name):
-        return next((v for v in self.vendors if v.tax_id == tax_id or v.legal_name == name), None)
+        by_tax_id = next((v for v in self.vendors if _normalize(tax_id) and _normalize(v.tax_id) == _normalize(tax_id)), None)
+        if by_tax_id or not _normalize(name):
+            return by_tax_id
+        return next((v for v in self.vendors if _normalize(v.legal_name) == _normalize(name)), None)
+
+    async def list_all(self):
+        return sorted(self.vendors, key=lambda v: v.legal_name.lower())
+
+    async def get(self, vendor_id):
+        return next((v for v in self.vendors if v.id == vendor_id), None)
+
+    async def create(self, vendor):
+        self._check_unique(vendor)
+        saved = replace(vendor, id=max((v.id for v in self.vendors), default=0) + 1)
+        self.vendors.append(saved)
+        return saved
+
+    async def update(self, vendor):
+        index = next((i for i, v in enumerate(self.vendors) if v.id == vendor.id), None)
+        if index is None:
+            raise VendorNotFoundError(vendor.id)
+        self._check_unique(vendor)
+        # tax_id e is_pep no se editan, igual que el UPDATE de PostgreSQL
+        current = self.vendors[index]
+        self.vendors[index] = replace(vendor, tax_id=current.tax_id, is_pep=current.is_pep)
+        return self.vendors[index]
+
+    def _check_unique(self, vendor):
+        for other in self.vendors:
+            if other.id == vendor.id:
+                continue
+            if _normalize(other.tax_id) == _normalize(vendor.tax_id):
+                raise VendorAlreadyExistsError("tax_id", vendor.tax_id)
+            if _normalize(other.legal_name) == _normalize(vendor.legal_name):
+                raise VendorAlreadyExistsError("legal_name", vendor.legal_name)
 
 
 class NoSanctions:
@@ -113,21 +153,33 @@ class NoSanctions:
 
 
 class FixedTreasury:
-    """Saldo de $8,500 y presupuesto de $25,000; set_balance toma una foto nueva y libera lo comprometido."""
+    """Saldo de $8,500 y presupuesto de $25,000; set_balance toma una foto nueva y libera lo comprometido.
+    Con initialized=False imita una base sin fila de tesorería: set_monthly_budget no la crea."""
 
-    def __init__(self, month_spent_usd=0.0, committed_usd=0.0, snapshot_at=None):
+    def __init__(self, month_spent_usd=0.0, committed_usd=0.0, snapshot_at=None, monthly_budget_usd=25000.0,
+                 initialized=True):
         self.balance_usd = 8500.0
+        self.monthly_budget_usd = monthly_budget_usd
         self.month_spent_usd = month_spent_usd
         self.committed_usd = committed_usd
         self.snapshot_at = snapshot_at
+        self.initialized = initialized
 
     async def get(self, company_id):
-        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000,
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=self.monthly_budget_usd,
                               month_spent_usd=self.month_spent_usd, committed_usd=self.committed_usd,
                               snapshot_at=self.snapshot_at)
 
-    async def set_balance(self, company_id, balance_usd, as_of):
+    async def set_balance(self, company_id, balance_usd, as_of, monthly_budget_usd=None):
         self.balance_usd, self.committed_usd, self.snapshot_at = balance_usd, 0.0, as_of
+        self.monthly_budget_usd = monthly_budget_usd or self.monthly_budget_usd
+        self.initialized = True
+        return await self.get(company_id)
+
+    async def set_monthly_budget(self, company_id, monthly_budget_usd):
+        if not self.initialized:
+            raise TreasuryNotInitializedError(company_id)
+        self.monthly_budget_usd = monthly_budget_usd
         return await self.get(company_id)
 
 
@@ -142,19 +194,25 @@ class LedgerTreasury:
     """Saldo con foto: compromete lo aprobado en InMemoryInvoices después de snapshot_at.
     Lee y luego cede el control, como una consulta real: sin candado, dos evaluaciones ven el mismo disponible."""
 
-    def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None):
+    def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None, monthly_budget_usd=25000.0):
         self.invoices, self.balance_usd = invoices, balance_usd
+        self.monthly_budget_usd = monthly_budget_usd
         self.snapshot_at = snapshot_at or datetime.utcnow()
 
     async def get(self, company_id):
         committed = sum(i.usd_amount for i in self.invoices.items.values()
                         if i.decision_status in APPROVED and approved_at(i) > self.snapshot_at)
         await asyncio.sleep(0)  # el resultado llega después: puede quedar obsoleto si nadie serializa
-        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000, committed_usd=committed,
-                              snapshot_at=self.snapshot_at)
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=self.monthly_budget_usd,
+                              committed_usd=committed, snapshot_at=self.snapshot_at)
 
-    async def set_balance(self, company_id, balance_usd, as_of):
+    async def set_balance(self, company_id, balance_usd, as_of, monthly_budget_usd=None):
         self.balance_usd, self.snapshot_at = balance_usd, as_of
+        self.monthly_budget_usd = monthly_budget_usd or self.monthly_budget_usd
+        return await self.get(company_id)
+
+    async def set_monthly_budget(self, company_id, monthly_budget_usd):
+        self.monthly_budget_usd = monthly_budget_usd
         return await self.get(company_id)
 
 

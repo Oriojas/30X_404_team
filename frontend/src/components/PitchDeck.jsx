@@ -211,7 +211,7 @@ function SlideSolution() {
     { status: 'SCALED_TO_HUMAN', verb: 'Escalar', text: 'Supera el umbral, proveedor nuevo o saldo insuficiente. Decide una persona en el dashboard.' }
   ]
   const pillars = [
-    { icon: 'bolt', title: 'Autonomía', text: 'Facturas de proveedores con historial y bajo $2,000 USD se aprueban solas.' },
+    { icon: 'bolt', title: 'Autonomía', text: 'Facturas de proveedores de la lista permitida y bajo $2,000 USD se aprueban solas.' },
     { icon: 'shield', title: 'Seguridad', text: 'Rechazo inmediato de duplicados y listas restrictivas; ante la duda, escala.' },
     { icon: 'visibility', title: 'Explicabilidad', text: 'Cada decisión con justificación en lenguaje natural y regla disparada.' }
   ]

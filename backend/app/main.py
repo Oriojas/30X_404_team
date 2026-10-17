@@ -9,12 +9,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.adapters.inbound.api.routers import health, invoices, rules, treasury
+from app.adapters.inbound.api.routers import health, invoices, rules, treasury, vendors
 from app.adapters.inbound.telegram import webhook as telegram_webhook
 from app.adapters.outbound.db.postgres_repository import DatabaseUnavailableError
 from app.config import get_settings
 from app.container import Container
-from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
+from app.core.domain.errors import ConflictError, InvalidFieldError, NotFoundError
 
 settings = get_settings()
 
@@ -44,19 +44,21 @@ app.add_middleware(
 )
 
 
-@app.exception_handler(InvoiceNotFoundError)
-async def invoice_not_found(_: Request, exc: InvoiceNotFoundError):
+# Un handler por tipo de error de dominio: cada error nuevo solo elige su base en errors.py
+@app.exception_handler(NotFoundError)
+async def not_found(_: Request, exc: NotFoundError):
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
-@app.exception_handler(InvalidDecisionStateError)
-async def invalid_decision_state(_: Request, exc: InvalidDecisionStateError):
+@app.exception_handler(ConflictError)
+async def conflict(_: Request, exc: ConflictError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
-@app.exception_handler(UnconvertedAmountApprovalError)
-async def unconverted_amount_approval(_: Request, exc: UnconvertedAmountApprovalError):
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
+@app.exception_handler(InvalidFieldError)
+async def invalid_field(_: Request, exc: InvalidFieldError):
+    # Misma forma que los 422 de FastAPI: el dashboard lo muestra junto al campo (ApiError.fieldErrors)
+    return JSONResponse(status_code=422, content={"detail": [{"loc": ["body", exc.field], "msg": str(exc)}]})
 
 
 @app.exception_handler(DatabaseUnavailableError)
@@ -68,6 +70,7 @@ app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(rules.router)
 app.include_router(treasury.router)
+app.include_router(vendors.router)
 app.include_router(telegram_webhook.router)
 
 

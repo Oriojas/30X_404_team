@@ -111,7 +111,7 @@ flowchart TD
 
 | Código | Nombre de la Regla | Condición Lógica | Decisión | Razón / Explicación Registrada |
 | :--- | :--- | :--- | :--- | :--- |
-| **COMP-01** | **Listas Restrictivas (OFAC/ONU)** | Beneficiario registrado en OFAC, ONU o listas de sanciones GAFI. | `REJECTED` | *Rechazado por coincidencia con lista restrictiva internacional.* |
+| **COMP-01** | **Listas Restrictivas (OFAC/ONU)** | Beneficiario registrado en OFAC, ONU o listas de sanciones GAFI. La razón social, el NIT y la cuenta bancaria se comparan con la llave normalizada `vendor_key` (minúsculas, sin tildes, solo letras y dígitos), igual que el cruce con proveedores: `PA1557788` empata con `PA-155-7788`. Una llave vacía (dato ausente o solo símbolos) no empata. | `REJECTED` | *Rechazado por coincidencia con lista restrictiva internacional.* |
 | **COMP-02** | **Cuentas Bancarias No Permitidas** | Las instrucciones de transferencia difieren de las cuentas validadas del proveedor. | `SCALED_TO_HUMAN` | *Instrucciones bancarias no coinciden con las cuentas autorizadas.* |
 | **COMP-03** | **Alerta PEP (Políticamente Expuesto)** | El beneficiario o representante figura en el registro PEP. | `SCALED_TO_HUMAN` | *Escalado a Oficial de Cumplimiento por condición PEP.* |
 | **COMP-04** | **Consistencia Identificación Fiscal** | NIT / RUT en la factura no coincide con la razón social registrada. | `SCALED_TO_HUMAN` | *Inconsistencia entre el NIT impreso y el registro fiscal.* |
@@ -140,6 +140,9 @@ flowchart TD
 | **FIN-01** | **Verificación de Saldo Existente** | `Monto Factura > Disponible`, donde `Disponible = Saldo Cuenta Blinka (foto) − pagos aprobados después de la foto` (USD). | `SCALED_TO_HUMAN` | *Saldo disponible insuficiente en la cuenta Blinka para ejecutar el pago. Saldo, comprometido y disponible.* |
 | **FIN-02** | **Tope Presupuestal del Período** | Acumulado de pagos aprobados del mes (por fecha de aprobación) + Monto Factura > Presupuesto Asignado. | `SCALED_TO_HUMAN` | *El pago excede el presupuesto disponible del período.* |
 | **FIN-03** | **Colchón Mínimo de Tesorería** | `Disponible - Monto Factura < Colchón mínimo` (configurable, `min_treasury_buffer_usd`). Solo aplica si no se disparó FIN-01. | `SCALED_TO_HUMAN` | *El pago dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería. Saldo, comprometido y disponible.* |
+| **FIN-04** | **Tope Máximo por Pago** | `Monto Factura > Tope por pago` (configurable, `max_payment_usd`, $20,000 USD por defecto; nunca menor que el umbral de HITL-01). | `REJECTED` | *El pago supera el tope máximo por pago definido por la empresa.* |
+
+> FIN-04 es un límite duro, distinto del umbral de aprobación humana (HITL-01): por encima del tope la factura se rechaza y tampoco se puede aprobar desde el dashboard. Si el tope baja después de que una factura escaló, aprobarla responde `409` y solo se puede rechazar. Sin conversión a USD (INTEG-04) la Capa 3 no se evalúa.
 
 ---
 
@@ -150,8 +153,10 @@ flowchart TD
 | Código | Regla | Condición Lógica | Decisión | Razón / Explicación Registrada |
 | :--- | :--- | :--- | :--- | :--- |
 | **HITL-01** | **Monto Máximo de Aprobación Autónoma** | `Monto Factura > $2,000 USD` (Umbral configurable). | `SCALED_TO_HUMAN` | *El monto excede el límite autónomo de $2,000 USD.* |
-| **HITL-02** | **Proveedor Nuevo (Primer Pago)** | El proveedor no cuenta con historial de pagos en la plataforma. | `SCALED_TO_HUMAN` | *Proveedor nuevo. Requiere verificación inicial por un operador.* |
+| **HITL-02** | **Beneficiario fuera de la lista permitida** | El proveedor no está registrado en la lista permitida o está inactivo (`active = false`). El NIT y la razón social se comparan sin mayúsculas, tildes ni signos. | `SCALED_TO_HUMAN` | *Beneficiario fuera de la lista permitida (o inactivo). Requiere verificación inicial y alta por un aprobador.* |
 | **HITL-03** | **Ambigüedad Acumulada** | 2 o más alertas de inconsistencia de la factura (COMP-02, COMP-04, INTEG-02, INTEG-03, INTEG-04). | `SCALED_TO_HUMAN` | *Acumulación de pequeñas inconsistencias detectadas.* |
+
+> HITL-02 ya no exige historial de pagos: el alta del proveedor desde el dashboard es la verificación inicial y queda registrada con quién y cuándo. Un proveedor inactivo conserva su registro, así que COMP-02, COMP-03, COMP-04 e INTEG-02 se siguen evaluando contra su cuenta autorizada, su condición PEP, su NIT y su tarifa acordada.
 
 ### Resolución Humana de Facturas Escaladas
 
@@ -170,11 +175,12 @@ Set de datos simulados diseñado para verificar el comportamiento del agente fre
 | :--- | :--- | :--- | :--- | :--- |
 | **TC-01** | Factura mensual recurrente de AWS ($450 USD) con saldo suficiente y proveedor frecuente. | Normal | `AUTO_APPROVED` | Ninguna (Pasó 100%) |
 | **TC-02** | Factura enviada por segunda vez en la misma semana ($1,200 USD). | **Trampa (Duplicado)** | `REJECTED` | `INTEG-01` |
-| **TC-03** | Factura de proveedor nuevo no registrado previamente ($800 USD). | **Trampa (Proveedor Nuevo)** | `SCALED_TO_HUMAN` | `HITL-02` |
+| **TC-03** | Factura de un proveedor que no está en la lista permitida ($800 USD). | **Trampa (Beneficiario fuera de la lista)** | `SCALED_TO_HUMAN` | `HITL-02` |
 | **TC-04** | Factura con monto superior al pactado ($3,500 USD vs $2,000 USD de límite). | **Trampa (Monto Alto)** | `SCALED_TO_HUMAN` | `HITL-01` |
 | **TC-05** | Factura por $10,000 USD cuando el saldo en Blinka es de $4,000 USD. | **Trampa (Saldo Insuficiente)** | `SCALED_TO_HUMAN` | `FIN-01` |
 | **TC-06** | Factura con destino a cuenta bancaria en lista restrictiva OFAC. | **Trampa (Compliance)** | `REJECTED` | `COMP-01` |
 | **TC-07** | Factura de AWS por $1,500 USD cuando la tarifa pactada en contrato es de $1,000 USD (proveedor frecuente, bajo el umbral autónomo). | **Trampa (No cuadra con lo acordado)** | `SCALED_TO_HUMAN` | `INTEG-02` |
+| **TC-08** | Factura de AWS por $400 USD (proveedor de la lista, dentro de su tarifa y del umbral autónomo) cuando el presupuesto del mes está a un dólar de agotarse: gasto del mes + $400 supera el presupuesto. | **Trampa (Presupuesto del período insuficiente)** | `SCALED_TO_HUMAN` | `FIN-02` |
 
 ---
 

@@ -59,10 +59,6 @@ class InvoiceRepository(Protocol):
         """INTEG-01 por archivo: la factura más reciente con el mismo SHA-256 en la ventana (excluye rechazadas)."""
         ...
 
-    async def vendor_has_paid_history(self, vendor_tax_id: Optional[str], vendor_name: Optional[str]) -> bool:
-        """HITL-02: el proveedor tiene al menos un pago aprobado previo."""
-        ...
-
 
 class RulesRepository(Protocol):
     """Lectura y actualización de reglas corporativas."""
@@ -75,7 +71,21 @@ class RulesRepository(Protocol):
 class VendorRepository(Protocol):
     """Registro de proveedores verificados."""
 
-    async def find(self, tax_id: Optional[str], name: Optional[str]) -> Optional[Vendor]: ...
+    async def find(self, tax_id: Optional[str], name: Optional[str]) -> Optional[Vendor]:
+        """Por NIT o razón social, activo o no: las capas 1 y 2 evalúan contra su registro; HITL-02 mira active."""
+        ...
+
+    async def list_all(self) -> List[Vendor]: ...
+
+    async def get(self, vendor_id: int) -> Optional[Vendor]: ...
+
+    async def create(self, vendor: Vendor) -> Vendor:
+        """VendorAlreadyExistsError si el NIT o la razón social (sin distinguir mayúsculas) ya existen."""
+        ...
+
+    async def update(self, vendor: Vendor) -> Vendor:
+        """Guarda los campos editables de vendor.id; VendorNotFoundError o VendorAlreadyExistsError."""
+        ...
 
 
 class SanctionsRepository(Protocol):
@@ -94,8 +104,16 @@ class TreasuryRepository(Protocol):
 
     async def get(self, company_id: str) -> TreasuryStatus: ...
 
-    async def set_balance(self, company_id: str, balance_usd: float, as_of: datetime) -> TreasuryStatus:
-        """Toma una foto nueva del saldo a la fecha as_of (UTC): libera lo aprobado hasta esa fecha."""
+    async def set_balance(
+        self, company_id: str, balance_usd: float, as_of: datetime, monthly_budget_usd: Optional[float] = None
+    ) -> TreasuryStatus:
+        """Toma una foto nueva del saldo a la fecha as_of (UTC): libera lo aprobado hasta esa fecha.
+        Si llega monthly_budget_usd, lo guarda en la misma escritura."""
+        ...
+
+    async def set_monthly_budget(self, company_id: str, monthly_budget_usd: float) -> TreasuryStatus:
+        """Cambia solo el presupuesto: no mueve la foto ni el saldo y nunca crea la fila
+        (TreasuryNotInitializedError si no existe)."""
         ...
 
 

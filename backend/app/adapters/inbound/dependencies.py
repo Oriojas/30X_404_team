@@ -9,13 +9,16 @@ from typing import Any, Dict, Optional
 from fastapi import Request
 
 from app.core.use_cases import (
+    CreateVendorUseCase,
     DecideInvoiceUseCase,
     GetRulesUseCase,
     GetTreasuryUseCase,
     ListInvoicesUseCase,
+    ListVendorsUseCase,
     ProcessInvoiceUseCase,
     UpdateRulesUseCase,
     UpdateTreasuryBalanceUseCase,
+    UpdateVendorUseCase,
 )
 
 
@@ -45,6 +48,18 @@ def get_update_rules(request: Request) -> UpdateRulesUseCase:
 
 def get_update_treasury(request: Request) -> UpdateTreasuryBalanceUseCase:
     return request.app.state.container.update_treasury
+
+
+def get_list_vendors(request: Request) -> ListVendorsUseCase:
+    return request.app.state.container.list_vendors
+
+
+def get_create_vendor(request: Request) -> CreateVendorUseCase:
+    return request.app.state.container.create_vendor
+
+
+def get_update_vendor(request: Request) -> UpdateVendorUseCase:
+    return request.app.state.container.update_vendor
 
 
 def get_telegram_file_source(request: Request):

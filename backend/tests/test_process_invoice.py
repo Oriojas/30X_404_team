@@ -8,10 +8,15 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
+from app.core.domain.errors import (
+    InvalidDecisionStateError, InvoiceNotFoundError, PaymentCapExceededError, UnconvertedAmountApprovalError,
+)
 from app.core.domain.models import DecisionStatus, ExtractedInvoice, HumanDecision, ProcessedInvoice, Vendor
 from app.core.domain.rules_pipeline import RulesPipeline
-from app.core.use_cases import DecideInvoiceUseCase, ProcessInvoiceUseCase
+from app.core.use_cases import (
+    CreateVendorUseCase, DecideInvoiceUseCase, ProcessInvoiceUseCase, UpdateRulesUseCase, UpdateTreasuryBalanceUseCase,
+    UpdateVendorUseCase,
+)
 
 from .fakes import (
     FakeOCR, FakeRates, FixedTreasury, InMemoryInvoices, InMemoryRules, InMemoryVendors, LedgerTreasury, NoSanctions,
@@ -40,12 +45,22 @@ def cop_invoice(number="DS-1", amount=1_500_000):
                             original_amount=amount, original_currency="COP")
 
 
-def test_new_vendor_is_scaled_then_known_vendor_is_approved_and_duplicate_rejected():
-    use_case, invoices, notifier = build(cop_invoice())
+NEW_VENDOR = "Diseño Creativo Bogotá S.A.S."
+
+
+def new_vendor_invoice(number="DC-1", amount=1_500_000):
+    """Proveedor fuera de la lista permitida: escala solo por HITL-02 (sin alertas FIN)."""
+    return ExtractedInvoice(invoice_number=number, vendor_name=NEW_VENDOR, vendor_tax_id="901.555.010-2",
+                            original_amount=amount, original_currency="COP")
+
+
+def test_vendor_outside_the_allowlist_is_scaled_then_registered_vendor_is_approved_and_duplicate_rejected():
+    use_case, invoices, notifier = build(new_vendor_invoice())
 
     first = asyncio.run(use_case.from_document(b"img", "image/jpeg", "TELEGRAM", chat_id=42)).invoice
     assert first.usd_amount == 357.14 and first.fx_rate_applied == 4200.0
-    assert first.decision_status == DecisionStatus.SCALED_TO_HUMAN  # HITL-02: sin historial
+    assert first.decision_status == DecisionStatus.SCALED_TO_HUMAN
+    assert "HITL-02" in first.audit_explanation and "fuera de la lista permitida" in first.audit_explanation
     assert notifier.received == [("TELEGRAM", 42)]
     assert notifier.decisions[-1].source_chat_id == 42
 
@@ -54,22 +69,26 @@ def test_new_vendor_is_scaled_then_known_vendor_is_approved_and_duplicate_reject
     assert approved.decision_status == DecisionStatus.HUMAN_APPROVED
     assert approved.decided_by == "CFO Blinka" and "Proveedor validado" in approved.audit_explanation
 
-    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", 2_100_000), "API")).invoice
+    # El alta desde el dashboard es la verificación inicial: la siguiente factura ya no escala (F7.4)
+    asyncio.run(CreateVendorUseCase(use_case.vendors).execute(
+        "901.555.010-2", NEW_VENDOR, "CO-BANCOLOMBIA-55500011122", 5000, "CFO Blinka"))
+    second = asyncio.run(use_case.from_extracted(new_vendor_invoice("DC-2", 2_100_000), "API")).invoice
     assert second.decision_status == DecisionStatus.AUTO_APPROVED
+    assert "proveedor activo en la lista permitida" in second.audit_explanation
 
-    repeated = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", 2_100_000), "API")).invoice
+    repeated = asyncio.run(use_case.from_extracted(new_vendor_invoice("DC-2", 2_100_000), "API")).invoice
     assert repeated.decision_status == DecisionStatus.REJECTED
     assert "INTEG-01" in repeated.audit_explanation
 
 
 def test_human_decision_only_applies_to_scaled_invoices():
-    use_case, invoices, notifier = build(cop_invoice())
+    use_case, invoices, notifier = build(new_vendor_invoice())
     decide = decider(invoices, notifier)
 
     with pytest.raises(InvoiceNotFoundError):
         asyncio.run(decide.execute(99, HumanDecision.APPROVE, "CFO"))
 
-    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice
+    scaled = asyncio.run(use_case.from_extracted(new_vendor_invoice(), "API")).invoice
     rejected = asyncio.run(decide.execute(scaled.id, HumanDecision.REJECT, "CFO"))
     assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
 
@@ -78,8 +97,8 @@ def test_human_decision_only_applies_to_scaled_invoices():
 
 
 def test_concurrent_human_decisions_only_one_wins():
-    use_case, invoices, notifier = build(cop_invoice())
-    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice
+    use_case, invoices, notifier = build(new_vendor_invoice())
+    scaled = asyncio.run(use_case.from_extracted(new_vendor_invoice(), "API")).invoice
     decide = decider(invoices, notifier)
 
     async def race():
@@ -140,8 +159,8 @@ def test_aprobar_revalida_la_solvencia_y_registra_la_excepcion():
 
 
 def test_aprobar_sin_alertas_fin_lo_deja_dicho():
-    use_case, invoices, notifier = build(cop_invoice())
-    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice  # HITL-02, no FIN
+    use_case, invoices, notifier = build(new_vendor_invoice())
+    scaled = asyncio.run(use_case.from_extracted(new_vendor_invoice(), "API")).invoice  # HITL-02 (fuera de la lista), no FIN
     approved = asyncio.run(decider(invoices, notifier).execute(scaled.id, HumanDecision.APPROVE, "CFO"))
     assert "disponible $8,500.00 USD" in approved.audit_explanation and "sin alertas FIN" in approved.audit_explanation
     assert "Excepción" not in approved.audit_explanation
@@ -163,9 +182,9 @@ def test_factura_sin_conversion_a_usd_no_se_puede_aprobar_pero_si_rechazar():
 
 
 def ledger_setup(lock):
-    """Tesorería que compromete lo aprobado ($8,500, colchón $1,000) y un proveedor con historial anterior a la foto."""
+    """Tesorería que compromete lo aprobado ($8,500, colchón $1,000) y una factura aprobada antes de la foto."""
     invoices = InMemoryInvoices()
-    # Historial anterior a la foto: da antigüedad al proveedor (HITL-02) y no compromete
+    # Aprobada antes de la foto: no compromete
     invoices.items[1] = ProcessedInvoice(
         id=1, invoice_number="OLD-1", vendor_name=VENDOR.legal_name, original_amount=100, original_currency="USD",
         usd_amount=100, fx_rate_applied=1.0, decision_status=DecisionStatus.AUTO_APPROVED, audit_explanation="x",
@@ -228,3 +247,91 @@ def test_container_comparte_un_solo_candado_de_solvencia():
     lock = container.process_invoice.solvency_lock
     assert container.decide_invoice.solvency_lock is lock and container.update_treasury.solvency_lock is lock
 
+
+
+def test_aprobar_por_encima_de_un_tope_rebajado_responde_conflicto_y_rechazar_si_funciona():
+    # Escaló con el tope por defecto; luego la empresa bajó el tope por debajo del monto (F7.2, D5)
+    use_case, invoices, notifier = build(new_vendor_invoice())
+    scaled = asyncio.run(use_case.from_extracted(new_vendor_invoice(), "API")).invoice
+    rules = InMemoryRules(max_autonomous_usd=100, max_payment_usd=100)
+    decide = DecideInvoiceUseCase(invoices, FixedTreasury(), rules, "TEST", notifier)
+
+    with pytest.raises(PaymentCapExceededError, match="FIN-04|tope máximo"):
+        asyncio.run(decide.execute(scaled.id, HumanDecision.APPROVE, "CFO"))
+    assert invoices.items[scaled.id].decision_status == DecisionStatus.SCALED_TO_HUMAN
+
+    rejected = asyncio.run(decide.execute(scaled.id, HumanDecision.REJECT, "CFO"))
+    assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
+
+
+def test_bajar_el_tope_cambia_la_decision_de_la_siguiente_factura():
+    rules = InMemoryRules()
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=InMemoryInvoices(), rules=rules,
+        vendors=InMemoryVendors(VENDOR), sanctions=NoSanctions(), treasury=FixedTreasury(), company_id="TEST",
+    )
+    first = asyncio.run(use_case.from_extracted(cop_invoice("DS-1"), "API")).invoice
+    assert first.decision_status != DecisionStatus.REJECTED
+
+    asyncio.run(UpdateRulesUseCase(rules, "TEST").execute({"max_autonomous_usd": 100, "max_payment_usd": 100}))
+    # Otro monto: con el mismo, INTEG-01 la rechazaría como duplicada antes de llegar a la Capa 3
+    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", amount=1_600_000), "API")).invoice
+    assert second.decision_status == DecisionStatus.REJECTED and "FIN-04" in second.audit_explanation
+
+
+@pytest.mark.parametrize("tax_id, name", [
+    ("900584112-4", "Otro nombre"),                  # NIT sin puntos: el NIT manda
+    (None, "DevStudio LatAm SAS"),                   # sin NIT, razón social sin puntos
+    (None, "devstudio latam s.a.s"),
+])
+def test_proveedor_registrado_se_encuentra_aunque_el_ocr_lo_lea_con_otro_formato(tax_id, name):
+    # La etiqueta ("NIT 900...") sí cambiaría la llave: el prompt de Gemini pide el número sin ella
+    found = asyncio.run(InMemoryVendors(VENDOR).find(tax_id, name))
+    assert found is not None and found.tax_id == VENDOR.tax_id
+
+
+def test_razon_social_vacia_o_solo_signos_no_empata():
+    assert asyncio.run(InMemoryVendors(VENDOR).find(None, "...")) is None
+    assert asyncio.run(InMemoryVendors(VENDOR).find(None, None)) is None
+
+
+def test_baja_logica_hace_escalar_la_siguiente_factura_y_reactivar_la_aprueba():
+    use_case, _, _ = build(cop_invoice())
+    vendor_id = asyncio.run(use_case.vendors.find(VENDOR.tax_id, None)).id
+    update = UpdateVendorUseCase(use_case.vendors)
+
+    asyncio.run(update.execute(vendor_id, {"active": False}, "CFO Demo"))
+    off = asyncio.run(use_case.from_extracted(cop_invoice("DS-10", 1_000_000), "API")).invoice
+    assert off.decision_status == DecisionStatus.SCALED_TO_HUMAN and "inactivo" in off.audit_explanation
+
+    asyncio.run(update.execute(vendor_id, {"active": True}, "CFO Demo"))
+    on = asyncio.run(use_case.from_extracted(cop_invoice("DS-11", 1_100_000), "API")).invoice
+    assert on.decision_status == DecisionStatus.AUTO_APPROVED
+
+
+def test_subir_la_tarifa_acordada_quita_integ02_de_la_siguiente_factura():
+    use_case, _, _ = build(cop_invoice())
+    vendor_id = asyncio.run(use_case.vendors.find(VENDOR.tax_id, None)).id
+    asyncio.run(UpdateVendorUseCase(use_case.vendors).execute(vendor_id, {"contract_amount_usd": 300}, "CFO"))
+    over = asyncio.run(use_case.from_extracted(cop_invoice("DS-20", 1_500_000), "API")).invoice  # $357 > $300
+    assert "INTEG-02" in over.audit_explanation
+
+    asyncio.run(UpdateVendorUseCase(use_case.vendors).execute(vendor_id, {"contract_amount_usd": 400}, "CFO"))
+    within = asyncio.run(use_case.from_extracted(cop_invoice("DS-21", 1_520_000), "API")).invoice  # $361.90
+    assert within.decision_status == DecisionStatus.AUTO_APPROVED
+
+
+def test_bajar_el_presupuesto_hace_escalar_por_fin02_la_siguiente_factura():
+    treasury = FixedTreasury(month_spent_usd=1000)
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=InMemoryInvoices(),
+        rules=InMemoryRules(), vendors=InMemoryVendors(VENDOR), sanctions=NoSanctions(), treasury=treasury,
+        company_id="TEST",
+    )
+    first = asyncio.run(use_case.from_extracted(cop_invoice("DS-30", 1_500_000), "API")).invoice  # $357.14
+    assert first.decision_status == DecisionStatus.AUTO_APPROVED
+
+    asyncio.run(UpdateTreasuryBalanceUseCase(treasury, "TEST").execute(monthly_budget_usd=1200))
+    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-31", 1_600_000), "API")).invoice  # $380.95
+    assert second.decision_status == DecisionStatus.SCALED_TO_HUMAN
+    assert "FIN-02" in second.audit_explanation and "FIN-01" not in second.audit_explanation
