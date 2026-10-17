@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.domain.errors import InvalidRulesError
+from app.core.domain.errors import InvalidFieldError
 from app.core.use_cases import GetRulesUseCase, UpdateRulesUseCase
 from app.main import app
 
@@ -57,7 +57,7 @@ def test_tope_negativo_es_422_de_validacion(rules):
 
 def test_el_caso_de_uso_valida_contra_lo_guardado():
     repo = InMemoryRules(max_payment_usd=3000)
-    with pytest.raises(InvalidRulesError) as error:
+    with pytest.raises(InvalidFieldError) as error:
         asyncio.run(UpdateRulesUseCase(repo, "TEST").execute({"max_autonomous_usd": 3500}))
     assert error.value.field == "max_autonomous_usd"
 

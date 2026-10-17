@@ -13,8 +13,9 @@ class ConflictError(DomainError):
     """La operación choca con el estado actual del recurso (HTTP 409)."""
 
 
-class InvalidRulesError(DomainError):
-    """Reglas incoherentes entre sí (HTTP 422, con el campo que hay que corregir)."""
+class InvalidFieldError(DomainError):
+    """Un valor que el Core rechaza (reglas incoherentes entre sí, actualización de tesorería vacía):
+    HTTP 422 con el campo que hay que corregir."""
 
     def __init__(self, field: str, message: str):
         super().__init__(message)

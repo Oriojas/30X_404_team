@@ -251,7 +251,7 @@ class PostgresVendorRepository:
 
     async def find(self, tax_id: Optional[str], name: Optional[str]) -> Optional[Vendor]:
         # Llave normalizada (vendor_key en schema.sql): el OCR no siempre respeta puntos, guiones ni tildes.
-        # El NIT manda; ninguna llave vacía empata (un NIT "-" o un OCR que lee "N/A" no son un proveedor).
+        # El NIT manda; ninguna llave vacía empata (un NIT "-" o "..." no identifica a ningún proveedor).
         row = await self.db.require_pool().fetchrow(
             """SELECT * FROM vendors
                WHERE (vendor_key($1) <> '' AND vendor_key(tax_id) = vendor_key($1))

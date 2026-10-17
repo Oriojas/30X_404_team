@@ -5,7 +5,7 @@
 ## 0. Errores de dominio por tipo (backend, base de las fases siguientes)
 
 0.1. `errors.py`: bases `NotFoundError(DomainError)` y `ConflictError(DomainError)`. `InvoiceNotFoundError` hereda de la primera; `InvalidDecisionStateError` y `UnconvertedAmountApprovalError`, de la segunda. Sin cambiar sus mensajes (D16).
-0.2. `main.py`: un `exception_handler` por base (`404` y `409`) en lugar de uno por error; se conservan el de `DatabaseUnavailableError` (`503`) y el nuevo de `InvalidRulesError` (`422`, paso 2.3). Las pruebas actuales de `404`/`409` siguen en verde sin tocarlas.
+0.2. `main.py`: un `exception_handler` por base (`404` y `409`) en lugar de uno por error; se conservan el de `DatabaseUnavailableError` (`503`) y el nuevo de `InvalidFieldError` (`422`, paso 2.3). Las pruebas actuales de `404`/`409` siguen en verde sin tocarlas.
 
 ## 1. Presupuesto del periodo (backend, F7.1)
 
@@ -22,7 +22,7 @@
 
 2.1. `schema.sql`: `ALTER TABLE company_rules ADD COLUMN IF NOT EXISTS max_payment_usd NUMERIC(12,2) DEFAULT 20000.00` (D3, D12). `CompanyRules.max_payment_usd: float = 20000.00`; lectura y escritura en `PostgresRulesRepository`.
 2.2. `CompanyRulesUpdate` y `CompanyRulesResponse` con `max_payment_usd` (`ge=0`).
-2.3. `UpdateRulesUseCase`: combinar la actualización con las reglas guardadas (sin cambiar el filtro `hasattr` actual) y, si `max_payment_usd < max_autonomous_usd`, lanzar `InvalidRulesError(field, message)` (`errors.py`). Su handler en `main.py` responde `422` con `{"detail": [{"loc": ["body", field], "msg": message}]}` (D4).
+2.3. `UpdateRulesUseCase`: combinar la actualización con las reglas guardadas (sin cambiar el filtro `hasattr` actual) y, si `max_payment_usd < max_autonomous_usd`, lanzar `InvalidFieldError(field, message)` (`errors.py`). Su handler en `main.py` responde `422` con `{"detail": [{"loc": ["body", field], "msg": message}]}` (D4).
 2.4. `tests/fakes.py`: `InMemoryRules` guarda `self.current` (inicializado con los overrides): `save` lo reemplaza y `get` lo devuelve. Así una regla guardada afecta la siguiente factura. No se crea otro fake de reglas.
 2.5. `_solvency` en `rules_pipeline.py`: FIN-04 `REJECTED` si `ctx.usd_amount > rules.max_payment_usd`, con el monto y el tope en la explicación. Sin guarda de `currency_supported`: `evaluate_invoice` ya marca toda la Capa 3 como `SKIPPED` cuando no hay conversión a USD.
 2.6. `DecideInvoiceUseCase`: si la revalidación de la Capa 3 trae FIN-04, lanzar `PaymentCapExceededError(ConflictError)` → `409` (D5). Actualizar el docstring del módulo: deja de ser cierto que "la persona siempre puede aprobar" (excepciones: INTEG-04 y FIN-04).

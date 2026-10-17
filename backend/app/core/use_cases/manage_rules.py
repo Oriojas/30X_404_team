@@ -3,7 +3,7 @@
 from dataclasses import replace
 from typing import Any, Dict
 
-from app.core.domain.errors import InvalidRulesError
+from app.core.domain.errors import InvalidFieldError
 from app.core.domain.models import CompanyRules
 from app.core.ports.outbound import RulesRepository
 
@@ -34,6 +34,6 @@ class UpdateRulesUseCase:
             changed = {k for k, v in updates.items() if v != getattr(current, k)}
             field = "max_autonomous_usd" if changed & {"max_autonomous_usd", "max_payment_usd"} == {"max_autonomous_usd"} \
                 else "max_payment_usd"
-            raise InvalidRulesError(field, f"El tope por pago (${merged.max_payment_usd:,.2f}) no puede ser menor "
+            raise InvalidFieldError(field, f"El tope por pago (${merged.max_payment_usd:,.2f}) no puede ser menor "
                                            f"que el umbral de aprobación autónoma (${merged.max_autonomous_usd:,.2f}).")
         return await self.rules.save(merged)

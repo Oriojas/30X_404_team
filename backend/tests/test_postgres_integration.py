@@ -480,7 +480,7 @@ def test_vendor_key_de_postgres_coincide_con_normalize_y_find_tolera_formatos(cl
         (None, "...", None),
         (None, None, None),
         ("-", None, None),                                            # NIT sin letras ni dígitos: no empata
-        ("N/A.", "...", None),
+        ("--", "...", None),                                          # ambas llaves vacías
     ]
 
     async def scenario():

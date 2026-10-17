@@ -14,7 +14,7 @@ from app.adapters.inbound.telegram import webhook as telegram_webhook
 from app.adapters.outbound.db.postgres_repository import DatabaseUnavailableError
 from app.config import get_settings
 from app.container import Container
-from app.core.domain.errors import ConflictError, InvalidRulesError, NotFoundError
+from app.core.domain.errors import ConflictError, InvalidFieldError, NotFoundError
 
 settings = get_settings()
 
@@ -55,8 +55,8 @@ async def conflict(_: Request, exc: ConflictError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
-@app.exception_handler(InvalidRulesError)
-async def invalid_rules(_: Request, exc: InvalidRulesError):
+@app.exception_handler(InvalidFieldError)
+async def invalid_field(_: Request, exc: InvalidFieldError):
     # Misma forma que los 422 de FastAPI: el dashboard lo muestra junto al campo (ApiError.fieldErrors)
     return JSONResponse(status_code=422, content={"detail": [{"loc": ["body", exc.field], "msg": str(exc)}]})
 
