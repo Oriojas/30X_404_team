@@ -21,8 +21,8 @@ flowchart TD
         direction TB
 
         subgraph InAdapters ["ADAPTADORES DE ENTRADA (adapters/inbound)"]
-            Telegram["Telegram Webhook (MVP) - Ingesta Fotos/PDF y Botones HITL"]
-            RestAPI["API REST FastAPI - /api/invoices y /api/rules"]
+            Telegram["Telegram Webhook (MVP) - Ingesta Fotos/PDF"]
+            RestAPI["API REST FastAPI - Dashboard, subida de archivos y decisiones HITL"]
             OtherChannels["Canales Secundarios (Ext) - WhatsApp y Email Webhooks"]
         end
 
@@ -179,13 +179,13 @@ flowchart LR
 - [x] **Estructura Documental:** Creación de `README.md` principal, `backend/README.md` y `frontend/README.md`.
 - [x] **Railway Setup:** Proyecto `Blinka-PayAgent` en Railway con PostgreSQL, Backend FastAPI y Frontend React.
 - [x] **Git Access:** Compartir acceso de GitHub a Luis Felipe Marín Giraldo y establecer ramas `main` y `develop`.
-- [ ] **Base de Datos:** Ejecutar script DDL inicial en PostgreSQL (`invoices`, `company_rules`).
+- [x] **Base de Datos:** Script DDL y seed (`invoices`, `company_rules`, `vendors`, `sanctions_list`, `treasury_accounts`), aplicados automáticamente al arrancar el backend.
 
 ### 🟡 FASE 2: Backend, OCR & Reglas de Negocio (Sábado 17 - Mañana)
-- [ ] **Telegram Adapter:** Servidor FastAPI recibiendo Webhooks y fotos/PDFs de Telegram.
+- [x] **Telegram Adapter:** Webhook que recibe fotos/PDFs, descarga el adjunto y avisa el dictamen (solo ingesta, sin botones).
 - [ ] **Gemini OCR Module:** Extracción estructurada JSON con Gemini 1.5 Flash.
-- [ ] **FX Engine & Business Rules:** Lógica de conversión de monedas y evaluación de las 4 capas de negocio.
-- [ ] **REST Endpoints:** Exposición de endpoints `/api/invoices` y `/api/rules` para el dashboard.
+- [x] **FX Engine & Business Rules:** Conversión de monedas y evaluación de las 4 capas de negocio (matriz v3 completa + FIN-03).
+- [x] **REST Endpoints:** `/api/invoices`, `/api/invoices/upload`, `/api/invoices/{id}/decision` y `/api/rules` para el dashboard.
 
 ### 🟢 FASE 3: Frontend React, Dashboard & Pruebas E2E (Sábado 17 - Tarde / Noche)
 - [ ] **React Dashboard:** Implementación del diseño Stitch con paleta de colores Blinka.
@@ -193,9 +193,9 @@ flowchart LR
 - [ ] **Pruebas de Casos Normales y Casos Trampa:**
   1. Factura normal aprobada automáticamente.
   2. Factura duplicada (Frenada - `REJECTED`).
-  3. Proveedor no verificado en SARLAFT (Frenada - `REJECTED`).
+  3. Proveedor o cuenta en lista restrictiva OFAC (Frenada - `REJECTED`).
   4. Factura en divisas que supera límite $2,000 USD (Escalada a humano - `SCALED_TO_HUMAN`).
-  5. Interacción interactiva desde Telegram con botones *Inline Keyboards* para aprobar escalamientos.
+  5. Aprobación o rechazo de una factura escalada desde el dashboard (`HUMAN_APPROVED` / `HUMAN_REJECTED`), con aviso al canal de origen.
 
 ### 🔵 FASE 4: Cierre, Video Pitch & Entrega (Domingo 18 - Mañana)
 - [ ] **Congelamiento de Código:** Cierre de commits a las 09:30 AM.

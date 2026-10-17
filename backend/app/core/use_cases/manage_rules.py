@@ -3,12 +3,12 @@
 from dataclasses import replace
 from typing import Any, Dict
 
-from ..domain.models import CompanyRules
-from ..ports.outbound import RulesRepository
+from app.core.domain.models import CompanyRules
+from app.core.ports.outbound import RulesRepository
 
 
 class GetRulesUseCase:
-    def __init__(self, rules: RulesRepository, company_id: str = "BLINKA_DEFAULT"):
+    def __init__(self, rules: RulesRepository, company_id: str):
         self.rules = rules
         self.company_id = company_id
 
@@ -17,7 +17,7 @@ class GetRulesUseCase:
 
 
 class UpdateRulesUseCase:
-    def __init__(self, rules: RulesRepository, company_id: str = "BLINKA_DEFAULT"):
+    def __init__(self, rules: RulesRepository, company_id: str):
         self.rules = rules
         self.company_id = company_id
 

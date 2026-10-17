@@ -16,17 +16,17 @@ flowchart TD
         direction TB
 
         subgraph InAdapters ["ADAPTADORES DE ENTRADA (adapters/inbound)"]
-            Telegram["Telegram Webhook (MVP) - Ingesta Fotos/PDF y Botones HITL"]
-            RestAPI["API REST FastAPI - /api/invoices y /api/rules"]
+            Telegram["Telegram Webhook (MVP) - Ingesta Fotos/PDF"]
+            RestAPI["API REST FastAPI - Dashboard, subida de archivos y decisiones HITL"]
             OtherChannels["Canales Secundarios (Ext) - WhatsApp y Email Webhooks"]
         end
 
         subgraph Core ["CORE DEL SISTEMA (core/ - Logica de Negocio Pura)"]
-            UseCases["Casos de Uso - ProcessInvoice, ListInvoices, Get/UpdateRules"]
+            UseCases["Casos de Uso - ProcessInvoice, DecideInvoice, ListInvoices, Get/UpdateRules"]
             FX["FX Engine (Conversion a USD a $0 Markup)"]
             Rules["Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
             Audit["Generador de Explicabilidad (Audit Log Estructurado)"]
-            Ports["Puertos de Salida - OCRPort, FXRateProvider, InvoiceRepository, RulesRepository, NotificationPort"]
+            Ports["Puertos de Salida - OCR, FX, Facturas, Reglas, Proveedores, Sanciones, Tesoreria, Notificaciones"]
 
             UseCases --> FX --> Rules --> Audit
             UseCases --> Ports
@@ -35,8 +35,8 @@ flowchart TD
         subgraph OutAdapters ["ADAPTADORES DE SALIDA (adapters/outbound)"]
             Gemini["Gemini 1.5 Flash - OCR Multimodal"]
             Rates["Proveedor de Tasas FX"]
-            DB[("PostgreSQL (Railway Native) - invoices, company_rules")]
-            TgClient["Cliente API Telegram - Notificaciones HITL"]
+            DB[("PostgreSQL (Railway Native) - invoices, company_rules, vendors, sanctions_list, treasury_accounts")]
+            TgClient["Cliente API Telegram - Avisos del dictamen"]
         end
 
         ReactUI["React.js y Tailwind UI - Landing Comercial y Dashboard Stitch"]
@@ -58,7 +58,7 @@ flowchart TD
     style ReactUI fill:#fefce8,stroke:#ca8a04,stroke-width:2px
 ```
 
-**Regla de dependencias:** los adaptadores dependen del Core, nunca al revés. El Core solo conoce los puertos; el *composition root* (`backend/app/container.py`) decide qué adaptador concreto implementa cada puerto.
+**Regla de dependencias:** los adaptadores dependen del Core, nunca al revés. El Core solo conoce los puertos; el *composition root* (`backend/app/container.py`) decide qué adaptador concreto implementa cada puerto. Los adaptadores de entrada reciben casos de uso por inyección y nunca importan el contenedor; `backend/tests/test_architecture.py` lo verifica automáticamente.
 
 ---
 
@@ -74,11 +74,13 @@ flowchart TD
 │   │   │   └── use_cases/          # process_invoice.py, query_invoices.py, manage_rules.py
 │   │   ├── adapters/
 │   │   │   ├── inbound/            # Adaptadores de entrada
-│   │   │   │   ├── api/            # Routers REST, DTOs Pydantic, dependencias
+│   │   │   │   ├── dependencies.py # Inyección de casos de uso (único punto que ve el contenedor)
+│   │   │   │   ├── api/            # Routers REST y DTOs Pydantic
 │   │   │   │   └── telegram/       # Webhook de Telegram
 │   │   │   └── outbound/           # Adaptadores de salida
 │   │   │       ├── ocr/            # Gemini 1.5 Flash
 │   │   │       ├── fx/             # Proveedor de tasas de cambio
+│   │   │       ├── notifications/  # Router de avisos por canal de origen
 │   │   │       ├── db/             # PostgreSQL + schema.sql
 │   │   │       └── telegram/       # Cliente API Telegram (notificaciones HITL)
 │   │   ├── config.py               # Settings desde el .env raíz
@@ -123,8 +125,11 @@ flowchart TD
 
     Capa1 -->|"Alerta Critica"| Rejected["REJECTED - Rechazo Automatico"]
     Capa2 -->|"Duplicado"| Rejected
-    Capa3 -->|"Saldo Insuficiente"| Scaled["SCALED_TO_HUMAN - Escalamiento con Boton Telegram"]
-    Capa4 -->|"Excede Umbral"| Scaled
+    Capa1 -->|"Cuenta / PEP / NIT"| Scaled
+    Capa2 -->|"Tarifa / OCR"| Scaled
+    Capa3 -->|"Saldo / Presupuesto"| Scaled["SCALED_TO_HUMAN - Revision humana en el Dashboard"]
+    Capa4 -->|"Umbral / Proveedor Nuevo"| Scaled
+    Scaled -->|"Operador aprueba o rechaza"| Human["HUMAN_APPROVED / HUMAN_REJECTED"]
     Capa4 -->|"100% Criterios Cumplidos"| Approved["AUTO_APPROVED - Aprobado Autonomamente"]
 
     style Doc fill:#f8fafc,stroke:#64748b,stroke-width:2px
@@ -137,56 +142,46 @@ flowchart TD
     style Approved fill:#dcfce7,stroke:#16a34a,stroke-width:2px
     style Scaled fill:#fef9c3,stroke:#ca8a04,stroke-width:2px
     style Rejected fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+    style Human fill:#e0e7ff,stroke:#4f46e5,stroke-width:2px
 ```
 
+**Política de recorrido:** un `REJECTED` detiene la tubería de inmediato y las capas siguientes quedan como `NOT_EVALUATED`. Las alertas de escalamiento se acumulan, para que el Audit Log muestre todas las capas y se pueda aplicar HITL-03. El detalle por regla está en [reglas_pago_agente_v3.md](../reglas-negocio/reglas_pago_agente_v3.md).
+
 ### Capa 1: Compliance & SARLAFT
-- Cotejo automático contra listas restrictivas (OFAC, ONU, listas locales).
-- Validación de que la cuenta bancaria de destino pertenezca al beneficiario registrado.
+- Cotejo automático contra listas restrictivas (OFAC, ONU, GAFI) por razón social, NIT o cuenta bancaria (`sanctions_list`).
+- Validación de que la cuenta bancaria de destino pertenezca al beneficiario registrado, condición PEP y consistencia NIT / razón social (`vendors`).
+- Se omite si `sarlaft_check_enabled` está desactivado.
 
 ### Capa 2: Integridad & Detección de Duplicados
-- Detección de facturas duplicadas en un periodo de 30 días (`vendor_id` + `invoice_number`).
-- Calidad mínima de lectura OCR (>85% de confianza).
+- Detección de facturas duplicadas en la ventana configurada (30 días): mismo proveedor y mismo número **o** mismo monto.
+- Monto mayor a la tarifa pactada en contrato (`vendors.contract_amount_usd`).
+- Calidad mínima de lectura OCR (≥ 85% de confianza) y campos obligatorios presentes.
 
 ### Capa 3: Solvencia & Conversión de Divisas (FX Engine)
 - **Extracción de Moneda:** Soporte para facturas en COP, MXN, EUR, BRL, ARS y USD.
 - **Normalización FX:** Conversión automática a USD usando la tasa de cambio de referencia.
 - **Garantía Blinka:** Transacciones con **$0.00 FX Markup**.
-- **Presupuesto:** Verificación de saldo disponible en la cuenta USD de Blinka (`balance_usd >= usd_amount`).
+- **Saldo:** Verificación de saldo disponible en la cuenta USD de Blinka (`balance_usd >= usd_amount`) y colchón mínimo de tesorería.
+- **Presupuesto:** El acumulado aprobado del mes más la factura no puede superar el presupuesto mensual (`treasury_accounts`).
 
 ### Capa 4: Gobierno & Human-in-the-Loop (HITL)
 - **Límite Autónomo:** Aprobación automática hasta **$2,000 USD** equivalente.
-- **Escalamiento:** Si la factura supera $2,000 USD o es un proveedor nuevo, el bot de Telegram envía un mensaje interactivo con botones (*Inline Keyboard*) para aprobación humana en 1 clic.
+- **Escalamiento:** Si la factura supera $2,000 USD, es de un proveedor nuevo o acumula 2 o más inconsistencias, queda en `SCALED_TO_HUMAN`.
+- **Aprobación humana:** Se hace **solo desde el dashboard** (`POST /api/invoices/{id}/decision`). Telegram y los demás canales son únicamente de ingesta y reciben un aviso con el resultado.
 
 ---
 
-## 4. Esquema de Base de Datos PostgreSQL
+## 4. Modelo de Datos PostgreSQL
 
-```sql
-CREATE TABLE company_rules (
-    id SERIAL PRIMARY KEY,
-    company_id VARCHAR(50) NOT NULL,
-    max_autonomous_usd NUMERIC(12,2) DEFAULT 2000.00,
-    sarlaft_check_enabled BOOLEAN DEFAULT TRUE,
-    duplicate_check_days INT DEFAULT 30,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+El DDL completo está en [schema.sql](../../backend/app/adapters/outbound/db/schema.sql) y los datos de demostración en [seed.sql](../../backend/app/adapters/outbound/db/seed.sql). El backend aplica el esquema al arrancar (`DB_AUTO_MIGRATE=true`) y el seed solo si `DB_SEED_DEMO=true`; ambos son idempotentes.
 
-CREATE TABLE invoices (
-    id SERIAL PRIMARY KEY,
-    invoice_number VARCHAR(100) NOT NULL,
-    vendor_name VARCHAR(150) NOT NULL,
-    vendor_tax_id VARCHAR(50),
-    original_amount NUMERIC(14,2) NOT NULL,
-    original_currency VARCHAR(10) NOT NULL,
-    fx_rate_applied NUMERIC(10,4),
-    usd_amount NUMERIC(12,2) NOT NULL,
-    due_date DATE,
-    channel_source VARCHAR(30) DEFAULT 'TELEGRAM',
-    decision_status VARCHAR(30) NOT NULL, -- AUTO_APPROVED, SCALED_TO_HUMAN, REJECTED
-    audit_explanation TEXT NOT NULL,
-    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+| Tabla | Uso | Capa |
+| :--- | :--- | :--- |
+| `company_rules` | Umbrales configurables desde el dashboard (límite autónomo, SARLAFT, ventana de duplicados, colchón de tesorería) | Todas |
+| `vendors` | Proveedores verificados: NIT, cuenta autorizada, condición PEP, tarifa pactada | 1, 2, 4 |
+| `sanctions_list` | Listas restrictivas OFAC / ONU / GAFI | 1 |
+| `treasury_accounts` | Saldo USD de la cuenta Blinka y presupuesto mensual | 3 |
+| `invoices` | Audit Log: datos de la factura, conversión FX, decisión, explicación, `evaluations` (JSONB por capa) y decisión humana (`decided_by`, `decided_at`, `human_note`) | — |
 
 ---
 
@@ -196,4 +191,4 @@ El proyecto se despliega dentro de un único canvas de Railway:
 1. **PostgreSQL Service:** Base de datos relacional administrada.
 2. **Backend Service:** FastAPI container ejecutando el webhook de Telegram y la lógica de Gemini.
 3. **Frontend Service:** React.js compilado servido con URL pública HTTPS.
-4. **Environment Variables:** `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `GEMINI_API_KEY`.
+4. **Environment Variables:** `DATABASE_URL`, `DB_AUTO_MIGRATE`, `DB_SEED_DEMO`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `GEMINI_API_KEY`.

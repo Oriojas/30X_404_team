@@ -5,7 +5,7 @@ Implementa OCRPort. Extrae datos estructurados desde fotos y documentos PDF de f
 
 from typing import Optional
 
-from ....core.domain.models import ExtractedInvoice
+from app.core.domain.models import ExtractedInvoice
 
 
 class GeminiOCRAdapter:

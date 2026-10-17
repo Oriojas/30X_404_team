@@ -1,23 +1,21 @@
 """Endpoints de estado para Railway y monitoreo."""
 
-from fastapi import APIRouter
+from typing import Any, Dict
 
-from .....config import get_settings
+from fastapi import APIRouter, Depends
+
+from app.adapters.inbound.dependencies import get_system_status
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/")
-async def root():
+async def root(status: Dict[str, Any] = Depends(get_system_status)):
     """Health check endpoint."""
-    return {
-        "service": "Blinka PayAgent API",
-        "status": "online",
-        "environment": get_settings().environment,
-    }
+    return {"service": "Blinka PayAgent API", "status": "online", "environment": status["environment"]}
 
 
 @router.get("/api/health")
-async def health_check():
+async def health_check(status: Dict[str, Any] = Depends(get_system_status)):
     """Endpoint de estado para Railway y monitoreo."""
-    return {"status": "ok"}
+    return {"status": "ok", "database": status["database"]}

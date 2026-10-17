@@ -2,8 +2,8 @@
 
 from typing import List
 
-from ..domain.models import ProcessedInvoice
-from ..ports.outbound import InvoiceRepository
+from app.core.domain.models import ProcessedInvoice
+from app.core.ports.outbound import InvoiceRepository
 
 
 class ListInvoicesUseCase:

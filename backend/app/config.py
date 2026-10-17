@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     allowed_origins: str = "*"
 
     database_url: str | None = None
+    db_auto_migrate: bool = True   # aplica schema.sql (idempotente)
+    db_seed_demo: bool = False     # carga seed.sql con datos ficticios: solo para demo / desarrollo
     telegram_bot_token: str | None = None
+    telegram_webhook_secret: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-1.5-flash"
 

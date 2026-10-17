@@ -12,37 +12,49 @@ El Core no importa FastAPI, Pydantic, SQL ni SDKs externos. Se comunica con el e
 backend/app/
 ├── core/                              # Hexágono: lógica de negocio pura
 │   ├── domain/
-│   │   ├── models.py                  # Entidades: ExtractedInvoice, CompanyRules, Decision, ProcessedInvoice
+│   │   ├── models.py                  # Entidades: ExtractedInvoice, Vendor, TreasuryStatus, Decision, ProcessedInvoice
+│   │   ├── errors.py                  # Errores de negocio (factura inexistente, estado no decidible)
 │   │   ├── fx_converter.py            # FX Engine: normalización a USD a $0.00 FX Markup
 │   │   ├── rules_pipeline.py          # Tubería determinista de 4 capas (Cumplimiento, Integridad, Solvencia, HITL)
 │   │   └── audit_logger.py            # Generador de explicabilidad en lenguaje natural
 │   ├── ports/
-│   │   └── outbound.py                # Contratos: OCRPort, FXRateProvider, InvoiceRepository, RulesRepository, NotificationPort
+│   │   └── outbound.py                # Contratos: OCRPort, FXRateProvider, InvoiceRepository, RulesRepository,
+│   │                                  #            VendorRepository, SanctionsRepository, TreasuryRepository, NotificationPort
 │   └── use_cases/                     # Puertos de entrada: lo que los adaptadores pueden invocar
 │       ├── process_invoice.py         # OCR -> FX -> Reglas -> Audit Log -> Persistencia -> Notificación
+│       ├── decide_invoice.py          # Aprobación / rechazo humano desde el dashboard
 │       ├── query_invoices.py          # Historial del Audit Log
 │       └── manage_rules.py            # Consultar / actualizar umbrales
 ├── adapters/
 │   ├── inbound/                       # Adaptadores de entrada (driving)
+│   │   ├── dependencies.py            # Entrega casos de uso a los routers (único punto que ve el contenedor)
 │   │   ├── api/
 │   │   │   ├── routers/               # health.py, invoices.py, rules.py
-│   │   │   ├── schemas.py             # DTOs Pydantic <-> entidades del dominio
-│   │   │   └── dependencies.py        # Inyección de casos de uso en FastAPI
+│   │   │   └── schemas.py             # DTOs Pydantic <-> entidades del dominio
 │   │   └── telegram/
 │   │       └── webhook.py             # Webhook de Telegram: extrae el adjunto y llama a ProcessInvoice
 │   └── outbound/                      # Adaptadores de salida (driven)
 │       ├── ocr/gemini_ocr.py          # OCRPort -> Gemini 1.5 Flash
-│       ├── fx/static_rates.py         # FXRateProvider -> tasas de referencia
+│       ├── fx/static_rates.py         # FXRateProvider -> tasas de referencia (None si la moneda no está soportada)
+│       ├── notifications/channel_router.py # NotificationPort -> enruta el aviso al canal de origen
 │       ├── db/
-│       │   ├── postgres_repository.py # InvoiceRepository y RulesRepository -> PostgreSQL
-│       │   └── schema.sql             # DDL inicial de tablas (company_rules, invoices)
-│       └── telegram/telegram_client.py# NotificationPort -> API de Telegram (dictamen y botones HITL)
+│       │   ├── postgres_repository.py # Repositorios -> PostgreSQL (asyncpg)
+│       │   ├── schema.sql             # DDL idempotente de todas las tablas
+│       │   └── seed.sql               # Datos de demostración para la Test Suite TC-01..TC-06
+│       └── telegram/telegram_client.py# Notificador del canal TELEGRAM y descarga de adjuntos
 ├── config.py                          # Settings (pydantic-settings) leídos del .env raíz
 ├── container.py                       # Composition root: conecta adaptadores con puertos
 └── main.py                            # Arranque FastAPI, CORS y montaje de routers
 ```
 
 **Regla de dependencias:** `adapters` → `core/use_cases` → `core/domain` + `core/ports`. Nunca al revés.
+
+* El Core solo importa la librería estándar y a sí mismo.
+* Los routers reciben **casos de uso** por inyección (`adapters/inbound/dependencies.py`); ningún adaptador importa `container.py`, `config.py` ni `main.py`.
+* Los adaptadores de salida no importan adaptadores de entrada.
+* Todos los imports son absolutos desde `app` (`from app.core.domain.models import ...`). Por eso `uvicorn` se ejecuta desde `backend/` o con `--app-dir backend`.
+
+`tests/test_architecture.py` verifica estas reglas en cada `pytest`.
 
 **Para agregar un canal** (por ejemplo email o WhatsApp), crea un adaptador en `adapters/inbound/` que llame a `ProcessInvoiceUseCase`. **Para cambiar un proveedor** (otro OCR, tasas en vivo), crea una clase que cumpla el puerto y conéctala en `container.py`.
 
@@ -55,9 +67,12 @@ backend/app/
 
 Las variables requeridas para el backend son:
 * `PORT`: Puerto de escucha del servicio (por defecto `8000`, inyectado automáticamente en Railway).
-* `DATABASE_URL`: URI de conexión a PostgreSQL (`postgresql://db_user:db_password@localhost:5432/db_name`).
+* `DATABASE_URL`: URI de conexión a PostgreSQL (`postgresql://db_user:db_password@localhost:5432/db_name`). Sin ella el servicio arranca, pero los endpoints de datos responden `503`.
+* `DB_AUTO_MIGRATE`: Si es `true` (por defecto), al arrancar aplica `schema.sql` (idempotente).
+* `DB_SEED_DEMO`: Si es `true`, carga `seed.sql` con proveedores, listas restrictivas y tesorería **ficticios** para la demo. Por defecto es `false`; actívalo solo en entornos de demostración.
 * `TELEGRAM_BOT_TOKEN`: Token de autenticación del bot de Telegram.
 * `TELEGRAM_WEBHOOK_URL`: URL pública del webhook expuesto para recibir actualizaciones de Telegram.
+* `TELEGRAM_WEBHOOK_SECRET`: Secreto que Telegram envía en el header `X-Telegram-Bot-Api-Secret-Token`. Sin él el webhook responde `503` (falla cerrado); con un token distinto responde `401`.
 * `GEMINI_API_KEY`: Clave de API de Google AI Studio para Gemini 1.5 Flash.
 * `GEMINI_MODEL`: Modelo a utilizar (por defecto `gemini-1.5-flash`).
 * `ALLOWED_ORIGINS`: Orígenes CORS permitidos, separados por coma (por defecto `*`).
@@ -83,7 +98,7 @@ pip install -r requirements.txt
 ### 3. Iniciar el servidor de desarrollo
 Desde el directorio raíz:
 ```bash
-uvicorn backend.app.main:app --reload --port 8000
+uvicorn app.main:app --app-dir backend --reload --port 8000
 ```
 O desde la carpeta `backend/`:
 ```bash
@@ -98,7 +113,13 @@ Desde la carpeta `backend/`:
 ```bash
 pytest
 ```
-Las pruebas usan adaptadores falsos, así que no necesitan Gemini, PostgreSQL ni Telegram.
+Las pruebas unitarias usan adaptadores falsos, así que no necesitan Gemini, PostgreSQL ni Telegram.
+
+La prueba de integración corre la Test Suite TC-01..TC-06 contra un PostgreSQL real con el seed. Usa una base desechable, porque la prueba borra y recrea las tablas:
+```bash
+docker run -d --rm --name blinka-pg-test -e POSTGRES_USER=blinka -e POSTGRES_PASSWORD=blinka -e POSTGRES_DB=blinka_test -p 54329:5432 postgres:16-alpine
+TEST_DATABASE_URL=postgresql://blinka:blinka@localhost:54329/blinka_test pytest
+```
 
 ---
 
@@ -107,7 +128,7 @@ Las pruebas usan adaptadores falsos, así que no necesitan Gemini, PostgreSQL ni
 El archivo [Dockerfile](Dockerfile) empaqueta la aplicación con Python 3.12-slim:
 
 ```bash
-docker build -t blinka-backend -f backend/Dockerfile .
+docker build -t blinka-backend backend
 docker run -p 8000:8000 --env-file .env blinka-backend
 ```
 
@@ -119,12 +140,37 @@ En Railway, la variable `$PORT` es asignada en runtime y el contenedor arranca a
 
 | Método | Ruta | Descripción |
 | :--- | :--- | :--- |
-| `GET` | `/api/health` | Verificación de estado del servicio |
-| `POST` | `/api/webhook/telegram` | Webhook de ingesta para fotos y documentos de Telegram |
-| `GET` | `/api/invoices` | Listado histórico de facturas y decisiones del Audit Log (arreglo JSON) |
-| `POST` | `/api/invoices` | Creación y evaluación manual de facturas |
+| `GET` | `/api/health` | Estado del servicio y de la conexión a PostgreSQL |
+| `POST` | `/api/webhook/telegram` | Canal de ingesta: fotos y documentos de Telegram |
+| `GET` | `/api/invoices` | Listado histórico de facturas y decisiones del Audit Log (arreglo JSON, con `evaluations` por capa) |
+| `POST` | `/api/invoices` | Evaluación de una factura con datos ya estructurados (sin OCR) |
+| `POST` | `/api/invoices/upload` | Canal de ingesta web: `multipart/form-data` con campo `file` (JPG, PNG, WEBP o PDF, máx. 10 MB) |
+| `POST` | `/api/invoices/{id}/decision` | Decisión humana sobre una factura `SCALED_TO_HUMAN`: `{"decision": "APPROVE" \| "REJECT", "decided_by": "...", "note": "..."}`. Responde `404` si no existe y `409` si no está escalada |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
+
+---
+
+## 🤖 Registrar el Webhook de Telegram
+
+Registra la URL con el mismo secreto configurado en `TELEGRAM_WEBHOOK_SECRET`:
+```bash
+curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d "url=$TELEGRAM_WEBHOOK_URL" -d "secret_token=$TELEGRAM_WEBHOOK_SECRET"
+```
+
+---
+
+## 🔄 Flujo de una Factura
+
+1. **Ingesta:** Telegram, la subida web o la carga por API entregan la factura a `ProcessInvoiceUseCase`. Los canales **solo ingresan facturas**: no aprueban.
+2. **OCR y FX:** Gemini extrae los datos y el FX Engine convierte a USD con tasas fijas y $0.00 de markup. Una moneda no soportada nunca se convierte 1:1: la factura escala por `INTEG-04`.
+3. **Tubería de 4 capas:** consulta proveedores, listas restrictivas, tesorería e historial en PostgreSQL. Un `REJECTED` detiene la evaluación; las alertas de escalamiento se acumulan.
+4. **Audit Log:** se guarda la decisión con la explicación y el detalle de cada capa (`evaluations`), y el `ChannelNotificationRouter` avisa solo al canal de origen.
+5. **Decisión humana:** las facturas en `SCALED_TO_HUMAN` se aprueban o rechazan **solo desde el dashboard** y quedan como `HUMAN_APPROVED` o `HUMAN_REJECTED`, con quién decidió y cuándo. La actualización es atómica: si dos operadores deciden a la vez, solo gana uno y el otro recibe `409`.
+
+**Estados:** `AUTO_APPROVED`, `SCALED_TO_HUMAN`, `REJECTED`, `HUMAN_APPROVED`, `HUMAN_REJECTED`.
+
+> El adaptador de Gemini todavía es un stub: devuelve una extracción vacía con confianza 0, así que toda factura subida por archivo o Telegram escala por `INTEG-03` hasta que se implemente.
 
 ---
 

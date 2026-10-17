@@ -1,31 +1,21 @@
 """
 Módulo Core: Conversión de Divisas (FX Engine)
 Normaliza montos multidivisa (COP, MXN, EUR, BRL, ARS) a USD equivalente a $0.00 FX Markup.
-La tasa la provee un FXRateProvider (puerto); este módulo solo aplica el cálculo.
+Cálculo puro: la tasa la obtiene el caso de uso a través del puerto FXRateProvider.
 """
-
-from typing import Tuple
-
-from ..ports.outbound import FXRateProvider
 
 
 class FXConverter:
     """Motor de normalización y conversión de divisas."""
 
+    BASE_CURRENCY = "USD"
     BLINKA_FX_MARKUP_USD = 0.00
 
-    def __init__(self, rate_provider: FXRateProvider):
-        self.rate_provider = rate_provider
+    @staticmethod
+    def normalize_currency(currency: str) -> str:
+        return (currency or "").upper().strip()
 
-    async def convert_to_usd(self, amount: float, currency: str) -> Tuple[float, float]:
-        """
-        Convierte un monto en moneda local a USD aplicando la tasa vigente.
-        Retorna (usd_amount, fx_rate_applied).
-        """
-        curr = currency.upper().strip()
-        if curr == "USD":
-            return round(amount, 2), 1.0
-
-        rate = await self.rate_provider.get_rate_to_usd(curr)
-        usd_value = round(amount / rate + self.BLINKA_FX_MARKUP_USD, 2)
-        return usd_value, rate
+    @classmethod
+    def to_usd(cls, amount: float, rate_to_usd: float) -> float:
+        """Convierte con una tasa expresada en unidades de moneda local por 1 USD."""
+        return round(amount / rate_to_usd + cls.BLINKA_FX_MARKUP_USD, 2)

@@ -72,6 +72,11 @@ Para cumplir estrictamente con los requisitos del Kickoff, el equipo entregará 
 
 El agente procesa cada factura de forma determinista mediante una tubería (*pipeline*) secuencial. Si falla una prueba crítica en las capas iniciales, la decisión se detiene de inmediato para garantizar la seguridad.
 
+**Política de recorrido (implementada en `backend/app/core/domain/rules_pipeline.py`):**
+* Una regla con decisión `REJECTED` detiene la tubería; las capas siguientes quedan como `NOT_EVALUATED`.
+* Las reglas `SCALED_TO_HUMAN` se acumulan: se evalúan todas las capas para que el Audit Log muestre cada alerta y se pueda aplicar HITL-03.
+* Si la Capa 1 está desactivada (`sarlaft_check_enabled = false`), queda como `SKIPPED`.
+
 ```mermaid
 flowchart TD
     Input["Factura / Cuenta de Cobro de Entrada"] --> L1
@@ -122,6 +127,7 @@ flowchart TD
 | **INTEG-01** | **Detección de Cobro Duplicado** | Mismo ID Factura + Proveedor O mismo Monto + Proveedor en < 30 días. | `REJECTED` | *Factura rechazada por detección de cobro duplicado.* |
 | **INTEG-02** | **Desviación de Tarifa Pactada** | Monto cobrado en la factura > Monto acordado en contrato/PO. | `SCALED_TO_HUMAN` | *El valor cobrado supera la tarifa acordada en el contrato.* |
 | **INTEG-03** | **Calidad de Extracción (OCR/LLM)** | Confidence score en lectura de datos de la factura < 85%. | `SCALED_TO_HUMAN` | *Lectura de factura ambigua o ilegible. Requiere revisión.* |
+| **INTEG-04** | **Moneda No Soportada** | La moneda de la factura no tiene tasa en el FX Engine. Nunca se asume 1:1; la Capa 3 queda `SKIPPED` porque no hay monto en USD. | `SCALED_TO_HUMAN` | *Moneda no soportada por el FX Engine: no es posible normalizar el monto a USD.* |
 
 ---
 
@@ -133,6 +139,7 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **FIN-01** | **Verificación de Saldo Existente** | `Monto Factura > Saldo Cuenta Blinka` (USD o Moneda Local). | `SCALED_TO_HUMAN` | *Saldo insuficiente en la cuenta Blinka para ejecutar el pago.* |
 | **FIN-02** | **Tope Presupuestal del Período** | Acumulado de pagos del mes + Monto Factura > Presupuesto Asignado. | `SCALED_TO_HUMAN` | *El pago excede el presupuesto disponible del período.* |
+| **FIN-03** | **Colchón Mínimo de Tesorería** | `Saldo Cuenta Blinka - Monto Factura < Colchón mínimo` (configurable, `min_treasury_buffer_usd`). Solo aplica si no se disparó FIN-01. | `SCALED_TO_HUMAN` | *El pago dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería.* |
 
 ---
 
@@ -144,13 +151,20 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **HITL-01** | **Monto Máximo de Aprobación Autónoma** | `Monto Factura > $2,000 USD` (Umbral configurable). | `SCALED_TO_HUMAN` | *El monto excede el límite autónomo de $2,000 USD.* |
 | **HITL-02** | **Proveedor Nuevo (Primer Pago)** | El proveedor no cuenta con historial de pagos en la plataforma. | `SCALED_TO_HUMAN` | *Proveedor nuevo. Requiere verificación inicial por un operador.* |
-| **HITL-03** | **Ambigüedad Acumulada** | Presencia de 2 o más pequeñas alertas de inconsistencia en la factura. | `SCALED_TO_HUMAN` | *Acumulación de pequeñas inconsistencias detectadas.* |
+| **HITL-03** | **Ambigüedad Acumulada** | 2 o más alertas de inconsistencia de la factura (COMP-02, COMP-04, INTEG-02, INTEG-03, INTEG-04). | `SCALED_TO_HUMAN` | *Acumulación de pequeñas inconsistencias detectadas.* |
+
+### Resolución Humana de Facturas Escaladas
+
+* Las facturas en `SCALED_TO_HUMAN` se aprueban o rechazan **únicamente desde el dashboard**. Telegram y los demás canales son solo de ingesta: informan el resultado, pero no aprueban.
+* La decisión es atómica: si dos operadores deciden a la vez, solo se registra la primera.
+* La decisión humana mueve la factura a `HUMAN_APPROVED` o `HUMAN_REJECTED` y registra quién decidió, cuándo y una nota opcional. Así la métrica de autonomía distingue lo que resolvió el agente de lo que resolvió una persona.
+* Solo se pueden decidir facturas en `SCALED_TO_HUMAN`. Un `REJECTED` automático (OFAC, duplicado) no se puede aprobar.
 
 ---
 
 ## 6. Matriz de Casos de Prueba Simulados (Test Suite Obligatorio)
 
-Set de datos simulados diseñado para verificar el comportamiento del agente frente a facturas legítimas y a los **casos trampa requeridos**:
+Set de datos simulados diseñado para verificar el comportamiento del agente frente a facturas legítimas y a los **casos trampa requeridos**. Los datos de soporte (proveedores, listas restrictivas, saldo de $8,500 USD e historial) están en `backend/app/adapters/outbound/db/seed.sql`, y la suite se ejecuta automáticamente en `backend/tests/test_postgres_integration.py`:
 
 | ID Caso | Descripción del Caso de Prueba | Tipo de Caso | Resultado Esperado | Regla Disparada |
 | :--- | :--- | :--- | :--- | :--- |
@@ -165,32 +179,44 @@ Set de datos simulados diseñado para verificar el comportamiento del agente fre
 
 ## 7. Estructura del Registro de Decisiones (Audit Log JSON)
 
-Cada evaluación produce un objeto JSON que alimenta directamente la interfaz web para garantizar la **explicabilidad total**:
+Cada evaluación produce un registro que alimenta directamente la interfaz web para garantizar la **explicabilidad total** (`GET /api/invoices`):
 
 ```json
 {
-  "invoice_id": "INV-2026-104",
+  "id": 14,
+  "invoice_number": "INV-2026-104",
   "vendor_name": "DevStudio LatAm S.A.S.",
-  "tax_id": "900.584.112-4",
-  "amount": 2500.00,
-  "currency": "USD",
-  "issue_date": "2026-10-16",
+  "vendor_tax_id": "900.584.112-4",
+  "original_amount": 10500000.00,
+  "original_currency": "COP",
+  "fx_rate_applied": 4200.0,
+  "usd_amount": 2500.00,
   "due_date": "2026-10-31",
-  "decision": "SCALED_TO_HUMAN",
-  "confidence_score": 0.98,
+  "ocr_confidence_score": 0.98,
+  "channel_source": "TELEGRAM",
+  "decision_status": "SCALED_TO_HUMAN",
   "evaluations": {
-    "sarlaft_check": { "status": "PASSED", "blacklist_match": false },
-    "duplicate_check": { "status": "PASSED", "is_duplicate": false },
-    "balance_check": { "status": "PASSED", "current_balance_usd": 12000.00 },
+    "compliance_check": { "status": "PASSED", "alerts": [] },
+    "integrity_check": {
+      "status": "TRIGGERED",
+      "alerts": [{ "reason_code": "INTEG-02", "message": "El valor cobrado ($2,500.00 USD) supera la tarifa acordada en el contrato ($1,500.00 USD)." }]
+    },
+    "solvency_check": { "status": "PASSED", "alerts": [] },
     "hitl_check": {
       "status": "TRIGGERED",
-      "reason_code": "HITL-01",
-      "message": "El monto de $2,500.00 USD excede el límite autónomo de $2,000.00 USD."
-    }
+      "alerts": [{ "reason_code": "HITL-01", "message": "El monto de $2,500.00 USD excede el límite autónomo de $2,000.00 USD." }]
+    },
+    "fx": { "usd_amount": 2500.00, "fx_rate_applied": 4200.0, "blinka_fx_markup": "0.00 USD" }
   },
-  "explanation_for_ui": "El pago fue escalado a revisión humana porque el monto ($2,500.00 USD) supera el umbral autónomo permitido ($2,000.00 USD)."
+  "audit_explanation": "Pago de $2,500.00 USD (10,500,000 COP a tasa 4,200.00) escalado a revisión humana: [INTEG-02] ... [HITL-01] ...",
+  "processed_at": "2026-10-17T15:42:10",
+  "decided_by": null,
+  "decided_at": null,
+  "human_note": null
 }
 ```
+
+Los estados posibles de `status` por capa son `PASSED`, `TRIGGERED`, `SKIPPED` y `NOT_EVALUATED`.
 
 ---
 
