@@ -7,7 +7,7 @@
 
 ### Código y pruebas (CI)
 
-- [ ] `pytest` en `backend/` verde en el CI de F5.7, con las pruebas nuevas de la Fase 7 y las adaptadas de HITL-02.
+- [x] `pytest` en `backend/` verde en el CI de F5.7, con las pruebas nuevas de la Fase 7 y las adaptadas de HITL-02. *(CI `backend` y `frontend` en verde en `develop` (96a5667) y en el merge a `master` de #26 (ab8172a))*
 - [x] `PATCH /api/treasury` con solo `monthly_budget_usd` cambia el presupuesto y **no** mueve `snapshot_at` ni libera lo comprometido; con solo `balance_usd` sigue tomando la foto (Fase 6); con cuerpo vacío, `0`, negativo o texto (en cualquiera de los dos campos) responde `422`. `test_patch_ignora_el_presupuesto_hasta_la_fase_7` fue reemplazada, no borrada sin más. Con solo presupuesto y sin fila de tesorería responde `409` y no inserta nada (los dos fakes de tesorería y PostgreSQL). *(`test_treasury_api.py`: `test_patch_con_presupuesto_no_mueve_la_foto` reemplaza a la prueba de la Fase 6; `test_patch_rechaza_saldo_o_presupuesto_invalido` con 8 cuerpos; `409` sin fila en el fake y en PostgreSQL: `test_presupuesto_solo_update_sin_mover_la_foto_ni_crear_la_fila`)*
 - [x] Las validaciones `422` que ya existían siguen igual: `test_patch_rechaza_saldo_invalido`, `duplicate_check_days` fuera de 1–365, umbral o colchón negativos, `decided_by` vacío y `Idempotency-Key` de más de 200 caracteres. *(no tenían prueba propia; ahora la tienen: `test_validaciones_previas_de_reglas_siguen_en_422`, `test_decision_sin_autor_valido_es_422_antes_del_caso_de_uso`, más las de `test_treasury_api.py` y `test_api_idempotency.py`)*
 - [x] Bajar el presupuesto hace que la siguiente factura, que antes salía `AUTO_APPROVED`, escale por FIN-02. *(`test_bajar_el_presupuesto_hace_escalar_por_fin02_la_siguiente_factura`; y TC-08 en la integración)*
@@ -53,10 +53,10 @@
 
 ## Después del merge (producción)
 
-- [ ] Tras el deploy, `GET /api/rules` devuelve `max_payment_usd = 20000` y `GET /api/vendors` lista los proveedores del seed con `active = true` (la migración corrió con `DB_AUTO_MIGRATE=true`).
-- [ ] `humo_produccion.py` verde contra producción con TC-08, y el presupuesto de producción queda igual que antes de la corrida.
-- [ ] El dashboard público edita el tope y el presupuesto y muestra el panel de beneficiarios sin modo demostración; sin errores en la consola.
-- [ ] F7.1 a F7.7 marcados en [roadmap.md](../roadmap.md) con la referencia a esta validación.
+- [x] Tras el deploy, `GET /api/rules` devuelve `max_payment_usd = 20000` y `GET /api/vendors` lista los proveedores del seed con `active = true` (la migración corrió con `DB_AUTO_MIGRATE=true`). *(producción tras #26: `max_payment_usd: 20000.0` y los 6 proveedores del seed con `active: true`)*
+- [x] `humo_produccion.py` verde contra producción con TC-08, y el presupuesto de producción queda igual que antes de la corrida. *(12/12 con CORS. TC-08 fue la única evaluación nueva (`201`, factura 25): `[FIN-02]` solo, con "$399.00 USD restantes de $9,549.00 USD". Los otros 7 casos respondieron `200`, la repetición de corridas anteriores. Presupuesto en $25,000 antes y después)*
+- [x] El dashboard público edita el tope y el presupuesto y muestra el panel de beneficiarios sin modo demostración; sin errores en la consola. *(sin modo demostración: tope $20,000, presupuesto $25,000 editables y "6 activos de 6" con "Agregar beneficiario" habilitado; consola sin errores. No se guardó nada desde el dashboard de producción: el guardado se probó en local y el `PATCH` del presupuesto, en el humo)*
+- [x] F7.1 a F7.7 marcados en [roadmap.md](../roadmap.md) con la referencia a esta validación.
 
 ## No bloqueante
 
