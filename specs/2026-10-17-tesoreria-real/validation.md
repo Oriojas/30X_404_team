@@ -28,7 +28,7 @@
 
 ## Después del merge (producción)
 
-- [x] El dashboard público muestra la caja y el colchón de producción (hoy $8,500 y $1,000) en el hero y en la tarjeta. *(17-oct-2026, tras el merge de #14: "Liquidez 88% OK" en el hero y "Holgura 88% OK" en la tarjeta, sin modo demostración ni errores en consola)*
+- [x] El dashboard público muestra la caja y el colchón de producción (hoy $8,500 y $1,000) en el hero y en la tarjeta. *(17-oct-2026, tras el merge de #14: "Liquidez 88% OK" en el hero y "Holgura 88% OK" en la tarjeta, sin modo demostración; en consola solo un `ERR_BLOCKED_BY_CLIENT` del navegador, ningún error de la app)*
 - [x] `GET https://backend-production-ea088.up.railway.app/api/treasury` responde `200`. *(`balance_usd` 8500, `monthly_budget_usd` 25000, `month_spent_usd` 6150: DS-1042 del seed 1.200 + TC-01 450 + NA-090 aprobada por el CFO 3.500 + DS-2026-1107 por la web 1.000)*
 - [x] Tesorería real marcada en [roadmap.md](../roadmap.md).
 
