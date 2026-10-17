@@ -224,3 +224,75 @@ def test_find_by_file_hash_respeta_ventana_y_estados():
         assert await repo.find_by_file_hash("d" * 64, 30) is None
 
     run_with_db(scenario)
+
+
+def test_ingesta_idempotente_de_punta_a_punta_con_el_seed(client):
+    """F2.7: Idempotency-Key repetida, solicitudes concurrentes y el mismo archivo con otra clave, sobre PostgreSQL."""
+    import asyncio
+    import asyncpg
+    from app.adapters.outbound.ocr.gemini_ocr import GeminiOCRAdapter
+
+    process_invoice = client.app.state.container.process_invoice
+    process_invoice.ocr = GeminiOCRAdapter("test-key", "gemini-test", client=FakeGenAIClient(text=gemini_reads(
+        "NA-4521", "Nube Andina Consultores S.A.S.", "901.223.450-1", "CO-DAVIVIENDA-55566677788",
+        12600000.0, "COP", "2026-12-05")))
+    fixture = (FIXTURES / "factura_nube_andina.pdf").read_bytes()
+
+    def upload(key):
+        return client.post("/api/invoices/upload", headers={"Idempotency-Key": key},
+                           files={"file": ("f.pdf", fixture, "application/pdf")})
+
+    first, again = upload("web-1"), upload("web-1")
+    assert first.status_code == 201 and again.status_code == 200
+    assert again.json()["id"] == first.json()["id"] and first.json()["decision_status"] == "SCALED_TO_HUMAN"
+
+    copy = upload("web-2")  # mismo archivo, otra entrega: INTEG-01 por hash, sin volver a llamar al OCR
+    assert copy.status_code == 201 and copy.json()["decision_status"] == "REJECTED"
+    assert f"#{first.json()['id']}" in copy.json()["audit_explanation"]
+    assert len(process_invoice.ocr.client.calls) == 1
+
+    async def check_db_and_race():
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        try:
+            rows = await conn.fetch("SELECT external_id, status, invoice_id FROM ingested_messages ORDER BY external_id")
+            assert [(r["external_id"], r["status"]) for r in rows] == [("web-1", "COMPLETED"), ("web-2", "COMPLETED")]
+            assert rows[0]["invoice_id"] == first.json()["id"]
+            hashes = await conn.fetchval("SELECT COUNT(DISTINCT file_sha256) FROM invoices WHERE file_sha256 IS NOT NULL")
+            assert hashes == 1
+        finally:
+            await conn.close()
+
+    asyncio.run(check_db_and_race())
+
+
+def test_solicitudes_concurrentes_con_la_misma_clave_procesan_una_sola_vez_en_postgres():
+    """F2.7: varias solicitudes simultáneas con la misma clave sobre PostgreSQL real: una factura y un aviso."""
+    import asyncio
+    from app.adapters.outbound.db.postgres_repository import (
+        PostgresIngestionLog, PostgresInvoiceRepository, PostgresSanctionsRepository, PostgresVendorRepository,
+    )
+    from app.core.domain.models import ExtractedInvoice
+    from app.core.domain.rules_pipeline import RulesPipeline
+    from app.core.use_cases import ProcessInvoiceUseCase
+
+    from .fakes import FakeOCR, FakeRates, FixedTreasury, InMemoryRules, SpyNotifier
+
+    async def scenario(db):
+        notifier = SpyNotifier()
+        use_case = ProcessInvoiceUseCase(
+            ocr=FakeOCR(ExtractedInvoice(invoice_number="R-1", vendor_name="Proveedor Nuevo", original_amount=100)),
+            fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=PostgresInvoiceRepository(db),
+            rules=InMemoryRules(), vendors=PostgresVendorRepository(db), sanctions=PostgresSanctionsRepository(db),
+            treasury=FixedTreasury(), company_id="TEST", notifier=notifier, ingestion=PostgresIngestionLog(db),
+        )
+        results = await asyncio.gather(*[
+            use_case.from_document(b"misma factura", "image/png", "WEB", external_id="race-1") for _ in range(4)
+        ])
+        assert sum(not r.duplicate for r in results) == 1
+        assert len(notifier.decisions) == 1 and len(notifier.received) == 1
+        assert await db.require_pool().fetchval("SELECT COUNT(*) FROM invoices") == 1
+
+        again = await use_case.from_document(b"misma factura", "image/png", "WEB", external_id="race-1")
+        assert again.duplicate and again.invoice.invoice_number == "R-1"
+
+    run_with_db(scenario)
