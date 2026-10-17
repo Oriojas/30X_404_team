@@ -79,12 +79,16 @@ El archivo [Dockerfile](Dockerfile) utiliza un esquema *multi-stage build*:
 1. **Builder:** Compila el frontend con Node.js 20.
 2. **Runner:** Sirve los archivos estáticos mediante Nginx Alpine.
 
-Usa [nginx.conf.template](nginx.conf.template), la cual sustituye automáticamente la variable `$PORT` inyectada por Railway al iniciar el contenedor.
+Nginx ([nginx.conf.template](nginx.conf.template)) solo sirve el build estático en el `$PORT` que inyecta Railway. **No hay proxy `/api/`**: el dashboard llama al backend por su URL pública (`VITE_API_BASE_URL`) y el backend lo autoriza con CORS (`ALLOWED_ORIGINS`).
+
+`VITE_API_BASE_URL` se incrusta en el JavaScript **durante el build**. El Dockerfile la declara como `ARG`, que es la forma en que Railway la recibe. Si cambia, hay que volver a construir la imagen (redeploy). Una imagen construida sin ella queda en modo demostración.
 
 ```bash
-docker build -t blinka-frontend -f frontend/Dockerfile frontend/
-docker run -p 80:80 -e PORT=80 blinka-frontend
+docker build --build-arg VITE_API_BASE_URL=http://localhost:8000 -t blinka-frontend frontend/
+docker run -p 8080:8080 -e PORT=8080 blinka-frontend
 ```
+
+En Railway el servicio `30X_404_team` está declarado en [.railway/railway.ts](../.railway/railway.ts), con `VITE_API_BASE_URL` apuntando al dominio del `backend`. Los pasos de despliegue están en [backend/README.md](../backend/README.md#️-despliegue-en-railway).
 
 ---
 

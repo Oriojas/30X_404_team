@@ -44,6 +44,8 @@
 
 ## 5. Documentación y variables
 
+> Hecho: `.env.example`, la sección "Despliegue en Railway" de `backend/README.md` y la de Docker de `frontend/README.md`.
+
 5.1. `.env.example`: comentar qué variables van a cada servicio de Railway y el formato exacto de `ALLOWED_ORIGINS` y `TELEGRAM_WEBHOOK_URL`.
 5.2. `backend/README.md`: sección "Despliegue en Railway" con el orden de D5, la tabla de variables de D3, cómo usar `railway config plan` / `apply` y cargar los secretos y cómo correr `registrar_webhook.py` y `humo_produccion.py`.
 5.3. `frontend/README.md`: `VITE_API_BASE_URL` como build arg, que cambiarla exige redeploy, y que ya no hay proxy `/api/`.

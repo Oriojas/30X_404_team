@@ -6,7 +6,7 @@
 
 ## Criterios bloqueantes
 
-> Avance al 17-oct-2026: el backend, la base y el webhook están validados en producción. Lo que falta depende de que la rama llegue a `master`, porque el frontend se despliega solo desde ahí y hoy sigue con el bundle anterior, sin URL del backend. También falta el reenvío por Telegram y la documentación.
+> Avance al 17-oct-2026: el backend, la base y el webhook están validados en producción. Lo que falta depende de que la rama llegue a `master`, porque el frontend se despliega solo desde ahí y hoy sigue con el bundle anterior, sin URL del backend. También falta el reenvío por Telegram.
 
 ### Código y build (local)
 
@@ -58,8 +58,8 @@
 
 ### Documentación
 
-- [ ] `backend/README.md` y `frontend/README.md` describen el despliegue (orden, `railway config plan`/`apply`, secretos, variables, scripts) de forma que otra persona del equipo pueda repetirlo.
-- [ ] `.env.example` documenta `TELEGRAM_WEBHOOK_URL` y el formato de `ALLOWED_ORIGINS` para producción.
+- [x] `backend/README.md` y `frontend/README.md` describen el despliegue (orden, `railway config plan`/`apply`, secretos, variables, scripts) de forma que otra persona del equipo pueda repetirlo.
+- [x] `.env.example` documenta `TELEGRAM_WEBHOOK_URL` y el formato de `ALLOWED_ORIGINS` para producción.
 - [ ] F4.1 a F4.5 marcadas en [roadmap.md](../roadmap.md) con fecha; Railway "En uso" en [tech-stack.md](../tech-stack.md).
 
 ## No bloqueantes
