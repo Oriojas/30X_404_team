@@ -34,7 +34,7 @@ Las empresas constituidas en EE. UU. con equipos y proveedores en LatAm reciben 
 - Extracción multimodal con Gemini (OCR estructurado).
 - Conversión a USD con tasas de referencia fijas; tesorería multimoneda con tasas en vivo como extensión opcional.
 - Reglas configurables desde el dashboard: tope por pago, umbral de aprobación humana, presupuesto del periodo y beneficiarios permitidos con su tarifa acordada.
-- Saldo comprometido: lo aprobado nunca supera el saldo ni el presupuesto del periodo.
+- Saldo comprometido: el agente nunca aprueba solo un pago que deje lo comprometido por encima del saldo o del presupuesto del periodo; cualquier excepción la aprueba una persona y queda registrada.
 - Inicio de sesión con roles de demo (operador y aprobador) para las acciones que cambian datos.
 - Tubería de 4 capas con la matriz de reglas v3 y decisión `AUTO_APPROVED` / `SCALED_TO_HUMAN` / `REJECTED`.
 - Aprobación humana en el dashboard y aviso al canal de origen.
