@@ -96,7 +96,7 @@ En Railway el servicio `30X_404_team` está declarado en [.railway/railway.ts](.
 
 * **Fondo Principal:** `#F8FAFC` (Slate 50)
 * **Azul Marino Corporativo:** `#04243C` (Header, tarjetas de héroe y botones primarios)
-* **Cian Blinka (Acento):** `#2B9CAE` (Insignias, bordes activos y $0.00 FX Markup)
+* **Cian Blinka (Acento):** `#2B9CAE` (Insignias, bordes activos y elementos destacados)
 * **Azul Noche Profundo:** `#1D3557` (Gradientes y estados hover)
 * **Estados de Auditoría:**
   - `AUTO_APPROVED`: Verde Esmeralda (`bg-emerald-100 text-emerald-800`)

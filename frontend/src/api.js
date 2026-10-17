@@ -2,6 +2,7 @@
 // Los componentes nunca usan fetch directo.
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+export const TELEGRAM_BOT_URL = import.meta.env.VITE_TELEGRAM_BOT_URL || 'https://t.me/blinka_pay_test_bot'
 
 // Sin autenticación en el MVP: todas las decisiones humanas se registran con este aprobador.
 export const DECIDED_BY = 'CFO Demo'

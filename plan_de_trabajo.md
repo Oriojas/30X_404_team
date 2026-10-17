@@ -28,7 +28,7 @@ flowchart TD
 
         subgraph Core ["CORE DEL SISTEMA (core/ - Logica de Negocio Pura)"]
             UseCases["Casos de Uso - ProcessInvoice, ListInvoices, Get/UpdateRules"]
-            FX["FX Engine (Conversion a USD a $0 Markup)"]
+            FX["FX Engine (Normalizacion Multidivisa a USD)"]
             Rules["Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
             Audit["Generador de Explicabilidad (Audit Log Estructurado)"]
             Ports["Puertos de Salida - OCRPort, FXRateProvider, InvoiceRepository, RulesRepository, NotificationPort"]
@@ -90,7 +90,7 @@ Uno de los requerimientos clave del Reto Blinka es la gestión de operaciones mu
 2. **Normalización a USD (FX Engine):**
    - El Core consulta/aplica la tasa de cambio vigente (`fx_rate`).
    - Calcula el valor equivalente en dólares (`usd_amount = original_amount / fx_rate`).
-   - Aplica el **$0.00 FX Markup** garantizado por las tarjetas y cuentas corporativas de Blinka.
+   - Normaliza a USD usando las tasas de referencia oficiales para evaluación unificada.
 3. **Evaluación contra las Reglas en USD:**
    - **Umbral de Autonomía:** Se compara el `usd_amount` contra el límite máximo autónomo (ej: **$2,000 USD**).
    - **Verificación de Saldo Blinka:** Se valida que la cuenta USD posea suficiente saldo disponible (`balance_usd >= usd_amount`).

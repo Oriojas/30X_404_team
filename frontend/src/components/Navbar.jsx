@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { TELEGRAM_BOT_URL } from '../api'
 
 export default function Navbar({ onOpenDemoModal }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -60,7 +61,7 @@ export default function Navbar({ onOpenDemoModal }) {
         {/* Right: Action CTAs */}
         <div className="flex items-center gap-3">
           <a
-            href="https://t.me/blinka_paybot"
+            href={TELEGRAM_BOT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-brand-steel hover:text-brand-navy hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-brand-border"
@@ -128,7 +129,7 @@ export default function Navbar({ onOpenDemoModal }) {
             Seguridad
           </a>
           <a
-            href="https://t.me/blinka_paybot"
+            href={TELEGRAM_BOT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-brand-teal hover:bg-slate-50"

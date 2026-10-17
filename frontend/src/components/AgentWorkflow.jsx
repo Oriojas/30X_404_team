@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
+import { TELEGRAM_BOT_URL } from '../api'
 
 export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
+  const botUsername = TELEGRAM_BOT_URL.split('/').pop() ? `@${TELEGRAM_BOT_URL.split('/').pop()}` : '@blinka_pay_test_bot'
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -33,7 +35,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
       type: 'dispatch_decision',
       status: 'AUTO_APPROVED',
       ref: '#BLK-9842',
-      text: 'Pago aprobado y programado. Conversión a USD con $0.00 FX Markup y justificación registrada en el Audit Log.'
+      text: 'Pago aprobado y programado. Normalización a USD según tasa de referencia y justificación registrada en el Audit Log.'
     }
   ])
 
@@ -87,9 +89,9 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
         </div>
 
         {/* 2-Column Desktop Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
           {/* Left Column: Interactive Telegram Chat Mockup (6 cols) */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-brand-border shadow-xl overflow-hidden flex flex-col h-[640px]">
+          <div className="lg:col-span-6 bg-white rounded-2xl border border-brand-border shadow-xl overflow-hidden flex flex-col h-full min-h-[640px]">
             {/* Telegram Header */}
             <div className="bg-brand-navy text-white px-5 py-3.5 flex items-center justify-between border-b border-slate-700">
               <div className="flex items-center gap-3">
@@ -107,13 +109,13 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
 
               <div className="flex items-center gap-1 text-slate-300">
                 <a
-                  href="https://t.me/blinka_paybot"
+                  href={TELEGRAM_BOT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1.5 rounded hover:bg-white/10 text-xs font-mono text-cyan-300 flex items-center gap-1"
                   title="Abrir en Telegram real"
                 >
-                  <span>@blinka_paybot</span>
+                  <span>{botUsername}</span>
                   <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                 </a>
               </div>
@@ -284,63 +286,63 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
           </div>
 
           {/* Right Column: "Cómo piensa el Agente" (6 cols) */}
-          <div className="lg:col-span-6 flex flex-col gap-4">
+          <div className="lg:col-span-6 grid grid-rows-3 gap-4 h-full">
             {/* Card 1 */}
-            <div className="bg-brand-bg rounded-2xl border border-brand-border p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-white border border-brand-border flex items-center justify-center text-brand-teal shadow-xs">
-                  <span className="material-symbols-outlined text-[22px]">receipt_long</span>
+            <div className="bg-white rounded-2xl border border-brand-border p-5 sm:p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+              <div className="space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 border border-brand-border flex items-center justify-center text-brand-teal shadow-2xs">
+                  <span className="material-symbols-outlined text-[20px]">receipt_long</span>
                 </div>
-                <h3 className="font-display font-semibold text-lg text-brand-navy">
-                  1. Ingesta Multicanal & OCR Instantáneo
+                <h3 className="font-display font-semibold text-base sm:text-lg text-brand-navy">
+                  1. Ingesta Multicanal &amp; OCR Instantáneo
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
                   Recibe facturas en PDF o imagen desde Telegram (WhatsApp y correo como canales futuros). El motor de visión (Gemini Flash) extrae proveedor, NIT, monto, moneda, fecha límite y datos bancarios en formato estructurado.
                 </p>
               </div>
-              <div className="pt-3 border-t border-brand-border/60">
+              <div className="pt-2.5 border-t border-brand-border/60">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-brand-steel">
                   <span className="material-symbols-outlined text-brand-teal text-[15px]">check_circle</span>
-                  PDF, Fotos & Scans
+                  PDF, Fotos &amp; Scans
                 </span>
               </div>
             </div>
 
             {/* Card 2 */}
-            <div className="bg-brand-bg rounded-2xl border border-brand-border p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-white border border-brand-border flex items-center justify-center text-brand-teal shadow-xs">
-                  <span className="material-symbols-outlined text-[22px]">policy</span>
+            <div className="bg-white rounded-2xl border border-brand-border p-5 sm:p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+              <div className="space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 border border-brand-border flex items-center justify-center text-brand-teal shadow-2xs">
+                  <span className="material-symbols-outlined text-[20px]">policy</span>
                 </div>
-                <h3 className="font-display font-semibold text-lg text-brand-navy">
+                <h3 className="font-display font-semibold text-base sm:text-lg text-brand-navy">
                   2. Matriz de Control Cuádruple
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
                   Antes de aprobar cualquier pago, un motor determinista evalúa 4 capas: compliance SARLAFT/OFAC, integridad y duplicados (ventana de 30 días), solvencia y presupuesto, y gobierno con límite de autonomía ($2,000 USD).
                 </p>
               </div>
-              <div className="pt-3 border-t border-brand-border/60">
+              <div className="pt-2.5 border-t border-brand-border/60">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-brand-steel">
                   <span className="material-symbols-outlined text-brand-teal text-[15px]">shield</span>
-                  Filtro PEP, OFAC & Duplicados
+                  Filtro PEP, OFAC &amp; Duplicados
                 </span>
               </div>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-brand-bg rounded-2xl border border-brand-border p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-white border border-brand-border flex items-center justify-center text-brand-teal shadow-xs">
-                  <span className="material-symbols-outlined text-[22px]">account_balance</span>
+            <div className="bg-white rounded-2xl border border-brand-border p-5 sm:p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+              <div className="space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 border border-brand-border flex items-center justify-center text-brand-teal shadow-2xs">
+                  <span className="material-symbols-outlined text-[20px]">account_balance</span>
                 </div>
-                <h3 className="font-display font-semibold text-lg text-brand-navy">
-                  3. Decisión Explicable & Audit Log
+                <h3 className="font-display font-semibold text-base sm:text-lg text-brand-navy">
+                  3. Decisión Explicable &amp; Audit Log
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Emite la decisión (aprobar, frenar o escalar a un humano que decide en el dashboard), convierte a USD con <strong>$0.00 FX Markup</strong> garantizado por Blinka y registra la justificación en lenguaje natural. No mueve dinero real.
+                  Emite la decisión (aprobar, frenar o escalar a un humano que decide en el dashboard), normaliza a USD con tasas de referencia oficiales y registra la justificación en lenguaje natural. No mueve dinero real.
                 </p>
               </div>
-              <div className="pt-3 border-t border-brand-border/60">
+              <div className="pt-2.5 border-t border-brand-border/60">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-brand-steel">
                   <span className="material-symbols-outlined text-brand-teal text-[15px]">lock</span>
                   Audit Log persistido en PostgreSQL

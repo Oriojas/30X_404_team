@@ -169,15 +169,15 @@ export default function AuditDrawer({ invoice, readOnly = false, onClose, onDeci
             </div>
           </div>
 
-          {/* Módulo Especial FX: $0.00 FX Markup */}
+          {/* Módulo de Normalización FX Multidivisa */}
           <div className="p-4 rounded-xl bg-slate-900 text-white space-y-3 shadow-sm border border-slate-800 font-mono text-xs">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <span className="text-cyan-300 font-bold flex items-center gap-1 text-[11px]">
                 <span className="material-symbols-outlined text-[15px]">currency_exchange</span>
-                Blinka FX Zero-Markup Engine
+                Motor FX (Normalización Multidivisa)
               </span>
               <span className="px-2 py-0.5 rounded bg-brand-teal/20 text-cyan-300 text-[10px] border border-cyan-500/30">
-                $0.00 Comisión
+                Tasa de Referencia
               </span>
             </div>
 
@@ -193,8 +193,8 @@ export default function AuditDrawer({ invoice, readOnly = false, onClose, onDeci
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Spread / Markup Blinka:</span>
-                <span className="text-emerald-400 font-bold">$0.00 USD (0.00%)</span>
+                <span>Método de Conversión:</span>
+                <span className="text-cyan-300">Normalización a USD</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-slate-800 font-bold text-white">
                 <span>Cálculo Final USD:</span>
