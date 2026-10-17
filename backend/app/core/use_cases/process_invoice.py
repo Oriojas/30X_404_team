@@ -107,14 +107,16 @@ class ProcessInvoiceUseCase:
         channel_source: str,
         chat_id: Optional[int] = None,
         external_id: Optional[str] = None,
+        ingestion_channel: Optional[str] = None,
     ) -> IngestionResult:
-        """Procesa datos de factura ya estructurados (OCR o carga manual)."""
+        """Procesa datos de factura ya estructurados (OCR o carga manual).
+        ingestion_channel separa el espacio de claves cuando channel_source lo elige el cliente."""
 
         async def work() -> ProcessedInvoice:
             company_rules = await self.rules.get(self.company_id)
             return await self._evaluate(invoice, channel_source, chat_id, company_rules)
 
-        return await self._idempotent(channel_source, external_id, work)
+        return await self._idempotent(ingestion_channel or channel_source, external_id, work)
 
     async def _idempotent(
         self, channel: str, external_id: Optional[str], work: Callable[[], Awaitable[ProcessedInvoice]]
