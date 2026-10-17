@@ -5,6 +5,7 @@ import AgentWorkflow from './components/AgentWorkflow'
 import RuleControls from './components/RuleControls'
 import AuditTable from './components/AuditTable'
 import AuditDrawer from './components/AuditDrawer'
+import InvoiceUpload from './components/InvoiceUpload'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
 import TopographyBackground from './components/TopographyBackground'
@@ -206,7 +207,13 @@ export default function App() {
           demoMode={apiAvailable === false}
           onRefresh={loadInvoices}
           onSelectInvoice={(inv) => setSelectedInvoice(inv)}
-        />
+        >
+          <InvoiceUpload
+            readOnly={apiAvailable === false}
+            onUploaded={upsertInvoice}
+            onOpenInvoice={(inv) => setSelectedInvoice(inv)}
+          />
+        </AuditTable>
 
         {/* Section 5: Security Compliance & CTA */}
         <SecurityCompliance

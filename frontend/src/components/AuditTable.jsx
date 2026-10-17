@@ -15,7 +15,7 @@ function timeAgo(iso) {
   return date.toLocaleDateString()
 }
 
-export default function AuditTable({ invoices = [], loading = false, demoMode = false, onRefresh, onSelectInvoice }) {
+export default function AuditTable({ invoices = [], loading = false, demoMode = false, onRefresh, onSelectInvoice, children }) {
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -102,6 +102,9 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
         </div>
 
         <DashboardMetrics invoices={invoices} />
+
+        {/* Acciones sobre el Audit Log (subida de facturas) */}
+        {children}
 
         {/* Demo mode banner */}
         {demoMode && (
