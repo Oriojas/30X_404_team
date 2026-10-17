@@ -25,14 +25,15 @@ Las empresas constituidas en EE. UU. con equipos y proveedores en LatAm reciben 
 2. **Decisiones deterministas:** la IA solo extrae datos. La decisión la toma la tubería de 4 capas (Compliance/SARLAFT, Integridad, Solvencia, Gobierno HITL) definida en [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md).
 3. **Explicabilidad total:** cada decisión queda en el Audit Log con la regla disparada (código) y una explicación en lenguaje natural, capa por capa.
 4. **Los canales solo ingresan facturas:** Telegram, la subida web y los canales futuros reciben facturas e informan resultados. La aprobación humana ocurre **únicamente en el dashboard** y queda registrada (`HUMAN_APPROVED` / `HUMAN_REJECTED`, quién y cuándo).
-5. **$0.00 FX Markup:** toda evaluación se hace en USD, con la conversión explícita en el registro.
+5. **$0.00 FX Markup:** los umbrales, el presupuesto y los reportes se expresan en USD. La solvencia se evalúa contra la billetera de la moneda de la factura y, si no alcanza, contra USD convertido sin markup. La billetera usada, la tasa y su fuente quedan explícitas en el registro.
 
-## Alcance del MVP (Hackathon 30X — entrega domingo 18 de octubre de 2026, 11:59 AM)
+## Alcance del MVP (Hackathon 30X — entrega domingo 18 de octubre de 2026, 11:59 AM hora de Colombia)
 
 **Entra:**
 - Ingesta por Telegram y por subida de archivos en el dashboard.
 - Extracción multimodal con Gemini (OCR estructurado).
-- Conversión a USD con tasas de referencia fijas.
+- Tesorería multimoneda con billeteras por moneda y conversión a USD con tasas en vivo, con tasas de referencia fijas como respaldo.
+- Inicio de sesión con roles de demo (operador y aprobador) para las acciones que cambian datos.
 - Tubería de 4 capas con la matriz de reglas v3 y decisión `AUTO_APPROVED` / `SCALED_TO_HUMAN` / `REJECTED`.
 - Aprobación humana en el dashboard y aviso al canal de origen.
 - Audit Log explicable y reglas configurables desde el dashboard.
