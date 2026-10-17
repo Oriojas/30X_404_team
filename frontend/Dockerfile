@@ -4,9 +4,14 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
+
+# Vite incrusta VITE_API_BASE_URL en el build; Railway la pasa como build arg
+# solo si está declarada aquí. Cambiarla exige un nuevo build.
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # Production Stage
