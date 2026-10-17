@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+// Mismo mapa de estados y badge que el dashboard (src/status.js)
+import StatusBadge from './StatusBadge'
 
 /**
  * Presentación comercial (Slide Deck) de Blinka PayAgent.
@@ -16,49 +18,6 @@ const STAGE_H = 720
 /* Primitivas de diseño (DESIGN.md: bordes 1px, radios 4–6px, pills    */
 /* solo para badges de estado)                                         */
 /* ------------------------------------------------------------------ */
-
-const STATUS = {
-  AUTO_APPROVED: {
-    label: 'AUTO_APPROVED',
-    dot: '#10B981',
-    bg: '#ECFDF5',
-    text: '#065F46',
-    border: '#A7F3D0',
-    pulse: true
-  },
-  SCALED_TO_HUMAN: {
-    label: 'SCALED_TO_HUMAN',
-    dot: '#F59E0B',
-    bg: '#FFFBEB',
-    text: '#92400E',
-    border: '#FDE68A'
-  },
-  REJECTED: {
-    label: 'REJECTED',
-    dot: '#EF4444',
-    bg: '#FEF2F2',
-    text: '#991B1B',
-    border: '#FECACA'
-  }
-}
-
-function StatusBadge({ status, large = false }) {
-  const s = STATUS[status]
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full border font-mono font-semibold tracking-wide ${
-        large ? 'px-4 py-1.5 text-[15px]' : 'px-3 py-1 text-[13px]'
-      }`}
-      style={{ backgroundColor: s.bg, color: s.text, borderColor: s.border }}
-    >
-      <span
-        className={`w-1.5 h-1.5 rounded-full ${s.pulse ? 'animate-pulse' : ''}`}
-        style={{ backgroundColor: s.dot }}
-      />
-      {s.label}
-    </span>
-  )
-}
 
 function Icon({ name, className = '' }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>
@@ -194,7 +153,7 @@ function SlideCover() {
                 $285.71 USD
               </div>
             </div>
-            <StatusBadge status="AUTO_APPROVED" />
+            <StatusBadge status="AUTO_APPROVED" size="slide" />
           </div>
         </div>
       </div>
@@ -249,7 +208,7 @@ function SlideSolution() {
   const decisions = [
     { status: 'AUTO_APPROVED', verb: 'Pagar', text: 'Proveedor verificado, dentro del umbral y con saldo.' },
     { status: 'REJECTED', verb: 'Frenar', text: 'Duplicado o coincidencia en lista restrictiva.' },
-    { status: 'SCALED_TO_HUMAN', verb: 'Escalar', text: 'Supera el umbral, proveedor nuevo o saldo insuficiente.' }
+    { status: 'SCALED_TO_HUMAN', verb: 'Escalar', text: 'Supera el umbral, proveedor nuevo o saldo insuficiente. Decide una persona en el dashboard.' }
   ]
   const pillars = [
     { icon: 'bolt', title: 'Autonomía', text: 'Facturas de proveedores con historial y bajo $2,000 USD se aprueban solas.' },
@@ -267,7 +226,7 @@ function SlideSolution() {
       <div className="grid grid-cols-3 gap-6 mt-10">
         {decisions.map((d) => (
           <div key={d.verb} className="rounded-md border border-brand-border bg-white p-6 space-y-3 shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
-            <StatusBadge status={d.status} large />
+            <StatusBadge status={d.status} size="slideLg" />
             <div className="font-display font-bold text-[34px] leading-none">{d.verb}</div>
             <p className="text-[15px] leading-relaxed text-brand-muted">{d.text}</p>
           </div>
@@ -404,6 +363,14 @@ function SlideAudit() {
       status: 'SCALED_TO_HUMAN',
       rule: 'HITL-01',
       why: 'Excede el límite autónomo de $2,000 USD. Requiere aprobación humana.'
+    },
+    {
+      vendor: 'Logística Express MX',
+      original: '117,000 MXN',
+      usd: '$6,000.00',
+      status: 'HUMAN_APPROVED',
+      rule: 'HITL-01',
+      why: 'Escalada por el umbral; aprobada por el CFO en el dashboard, con nota en el Audit Log.'
     }
   ]
   return (
@@ -428,7 +395,7 @@ function SlideAudit() {
             <span className="font-mono tabular-data">{r.original}</span>
             <span className="font-mono tabular-data font-semibold">{r.usd}</span>
             <span>
-              <StatusBadge status={r.status} />
+              <StatusBadge status={r.status} size="slide" />
             </span>
             <span className="font-mono text-[13px] text-brand-steel">{r.rule}</span>
             <span className="text-[13px] leading-snug text-brand-muted">{r.why}</span>
@@ -438,7 +405,7 @@ function SlideAudit() {
 
       <div className="flex-1 flex items-end justify-between gap-6">
         <div className="flex flex-wrap gap-3 text-[14px] text-brand-steel">
-          {['Umbral configurable', 'Detalle por factura', 'Regla disparada', 'Aprobación humana en Telegram'].map((t) => (
+          {['Umbral configurable', 'Detalle por factura', 'Regla disparada', 'Aprobación humana en el dashboard'].map((t) => (
             <span key={t} className="inline-flex items-center gap-2 rounded border border-brand-border bg-white px-3 py-1.5">
               <Icon name="check_circle" className="text-brand-teal text-[18px]" />
               {t}
@@ -525,7 +492,7 @@ const SLIDES = [
   },
   {
     id: 'demo',
-    notes: '0:35–2:20 · Demo: caso 1 aprobado, caso 2 duplicado, caso 3 escalado. Luego abrir el dashboard en vivo y mostrar explicación + regla disparada.',
+    notes: '0:35–2:20 · Demo: caso 1 aprobado, caso 2 duplicado, caso 3 escalado. Luego abrir el dashboard en vivo, mostrar explicación + regla disparada y aprobar el escalamiento desde el Drawer (queda HUMAN_APPROVED con quién, cuándo y nota; la autonomía no cuenta decisiones humanas).',
     Component: SlideAudit
   },
   {
