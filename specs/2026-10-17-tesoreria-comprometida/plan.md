@@ -40,7 +40,7 @@
 
 ## 6. Scripts de demo (D9)
 
-6.1. `casos_demo.py` y `humo_produccion.py`: `PATCH /api/treasury` con `balance_usd = 8500` antes de TC-01.
+6.1. `casos_demo.py` (solo datos) define `SALDO_DEMO_USD = 8500`; `humo_produccion.py` y la integración llaman `PATCH /api/treasury` con ese saldo antes de TC-01.
 6.2. Verificar que TC-01 a TC-07 siguen dando lo esperado en local.
 
 ## 7. Pruebas y cierre (F6.6)
