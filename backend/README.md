@@ -39,7 +39,7 @@ Las variables requeridas para el backend son:
 * `GEMINI_API_KEY`: Clave de API de Google AI Studio para Gemini 1.5 Flash.
 * `GEMINI_MODEL`: Modelo a utilizar (por defecto `gemini-1.5-flash`).
 
-Consulta la plantilla completa en [.env.example](file:///home/oscar/Github/30X_404_team/.env.example).
+Consulta la plantilla completa en [.env.example](../.env.example).
 
 ---
 
@@ -73,7 +73,7 @@ La documentación interactiva Swagger estará disponible en `http://localhost:80
 
 ## 🐳 Despliegue con Docker (Railway)
 
-El archivo [Dockerfile](file:///home/oscar/Github/30X_404_team/backend/Dockerfile) empaqueta la aplicación con Python 3.12-slim:
+El archivo [Dockerfile](Dockerfile) empaqueta la aplicación con Python 3.12-slim:
 
 ```bash
 docker build -t blinka-backend -f backend/Dockerfile .
@@ -98,6 +98,6 @@ En Railway, la variable `$PORT` es asignada en runtime y el contenedor arranca a
 ---
 
 ## 🔗 Referencias
-* [README Principal del Proyecto](file:///home/oscar/Github/30X_404_team/README.md)
-* [Frontend (React + Tailwind)](file:///home/oscar/Github/30X_404_team/frontend/README.md)
-* [Arquitectura de Solución v4](file:///home/oscar/Github/30X_404_team/docs/arquitectura/arquitectura_solucion_v4.md)
+* [README Principal del Proyecto](../README.md)
+* [Frontend (React + Tailwind)](../frontend/README.md)
+* [Arquitectura de Solución v4](../docs/arquitectura/arquitectura_solucion_v4.md)

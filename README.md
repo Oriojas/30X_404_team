@@ -33,11 +33,11 @@
 
 El repositorio está organizado como un **Monorepo Hexagonal** centralizado. Para consultar la documentación detallada de cada módulo, accede a los siguientes enlaces:
 
-* ⚙️ **[Backend (FastAPI & Arquitectura Hexagonal)](file:///home/oscar/Github/30X_404_team/backend/README.md):** Arquitectura de puertos y adaptadores, conectores de Telegram y PostgreSQL, pipeline de reglas y endpoints REST.
-* 🎨 **[Frontend (React, Vite & Tailwind CSS)](file:///home/oscar/Github/30X_404_team/frontend/README.md):** Dashboard del equipo financiero, métricas de gobernanza, controles de umbral en tiempo real y tabla de auditoría.
-* 📋 **[Plan de Trabajo Oficial](file:///home/oscar/Github/30X_404_team/plan_de_trabajo.md):** Fases de ejecución, cronograma, entregables y asignación de responsabilidades.
-* 📐 **[Arquitectura de Solución v4](file:///home/oscar/Github/30X_404_team/docs/arquitectura/arquitectura_solucion_v4.md):** Diagramas Mermaid del flujo end-to-end y esquema DDL de PostgreSQL.
-* 📖 **[Reglas de Negocio del Agente](file:///home/oscar/Github/30X_404_team/docs/reglas-negocio/reglas_pago_agente_v3.md):** Definición detallada de las 4 capas de validación y casos de uso.
+* ⚙️ **[Backend (FastAPI & Arquitectura Hexagonal)](backend/README.md):** Arquitectura de puertos y adaptadores, conectores de Telegram y PostgreSQL, pipeline de reglas y endpoints REST.
+* 🎨 **[Frontend (React, Vite & Tailwind CSS)](frontend/README.md):** Dashboard del equipo financiero, métricas de gobernanza, controles de umbral en tiempo real y tabla de auditoría.
+* 📋 **[Plan de Trabajo Oficial](plan_de_trabajo.md):** Fases de ejecución, cronograma, entregables y asignación de responsabilidades.
+* 📐 **[Arquitectura de Solución v4](docs/arquitectura/arquitectura_solucion_v4.md):** Diagramas Mermaid del flujo end-to-end y esquema DDL de PostgreSQL.
+* 📖 **[Reglas de Negocio del Agente](docs/reglas-negocio/reglas_pago_agente_v3.md):** Definición detallada de las 4 capas de validación y casos de uso.
 
 ---
 
@@ -47,9 +47,9 @@ Para garantizar reproducibilidad y evitar dispersión de configuraciones:
 
 1. **Un solo archivo `.env` en la raíz:**
    - Todas las variables de entorno de la solución (Backend, Frontend, PostgreSQL, Telegram y Gemini) se declaran exclusivamente en el archivo raíz `.env`.
-   - Se provee una plantilla única y completa en [.env.example](file:///home/oscar/Github/30X_404_team/.env.example) con valores genéricos y documentados. No se permiten archivos `.env` secundarios en subdirectorios.
+   - Se provee una plantilla única y completa en [.env.example](.env.example) con valores genéricos y documentados. No se permiten archivos `.env` secundarios en subdirectorios.
 2. **Un solo archivo `.gitignore` en la raíz:**
-   - Un único [.gitignore](file:///home/oscar/Github/30X_404_team/.gitignore) centralizado administra las exclusiones de código compilado de Python, dependencias de Node.js, variables privadas y artefactos de despliegue.
+   - Un único [.gitignore](.gitignore) centralizado administra las exclusiones de código compilado de Python, dependencias de Node.js, variables privadas y artefactos de despliegue.
 
 ---
 
@@ -86,9 +86,9 @@ Dashboard disponible en `http://localhost:3000`.
 ## ☁️ Despliegue en Railway (All-in-One)
 
 El proyecto está preparado para desplegarse dentro de un único Canvas en **Railway**:
-1. **PostgreSQL Native Service:** Base de datos relacional administrada. Ejecutar el DDL desde [backend/app/adapters/db/schema.sql](file:///home/oscar/Github/30X_404_team/backend/app/adapters/db/schema.sql).
-2. **Backend Service:** Construido a partir de [backend/Dockerfile](file:///home/oscar/Github/30X_404_team/backend/Dockerfile).
-3. **Frontend Service:** Construido a partir de [frontend/Dockerfile](file:///home/oscar/Github/30X_404_team/frontend/Dockerfile) y servido con Nginx.
+1. **PostgreSQL Native Service:** Base de datos relacional administrada. Ejecutar el DDL desde [backend/app/adapters/db/schema.sql](backend/app/adapters/db/schema.sql).
+2. **Backend Service:** Construido a partir de [backend/Dockerfile](backend/Dockerfile).
+3. **Frontend Service:** Construido a partir de [frontend/Dockerfile](frontend/Dockerfile) y servido con Nginx.
 
 ---
 
