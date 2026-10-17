@@ -11,19 +11,19 @@ export default function HeroSection({ onOpenTelegramDemo }) {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-brand-border w-fit shadow-xs">
               <span className="text-brand-teal text-xs font-bold">⚡</span>
               <span className="font-mono text-xs text-brand-steel font-semibold tracking-wide">
-                B2B Autonomous Financial Ops • Multi-rail SPEI, ACH & Wire
+                B2B Autonomous Financial Ops • Telegram, Gemini & Reglas Deterministas
               </span>
             </div>
 
             {/* Main Headline */}
             <h1 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl text-brand-navy tracking-tight leading-[1.15]">
-              Agentes IA que pagan por tu empresa{' '}
+              Agentes IA que deciden los pagos de tu empresa{' '}
               <span className="text-brand-teal">sin perder el control</span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-sm sm:text-base text-brand-muted leading-relaxed font-normal max-w-2xl">
-              Automatiza la recepción y conciliación de facturas con visión multimodal (Gemini 1.5 Flash), validación estricta SARLAFT/OFAC, verificación de saldos en tesorería y dispersión bancaria con <strong className="text-brand-navy">$0.00 FX Markup</strong>. Escala a aprobación humana únicamente ante anomalías o reglas críticas.
+              Automatiza la recepción y evaluación de facturas con visión multimodal (Gemini Flash), validación SARLAFT/OFAC, verificación de saldos en tesorería y conversión a USD con <strong className="text-brand-navy">$0.00 FX Markup</strong>. Aprueba, frena o escala a aprobación humana ante anomalías o reglas críticas.
             </p>
 
             {/* CTA Buttons */}
@@ -54,26 +54,26 @@ export default function HeroSection({ onOpenTelegramDemo }) {
               <div className="grid grid-cols-3 gap-2 sm:gap-4 p-4 rounded-xl bg-white border border-brand-border shadow-sm">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
-                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">99.4%</span>
+                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">4</span>
                     <span className="material-symbols-outlined text-brand-teal text-[18px]">verified</span>
                   </div>
-                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Conciliación Autónoma</span>
+                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Capas de Validación Determinista</span>
                 </div>
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">
                   <div className="flex items-center gap-1">
-                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">0</span>
-                    <span className="text-xs font-mono font-semibold text-brand-teal">Incidentes</span>
+                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">$0.00</span>
+                    <span className="text-xs font-mono font-semibold text-brand-teal">FX</span>
                   </div>
-                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Fraudes / Falsos Positivos</span>
+                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Markup Cambiario (Blinka)</span>
                 </div>
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">
                   <div className="flex items-center gap-1">
-                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">&lt;12s</span>
+                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">$2,000</span>
                     <span className="material-symbols-outlined text-brand-teal text-[18px]">bolt</span>
                   </div>
-                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Liquidación Promedio</span>
+                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Umbral Autónomo (configurable)</span>
                 </div>
               </div>
             </div>
@@ -99,7 +99,7 @@ export default function HeroSection({ onOpenTelegramDemo }) {
 
                 <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 border border-brand-border">
                   <span className="material-symbols-outlined text-brand-teal text-[14px]">link</span>
-                  <span className="font-mono text-[11px] text-brand-steel font-medium">Core Bancario mTLS</span>
+                  <span className="font-mono text-[11px] text-brand-steel font-medium">Telegram · FastAPI</span>
                 </div>
               </div>
 
@@ -127,7 +127,7 @@ export default function HeroSection({ onOpenTelegramDemo }) {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-brand-teal font-bold uppercase tracking-wider flex items-center gap-1">
                     <span className="material-symbols-outlined text-[15px] animate-spin">motion_photos_on</span>
-                    En Ejecución Inmediata
+                    En Evaluación
                   </span>
                   <span className="font-mono text-xs font-bold text-brand-navy">#BLK-9842</span>
                 </div>
@@ -139,7 +139,7 @@ export default function HeroSection({ onOpenTelegramDemo }) {
                   </div>
                   <div className="text-right">
                     <span className="font-mono font-bold text-sm text-brand-navy block">$1,420.00 USD</span>
-                    <span className="text-[10px] font-mono text-brand-teal font-semibold">SPEI Inmediato</span>
+                    <span className="text-[10px] font-mono text-brand-teal font-semibold">Aprobado</span>
                   </div>
                 </div>
               </div>
@@ -157,9 +157,9 @@ export default function HeroSection({ onOpenTelegramDemo }) {
                 <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-brand-border/60">
                   <span className="text-brand-muted flex items-center gap-1.5 text-[11px]">
                     <span className="material-symbols-outlined text-brand-teal text-[15px]">fingerprint</span>
-                    Hash Duplicados Fiscales
+                    Duplicados (30 días)
                   </span>
-                  <span className="text-brand-teal font-semibold text-[11px]">SHA-256 ÚNICO</span>
+                  <span className="text-brand-teal font-semibold text-[11px]">ÚNICO</span>
                 </div>
 
                 <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-brand-border/60">
@@ -175,9 +175,9 @@ export default function HeroSection({ onOpenTelegramDemo }) {
               <div className="flex items-center justify-between pt-1 border-t border-brand-border/60 text-[11px] text-brand-muted">
                 <span className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px] text-brand-teal">security</span>
-                  Criptográficamente sellado
+                  Audit Log persistido
                 </span>
-                <span className="font-mono text-brand-steel font-medium">Latencia: 240ms</span>
+                <span className="font-mono text-brand-steel font-medium">Decisión explicable</span>
               </div>
             </div>
           </div>

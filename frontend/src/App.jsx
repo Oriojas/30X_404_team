@@ -32,7 +32,7 @@ const INITIAL_INVOICES = [
     usd_amount: 8450.00,
     decision_status: 'SCALED_TO_HUMAN',
     time: 'Hace 18 min',
-    audit_explanation: 'Excede el límite autónomo de $2,000 USD ($8,450.00 USD). Se envió notificación prioritaria a Telegram de @cfo_alberto con botón de aprobación biométrica 2FA.'
+    audit_explanation: 'Excede el límite autónomo de $2,000 USD ($8,450.00 USD). Se envió notificación a Telegram del gerente de finanzas con botones de aprobar o rechazar.'
   },
   {
     id: 3,
@@ -44,7 +44,7 @@ const INITIAL_INVOICES = [
     usd_amount: 3100.00,
     decision_status: 'REJECTED',
     time: 'Hace 42 min',
-    audit_explanation: 'ALERTA SARLAFT: Representante legal nuevo coincide con reporte preventivo en lista de Personas Expuestas Políticamente (PEP). Pago congelado automáticamente sin dispersión.'
+    audit_explanation: 'ALERTA SARLAFT: Representante legal nuevo coincide con reporte preventivo en lista de Personas Expuestas Políticamente (PEP). Pago frenado automáticamente.'
   },
   {
     id: 4,
@@ -65,10 +65,10 @@ const INITIAL_INVOICES = [
     concept: 'Consultoría y Desarrollo de Software',
     original_amount: 52000.00,
     original_currency: 'MXN',
-    usd_amount: 2736.84,
+    usd_amount: 2666.67,
     decision_status: 'SCALED_TO_HUMAN',
     time: 'Hace 2 horas',
-    audit_explanation: 'Monto en divisa local ($52,000 MXN) normalizado a tasa interbancaria (19.00 MXN/USD) con $0.00 FX Markup Blinka totaliza $2,736.84 USD, superando el umbral autónomo de $2,000 USD. Escalado a Telegram.'
+    audit_explanation: 'Monto en divisa local ($52,000 MXN) convertido a tasa de referencia (19.50 MXN/USD) con $0.00 FX Markup Blinka totaliza $2,666.67 USD, superando el umbral autónomo de $2,000 USD. Escalado a Telegram.'
   },
   {
     id: 6,
@@ -144,7 +144,7 @@ export default function App() {
           ? {
               ...inv,
               decision_status: 'AUTO_APPROVED',
-              audit_explanation: `Aprobado manualmente mediante 2FA por el CFO en Telegram el ${new Date().toLocaleTimeString()}. Dispersión programada a cuenta bancaria.`
+              audit_explanation: `Aprobado manualmente por el gerente de finanzas en Telegram el ${new Date().toLocaleTimeString()}. Pago aprobado y registrado en el Audit Log.`
             }
           : inv
       )
@@ -154,7 +154,7 @@ export default function App() {
         ? {
             ...prev,
             decision_status: 'AUTO_APPROVED',
-            audit_explanation: `Aprobado manualmente mediante 2FA por el CFO en Telegram el ${new Date().toLocaleTimeString()}. Dispersión programada a cuenta bancaria.`
+            audit_explanation: `Aprobado manualmente por el gerente de finanzas en Telegram el ${new Date().toLocaleTimeString()}. Pago aprobado y registrado en el Audit Log.`
           }
         : prev
     )
