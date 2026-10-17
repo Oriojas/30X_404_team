@@ -41,8 +41,8 @@ export default function RuleControls({
         duplicate_check_days: Number(dupDays),
         min_treasury_buffer_usd: Number(bufferUsd)
       },
-      audit_protocol: "SHA-256 Strict Ledger",
-      rail: "Blinka Multi-rail Zero-Markup Engine"
+      audit_protocol: "Audit Log PostgreSQL",
+      rail: "Blinka Zero-Markup FX"
     }
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -108,7 +108,7 @@ export default function RuleControls({
               </div>
               <h3 className="font-display font-semibold text-base text-brand-navy">Límite Máximo Autónomo</h3>
               <p className="text-xs text-brand-muted leading-relaxed">
-                Pagos superiores al umbral escalan inmediatamente a aprobación biométrica 2FA del CFO en Telegram.
+                Pagos superiores al umbral escalan a aprobación humana en Telegram (botones de aprobar/rechazar).
               </p>
             </div>
 
@@ -149,7 +149,7 @@ export default function RuleControls({
               </div>
               <h3 className="font-display font-semibold text-base text-brand-navy">Validación SARLAFT & OFAC</h3>
               <p className="text-xs text-brand-muted leading-relaxed">
-                Cruce automático e instantáneo de contrapartes, socios y beneficiarios finales en listas restrictivas antes del desembolso.
+                Cruce automático de contrapartes y beneficiarios en listas restrictivas antes de aprobar el pago.
               </p>
             </div>
 
@@ -170,11 +170,11 @@ export default function RuleControls({
 
               <div className="flex items-center justify-between">
                 <span className="text-brand-muted font-sans text-[11px]">Listas PEP / ONU:</span>
-                <span className="text-brand-teal font-semibold">100% ONLINE</span>
+                <span className="text-brand-teal font-semibold">Activo</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-brand-muted font-sans text-[11px]">Latencia Consulta:</span>
-                <span className="text-brand-navy font-semibold">84ms</span>
+                <span className="text-brand-muted font-sans text-[11px]">Cobertura:</span>
+                <span className="text-brand-navy font-semibold">OFAC / ONU / GAFI</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-brand-muted font-sans text-[11px]">Bloqueo Preventivo:</span>
@@ -191,12 +191,12 @@ export default function RuleControls({
                   <span className="material-symbols-outlined text-[20px]">fingerprint</span>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-brand-steel border border-brand-border text-[11px] font-semibold">
-                  SHA-256 Hash
+                  ID + Proveedor
                 </span>
               </div>
               <h3 className="font-display font-semibold text-base text-brand-navy">Detección de Duplicados</h3>
               <p className="text-xs text-brand-muted leading-relaxed">
-                Compara el hash SHA-256 del documento fiscal, folio y beneficiario para evitar dobles pagos automáticos.
+                Compara número de factura y proveedor (o monto y proveedor) dentro de la ventana configurada para evitar dobles pagos automáticos.
               </p>
             </div>
 
@@ -217,12 +217,12 @@ export default function RuleControls({
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-brand-muted font-sans text-[11px]">Algoritmo Hash:</span>
-                <span className="text-brand-navy font-semibold">SHA-256</span>
+                <span className="text-brand-muted font-sans text-[11px]">Criterio:</span>
+                <span className="text-brand-navy font-semibold">ID + Proveedor</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-brand-muted font-sans text-[11px]">Falsos Positivos:</span>
-                <span className="text-emerald-700 font-semibold">0.00%</span>
+                <span className="text-brand-muted font-sans text-[11px]">Acción:</span>
+                <span className="text-emerald-700 font-semibold">Rechazo automático</span>
               </div>
             </div>
           </div>
@@ -240,7 +240,7 @@ export default function RuleControls({
               </div>
               <h3 className="font-display font-semibold text-base text-brand-navy">Colchón Mínimo Tesorería</h3>
               <p className="text-xs text-brand-muted leading-relaxed">
-                Pausa automática de dispersiones si la liquidez proyectada cae por debajo de la reserva mínima protegida.
+                Escala a un humano los pagos si la liquidez proyectada cae por debajo de la reserva mínima protegida.
               </p>
             </div>
 

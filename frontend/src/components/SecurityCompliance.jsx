@@ -37,7 +37,7 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
                 Comienza a automatizar pagos corporativos de forma segura
               </h2>
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                Conecta tus cuentas bancarias y canales de Telegram o WhatsApp en menos de 15 minutos con soporte SOC2 Type II, encriptación AES-256 y $0.00 FX Markup para Latinoamérica.
+                Conecta tu canal de Telegram (WhatsApp y correo próximamente), define tus reglas de gobernanza y obtén decisiones explicables con $0.00 FX Markup para Latinoamérica.
               </p>
             </div>
 
@@ -65,19 +65,19 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-4 text-xs text-slate-300 border-t border-slate-700/60 w-full max-w-3xl font-mono">
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-brand-teal text-[16px]">check</span>
-                Encriptación AES-256
+                HTTPS en Railway
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-brand-teal text-[16px]">check</span>
-                Auditoría Inmutable
+                Audit Log Persistido
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-brand-teal text-[16px]">check</span>
-                Multi-jurisdicción LATAM
+                Multidivisa LATAM
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-brand-teal text-[16px]">check</span>
-                SARLAFT / OFAC Compliant
+                Reglas SARLAFT / OFAC
               </span>
             </div>
           </div>

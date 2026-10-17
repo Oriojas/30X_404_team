@@ -10,7 +10,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
       file: {
         name: 'Factura_AWS_Cloud_0924.pdf',
         size: '1.4 MB',
-        type: 'Factura Enterprise SAT/DIAN'
+        type: 'Factura Electrónica'
       }
     },
     {
@@ -33,7 +33,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
       type: 'dispatch_decision',
       status: 'AUTO_APPROVED',
       ref: '#BLK-9842',
-      text: 'Dispersión bancaria programada vía SPEI/ACH. Fondos asignados con $0.00 FX Markup y comprobante fiscal emitido.'
+      text: 'Pago aprobado y programado. Conversión a USD con $0.00 FX Markup y justificación registrada en el Audit Log.'
     }
   ])
 
@@ -82,7 +82,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
             Interactúa con Blinka PayBot directamente desde mensajería segura
           </h2>
           <p className="text-sm text-brand-muted leading-relaxed">
-            Sin portales bancarios lentos ni software ERP engorroso. Envía una factura por chat y el agente valida, concilia y dispersa respetando tus políticas de gobernanza.
+            Sin portales bancarios lentos ni software ERP engorroso. Envía una factura por chat y el agente lee, valida y decide (pagar, frenar o escalar) respetando tus políticas de gobernanza.
           </p>
         </div>
 
@@ -156,9 +156,9 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
                         <div className="flex items-center justify-between pb-1 border-b border-brand-border/60">
                           <span className="text-[11px] font-bold text-brand-teal flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px]">document_scanner</span>
-                            Extracción OCR Completada (1.2s)
+                            Extracción OCR Completada
                           </span>
-                          <span className="font-mono text-[10px] text-brand-muted">Gemini 1.5 Flash</span>
+                          <span className="font-mono text-[10px] text-brand-muted">Gemini Flash</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-50 border border-brand-border/60 font-mono text-xs">
@@ -295,13 +295,13 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
                   1. Ingesta Multicanal & OCR Instantáneo
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Recibe facturas en PDF o XML desde Telegram, WhatsApp corporativo, buzón de correo o webhook de ERP. El motor de visión (Gemini 1.5 Flash) extrae ítems, impuestos, cuenta bancaria de destino y términos fiscales en menos de 1.8 segundos.
+                  Recibe facturas en PDF o imagen desde Telegram (WhatsApp y correo como canales futuros). El motor de visión (Gemini Flash) extrae proveedor, NIT, monto, moneda, fecha límite y datos bancarios en formato estructurado.
                 </p>
               </div>
               <div className="pt-3 border-t border-brand-border/60">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-brand-steel">
                   <span className="material-symbols-outlined text-brand-teal text-[15px]">check_circle</span>
-                  SAT, DIAN, PDF Nativo & Scans
+                  PDF, Fotos & Scans
                 </span>
               </div>
             </div>
@@ -316,13 +316,13 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
                   2. Matriz de Control Cuádruple
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Antes de autorizar cualquier desembolso, el agente cruza en tiempo real 4 dimensiones críticas: riesgo y SARLAFT/OFAC, presupuesto y liquidez de caja, deduplicación estricta por hash criptográfico SHA-256 y límite de autonomía ($2,000 USD).
+                  Antes de aprobar cualquier pago, un motor determinista evalúa 4 capas: compliance SARLAFT/OFAC, integridad y duplicados (ventana de 30 días), solvencia y presupuesto, y gobierno con límite de autonomía ($2,000 USD).
                 </p>
               </div>
               <div className="pt-3 border-t border-brand-border/60">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-brand-steel">
                   <span className="material-symbols-outlined text-brand-teal text-[15px]">shield</span>
-                  Filtro PEP, OFAC & Anti-Fraude
+                  Filtro PEP, OFAC & Duplicados
                 </span>
               </div>
             </div>
@@ -334,16 +334,16 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
                   <span className="material-symbols-outlined text-[22px]">account_balance</span>
                 </div>
                 <h3 className="font-display font-semibold text-lg text-brand-navy">
-                  3. Dispersión Bancaria & Conciliación
+                  3. Decisión Explicable & Audit Log
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Emite la instrucción de dispersión vía riel bancario local (SPEI, ACH o Wire internacional) con <strong>$0.00 FX Markup</strong> garantizado por Blinka, archiva el comprobante oficial y reconcilia los asientos en NetSuite, QuickBooks o SAP sin analistas manuales.
+                  Emite la decisión (aprobar, frenar o escalar a un humano con botones en Telegram), convierte a USD con <strong>$0.00 FX Markup</strong> garantizado por Blinka y registra la justificación en lenguaje natural. No mueve dinero real.
                 </p>
               </div>
               <div className="pt-3 border-t border-brand-border/60">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-brand-steel">
                   <span className="material-symbols-outlined text-brand-teal text-[15px]">lock</span>
-                  Conexión cifrada mTLS / AES-256
+                  Audit Log persistido en PostgreSQL
                 </span>
               </div>
             </div>

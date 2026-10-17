@@ -33,3 +33,25 @@
 .tabular-data {
   font-feature-settings: "tnum" on, "zero" on;
 }
+
+/* Presentación comercial: entrada sutil de cada slide */
+@keyframes pitch-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pitch-slide-enter {
+  animation: pitch-slide-in 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pitch-slide-enter {
+    animation: none;
+  }
+}

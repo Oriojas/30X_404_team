@@ -19,7 +19,7 @@ export default function Navbar({ onOpenDemoModal }) {
 
           <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-brand-border">
             <span className="w-2 h-2 rounded-full bg-brand-teal animate-pulse"></span>
-            <span className="font-mono text-xs text-brand-steel font-medium">SLA 99.98% Operativo</span>
+            <span className="font-mono text-xs text-brand-steel font-medium">Agente Operativo</span>
           </div>
         </div>
 
