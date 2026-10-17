@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     telegram_bot_token: str | None = None
     telegram_webhook_secret: str | None = None
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-3.8-flash"
 
     company_id: str = "BLINKA_DEFAULT"
     max_autonomous_usd: float = 2000.00

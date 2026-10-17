@@ -10,7 +10,7 @@
 | Backend | Python 3.12 + FastAPI | En uso |
 | Validación y configuración | Pydantic v2 + pydantic-settings | En uso |
 | Base de datos | PostgreSQL (Railway native; probado con 16) + asyncpg | En uso |
-| OCR / visión | Google Gemini (modelo Flash) vía SDK **`google-genai`** | Por migrar (ver abajo) |
+| OCR / visión | Google Gemini (`gemini-3.8-flash`) vía SDK **`google-genai`** | En uso |
 | Canal de ingesta | Telegram Bot API vía `httpx` | En uso |
 | Frontend | React 18 + Vite 5 + Tailwind CSS 3 + lucide-react | En uso |
 | Contenedores | Docker: `python:3.12-slim` (backend), `node:20-alpine` + Nginx (frontend) | En uso |
@@ -37,9 +37,9 @@
 ## OCR con Gemini
 
 - **SDK oficial `google-genai`** (decisión del 17 de octubre de 2026). Reemplaza a `google-generativeai`, que está deprecado.
-- **Modelo:** un Flash estable vigente, configurable con `GEMINI_MODEL`. El valor por defecto se fija al implementar la fase de OCR, verificándolo contra la lista de modelos de Google; la familia 1.5 ya fue retirada.
-- **Salida:** JSON estructurado mapeado a `ExtractedInvoice`. Ante cualquier falla, el adaptador devuelve una extracción vacía con confianza 0, y la factura escala por INTEG-03 en vez de romper el flujo.
-- La llamada síncrona del SDK se ejecuta fuera del event loop (`asyncio.to_thread`), salvo que se use el cliente asíncrono del SDK.
+- **Modelo:** `gemini-3.8-flash` por defecto (Flash estable vigente según la lista de modelos de Google al 17-oct-2026), configurable con `GEMINI_MODEL`. Las familias 1.5 y 2.0 están retiradas.
+- **Salida:** JSON estructurado (`response_json_schema`) con los datos ya normalizados por el modelo: monto numérico, moneda ISO 4217 deducida del documento y fecha ISO. El adaptador solo convierte tipos; las validaciones son de la tubería (INTEG-03, INTEG-04). Moneda ambigua → `XXX`. Ante cualquier falla, el adaptador devuelve una extracción vacía con confianza 0 y la factura escala por INTEG-03 en vez de romper el flujo.
+- La llamada usa el cliente asíncrono del SDK (`client.aio.models.generate_content`), sin bloquear el event loop.
 
 ## Telegram
 
@@ -64,6 +64,5 @@
 
 ## Pendientes de limpieza
 
-- Quitar `google-generativeai` de `backend/requirements.txt` al migrar a `google-genai`.
 - Quitar `python-telegram-bot` de `backend/requirements.txt`: no se usa (el cliente va directo con `httpx`).
 - Mover `pytest` a dependencias de desarrollo para que no viaje en la imagen de producción.

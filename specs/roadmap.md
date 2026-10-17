@@ -24,13 +24,13 @@
 
 ## Fase 1 — OCR real con Gemini (backend)
 
-- [ ] **F1.1 — Dependencias:** cambiar `google-generativeai` por `google-genai` en `requirements.txt` y fijar el `GEMINI_MODEL` por defecto (un Flash vigente).
-- [ ] **F1.2 — Prompt y esquema:** definir el esquema JSON de extracción (número, proveedor, NIT, cuenta, monto, moneda ISO, vencimiento, confianza).
-- [ ] **F1.3 — Adaptador:** implementar `GeminiOCRAdapter.extract_invoice_data` con el SDK, sin bloquear el event loop.
-- [ ] **F1.4 — Normalización:** montos con formato latino (`1.500.000,00`), fechas y códigos de moneda.
-- [ ] **F1.5 — Fallas seguras:** sin API key, con error de red o con JSON inválido, devolver una extracción vacía con confianza 0 (escala por INTEG-03).
-- [ ] **F1.6 — Pruebas:** unitarias con el cliente simulado (respuesta válida, formato latino, JSON inválido, sin key).
-- [ ] **F1.7 — Prueba manual:** una factura real en imagen y otra en PDF por `POST /api/invoices/upload`. Quitar del README la nota de "stub".
+- [x] **F1.1 — Dependencias:** cambiar `google-generativeai` por `google-genai` en `requirements.txt` y fijar el `GEMINI_MODEL` por defecto (un Flash vigente).
+- [x] **F1.2 — Prompt y esquema:** definir el esquema JSON de extracción (número, proveedor, NIT, cuenta, monto, moneda ISO, vencimiento, confianza).
+- [x] **F1.3 — Adaptador:** implementar `GeminiOCRAdapter.extract_invoice_data` con el SDK, sin bloquear el event loop.
+- [x] **F1.4 — Normalización:** montos con formato latino (`1.500.000,00`), fechas y códigos de moneda.
+- [x] **F1.5 — Fallas seguras:** sin API key, con error de red o con JSON inválido, devolver una extracción vacía con confianza 0 (escala por INTEG-03).
+- [x] **F1.6 — Pruebas:** unitarias con el cliente simulado (respuesta válida, formato latino, JSON inválido, sin key).
+- [ ] **F1.7 — Prueba manual:** una factura real en imagen y otra en PDF por `POST /api/invoices/upload`. Quitar del README la nota de "stub". *(README actualizado y fixtures listos en `backend/tests/fixtures`; falta correr la subida con una `GEMINI_API_KEY` real.)*
 
 **Listo cuando:** una foto legible de una factura conocida produce la decisión esperada sin carga manual.
 

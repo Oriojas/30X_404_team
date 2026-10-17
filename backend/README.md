@@ -1,6 +1,6 @@
 # Blinka PayAgent — Backend API
 
-Servicio backend desarrollado en **Python 3.12** con **FastAPI** bajo **Arquitectura Hexagonal (Puertos y Adaptadores)**. Se encarga de la ingesta de documentos contables, extracción con visión multimodal mediante **Gemini 1.5 Flash**, conversión de divisas con **$0.00 FX Markup**, evaluación en una tubería de 4 capas de negocio y persistencia en **PostgreSQL**.
+Servicio backend desarrollado en **Python 3.12** con **FastAPI** bajo **Arquitectura Hexagonal (Puertos y Adaptadores)**. Se encarga de la ingesta de documentos contables, extracción con visión multimodal mediante **Gemini Flash** (SDK `google-genai`), conversión de divisas con **$0.00 FX Markup**, evaluación en una tubería de 4 capas de negocio y persistencia en **PostgreSQL**.
 
 ---
 
@@ -34,7 +34,7 @@ backend/app/
 │   │   └── telegram/
 │   │       └── webhook.py             # Webhook de Telegram: extrae el adjunto y llama a ProcessInvoice
 │   └── outbound/                      # Adaptadores de salida (driven)
-│       ├── ocr/gemini_ocr.py          # OCRPort -> Gemini 1.5 Flash
+│       ├── ocr/gemini_ocr.py          # OCRPort -> Gemini Flash (google-genai)
 │       ├── fx/static_rates.py         # FXRateProvider -> tasas de referencia (None si la moneda no está soportada)
 │       ├── notifications/channel_router.py # NotificationPort -> enruta el aviso al canal de origen
 │       ├── db/
@@ -73,8 +73,8 @@ Las variables requeridas para el backend son:
 * `TELEGRAM_BOT_TOKEN`: Token de autenticación del bot de Telegram.
 * `TELEGRAM_WEBHOOK_URL`: URL pública del webhook expuesto para recibir actualizaciones de Telegram.
 * `TELEGRAM_WEBHOOK_SECRET`: Secreto que Telegram envía en el header `X-Telegram-Bot-Api-Secret-Token`. Sin él el webhook responde `503` (falla cerrado); con un token distinto responde `401`.
-* `GEMINI_API_KEY`: Clave de API de Google AI Studio para Gemini 1.5 Flash.
-* `GEMINI_MODEL`: Modelo a utilizar (por defecto `gemini-1.5-flash`).
+* `GEMINI_API_KEY`: Clave de API de Google AI Studio. Sin ella el OCR devuelve una extracción vacía y toda factura por archivo escala por `INTEG-03`.
+* `GEMINI_MODEL`: Modelo a utilizar (por defecto `gemini-3.8-flash`, el Flash estable vigente).
 * `ALLOWED_ORIGINS`: Orígenes CORS permitidos, separados por coma (por defecto `*`).
 * `COMPANY_ID`, `MAX_AUTONOMOUS_USD`, `SARLAFT_CHECK_ENABLED`, `DUPLICATE_CHECK_DAYS`: Reglas por defecto mientras no se lean de `company_rules`.
 
@@ -170,7 +170,7 @@ curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d "url=$TE
 
 **Estados:** `AUTO_APPROVED`, `SCALED_TO_HUMAN`, `REJECTED`, `HUMAN_APPROVED`, `HUMAN_REJECTED`.
 
-> El adaptador de Gemini todavía es un stub: devuelve una extracción vacía con confianza 0, así que toda factura subida por archivo o Telegram escala por `INTEG-03` hasta que se implemente.
+> **OCR:** Gemini devuelve los datos ya normalizados (monto numérico, moneda ISO 4217 deducida del documento, fecha ISO) y el adaptador solo convierte tipos. Si la moneda es ambigua queda como `XXX` y la factura escala por `INTEG-04`; los campos faltantes o la confianza menor a 0.85 escalan por `INTEG-03`. Ante cualquier falla (sin key, error de red, JSON inválido) la extracción queda vacía con confianza 0 y la factura escala: nunca se aprueba por defecto. Hay facturas ficticias de prueba en [`tests/fixtures`](tests/fixtures/README.md).
 
 ---
 
