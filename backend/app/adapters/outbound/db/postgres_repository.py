@@ -324,10 +324,15 @@ class PostgresSanctionsRepository:
     async def find_match(
         self, name: Optional[str], tax_id: Optional[str], bank_account: Optional[str]
     ) -> Optional[str]:
+        # Misma llave que el cruce con proveedores (vendor_key en schema.sql): un NIT, una razón social o una
+        # cuenta sancionados se leen con otros puntos, guiones o tildes. Una llave vacía nunca empata.
         row = await self.db.require_pool().fetchrow(
             """SELECT list_source, entity_name FROM sanctions_list
-               WHERE lower(entity_name) = lower($1) OR tax_id = $2 OR bank_account = $3 LIMIT 1""",
-            name or "", tax_id, bank_account,
+               WHERE (vendor_key($1) <> '' AND vendor_key(entity_name) = vendor_key($1))
+                  OR (vendor_key($2) <> '' AND vendor_key(tax_id) = vendor_key($2))
+                  OR (vendor_key($3) <> '' AND vendor_key(bank_account) = vendor_key($3))
+               LIMIT 1""",
+            name, tax_id, bank_account,
         )
         return f"{row['list_source']}: {row['entity_name']}" if row else None
 

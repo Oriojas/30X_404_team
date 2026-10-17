@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS sanctions_list (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sanctions_entity ON sanctions_list(list_source, entity_name);
+-- find_match compara el NIT por vendor_key; la misma entidad puede figurar en varias listas (no es única)
+CREATE INDEX IF NOT EXISTS ix_sanctions_tax_id_key ON sanctions_list (vendor_key(tax_id));
 
 -- 5. Tabla Principal de Facturas y Cuentas de Cobro (Audit Log)
 CREATE TABLE IF NOT EXISTS invoices (

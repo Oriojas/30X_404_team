@@ -111,7 +111,7 @@ flowchart TD
 
 | Código | Nombre de la Regla | Condición Lógica | Decisión | Razón / Explicación Registrada |
 | :--- | :--- | :--- | :--- | :--- |
-| **COMP-01** | **Listas Restrictivas (OFAC/ONU)** | Beneficiario registrado en OFAC, ONU o listas de sanciones GAFI. | `REJECTED` | *Rechazado por coincidencia con lista restrictiva internacional.* |
+| **COMP-01** | **Listas Restrictivas (OFAC/ONU)** | Beneficiario registrado en OFAC, ONU o listas de sanciones GAFI. La razón social, el NIT y la cuenta bancaria se comparan con la llave normalizada `vendor_key` (minúsculas, sin tildes, solo letras y dígitos), igual que el cruce con proveedores: `PA1557788` empata con `PA-155-7788`. Una llave vacía (dato ausente o solo símbolos) no empata. | `REJECTED` | *Rechazado por coincidencia con lista restrictiva internacional.* |
 | **COMP-02** | **Cuentas Bancarias No Permitidas** | Las instrucciones de transferencia difieren de las cuentas validadas del proveedor. | `SCALED_TO_HUMAN` | *Instrucciones bancarias no coinciden con las cuentas autorizadas.* |
 | **COMP-03** | **Alerta PEP (Políticamente Expuesto)** | El beneficiario o representante figura en el registro PEP. | `SCALED_TO_HUMAN` | *Escalado a Oficial de Cumplimiento por condición PEP.* |
 | **COMP-04** | **Consistencia Identificación Fiscal** | NIT / RUT en la factura no coincide con la razón social registrada. | `SCALED_TO_HUMAN` | *Inconsistencia entre el NIT impreso y el registro fiscal.* |

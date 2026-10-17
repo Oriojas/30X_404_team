@@ -488,3 +488,31 @@ def test_vendor_key_de_postgres_coincide_con_normalize_y_find_tolera_formatos(cl
     assert client.post("/api/vendors", json=new).status_code == 409                       # NIT de DevStudio
     assert client.post("/api/vendors", json={**new, "tax_id": "NUEVO-1",
                                              "legal_name": "Devstudio Latam SAS"}).status_code == 409
+
+
+def test_find_match_de_sanciones_tolera_el_formato_del_ocr(client):
+    """COMP-01 compara con vendor_key: el NIT, la razón social o la cuenta sancionados empatan aunque el OCR
+    los lea sin guiones, puntos ni mayúsculas. Una llave vacía (nombre vacío o solo símbolos) no empata."""
+    import asyncio
+    from app.adapters.outbound.db.postgres_repository import PostgresDatabase, PostgresSanctionsRepository
+
+    lookups = [
+        (None, "PA1557788", None),
+        ("global trade partners ltd.", None, None),
+        (None, None, "PA BANCO PACIFICO 998877"),
+        ("", None, None),
+        ("...", "--", " - "),
+        (None, None, None),
+    ]
+
+    async def scenario():
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=False)
+        try:
+            repo = PostgresSanctionsRepository(db)
+            return [await repo.find_match(*lookup) for lookup in lookups]
+        finally:
+            await db.close()
+
+    matches = asyncio.run(scenario())
+    assert matches == ["OFAC: Global Trade Partners Ltd"] * 3 + [None] * 3
