@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 
 from app.core.domain.errors import TreasuryNotInitializedError, VendorAlreadyExistsError, VendorNotFoundError
-from app.core.domain.rules_pipeline import _normalize
 from app.core.domain.models import (
     CompanyRules,
     DecisionStatus,
@@ -15,6 +14,7 @@ from app.core.domain.models import (
     IngestionStatus,
     TreasuryStatus,
 )
+from app.core.domain.rules_pipeline import _normalize
 
 APPROVED = {DecisionStatus.AUTO_APPROVED, DecisionStatus.HUMAN_APPROVED}
 
@@ -110,7 +110,7 @@ class InMemoryVendors:
         self.vendors = [replace(v, id=v.id or i) for i, v in enumerate(vendors, start=1)]
 
     async def find(self, tax_id, name):
-        by_tax_id = next((v for v in self.vendors if tax_id and _normalize(v.tax_id) == _normalize(tax_id)), None)
+        by_tax_id = next((v for v in self.vendors if _normalize(tax_id) and _normalize(v.tax_id) == _normalize(tax_id)), None)
         if by_tax_id or not _normalize(name):
             return by_tax_id
         return next((v for v in self.vendors if _normalize(v.legal_name) == _normalize(name)), None)

@@ -69,3 +69,13 @@ def test_el_caso_de_uso_valida_contra_lo_guardado():
 def test_validaciones_previas_de_reglas_siguen_en_422(rules, payload):
     assert TestClient(app).post("/api/rules", json=payload).status_code == 422
     assert rules.current.duplicate_check_days == 30 and rules.current.max_autonomous_usd == 2000
+
+
+@pytest.mark.parametrize("payload, field", [
+    # El dashboard envía todas las reglas: el campo del error es el que cambió de verdad
+    ({"max_autonomous_usd": 25000, "max_payment_usd": 20000, "duplicate_check_days": 30}, "max_autonomous_usd"),
+    ({"max_autonomous_usd": 2000, "max_payment_usd": 1500, "duplicate_check_days": 30}, "max_payment_usd"),
+])
+def test_con_el_cuerpo_completo_del_dashboard_el_error_va_al_campo_que_cambio(rules, payload, field):
+    response = TestClient(app).post("/api/rules", json=payload)
+    assert response.status_code == 422 and response.json()["detail"][0]["loc"] == ["body", field]

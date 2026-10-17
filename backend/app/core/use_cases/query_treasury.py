@@ -5,6 +5,7 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
+from app.core.domain.errors import InvalidRulesError
 from app.core.domain.models import TreasuryStatus
 from app.core.ports.outbound import TreasuryRepository
 
@@ -29,6 +30,9 @@ class UpdateTreasuryBalanceUseCase:
 
     async def execute(self, balance_usd: Optional[float] = None,
                       monthly_budget_usd: Optional[float] = None) -> TreasuryStatus:
+        if balance_usd is None and monthly_budget_usd is None:
+            # Sin esto, set_monthly_budget(None) dejaría el presupuesto en NULL
+            raise InvalidRulesError("monthly_budget_usd", "Envía balance_usd, monthly_budget_usd o ambos.")
         async with self.solvency_lock:
             if balance_usd is None:
                 return await self.treasury.set_monthly_budget(self.company_id, monthly_budget_usd)

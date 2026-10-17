@@ -470,7 +470,7 @@ def test_vendor_key_de_postgres_coincide_con_normalize_y_find_tolera_formatos(cl
     from app.core.domain.rules_pipeline import _normalize
 
     samples = ["900.584.112-4", "Logística Express MX S.A. de C.V.", "Diseño Creativo Bogotá S.A.S.",
-               "  ÁÉÍÓÚ ñ Ü ç  ", "PA-155-7788", "...", ""]
+               "  ÁÉÍÓÚ ñ Ü ç  ", "LOGÍSTICA ÑANDÚ", "PA-155-7788", "...", ""]
     lookups = [
         ("900584112-4", None, "900.584.112-4"),
         ("lem850101ab1", None, "LEM850101AB1"),
@@ -479,6 +479,8 @@ def test_vendor_key_de_postgres_coincide_con_normalize_y_find_tolera_formatos(cl
         ("US-91-1646860", "Nube Andina Consultores S.A.S.", "US-91-1646860"),  # el NIT manda sobre el nombre
         (None, "...", None),
         (None, None, None),
+        ("-", None, None),                                            # NIT sin letras ni dígitos: no empata
+        ("N/A.", "...", None),
     ]
 
     async def scenario():

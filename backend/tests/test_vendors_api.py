@@ -134,3 +134,13 @@ def test_editar_un_id_inexistente_responde_404(client):
 def test_alta_con_el_mismo_nit_o_nombre_en_otro_formato_responde_409(client, vendors, change):
     assert client.post("/api/vendors", json={**NEW, **change}).status_code == 409
     assert len(vendors.vendors) == 2
+
+
+@pytest.mark.parametrize("change", [{"tax_id": "---"}, {"legal_name": "..."}])
+def test_alta_con_nit_o_nombre_sin_letras_ni_digitos_es_422(client, vendors, change):
+    assert client.post("/api/vendors", json={**NEW, **change}).status_code == 422
+    assert len(vendors.vendors) == 2
+
+
+def test_editar_a_un_nombre_sin_letras_ni_digitos_es_422(client):
+    assert client.patch("/api/vendors/1", json={"legal_name": "...", "updated_by": "CFO"}).status_code == 422

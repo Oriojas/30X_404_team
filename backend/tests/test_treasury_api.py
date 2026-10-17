@@ -113,3 +113,13 @@ def test_patch_rechaza_saldo_o_presupuesto_invalido(payload):
 
     assert response.status_code == 422
     assert repo.committed_usd == 1900.0 and repo.balance_usd == 8500 and repo.monthly_budget_usd == 25000
+
+
+def test_el_caso_de_uso_rechaza_actualizar_sin_saldo_ni_presupuesto():
+    # El "al menos uno" no vive solo en el esquema de la API: el Core no deja el presupuesto en NULL
+    import asyncio
+    from app.core.domain.errors import InvalidRulesError
+    repo = FixedTreasury()
+    with pytest.raises(InvalidRulesError):
+        asyncio.run(UpdateTreasuryBalanceUseCase(repo, "TEST").execute())
+    assert repo.monthly_budget_usd == 25000

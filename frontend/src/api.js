@@ -26,7 +26,8 @@ export const DEFAULT_TREASURY = {
   month_spent_usd: 0
 }
 
-// Lista permitida del seed de demostración: solo en modo demostración (el formulario queda deshabilitado)
+// Lista permitida del seed de demostración: solo en modo demostración (el formulario queda deshabilitado).
+// Copia de los proveedores de backend/app/adapters/outbound/db/seed.sql: si cambia el seed, se actualiza aquí.
 export const DEFAULT_VENDORS = [
   { id: 1, tax_id: 'US-91-1646860', legal_name: 'Amazon Web Services LATAM', bank_account: 'US-CHASE-000123456', is_pep: false, contract_amount_usd: 1000, active: true },
   { id: 2, tax_id: '900.584.112-4', legal_name: 'DevStudio LatAm S.A.S.', bank_account: 'CO-BANCOLOMBIA-11122233344', is_pep: false, contract_amount_usd: 1500, active: true },

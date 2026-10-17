@@ -37,6 +37,7 @@
 3.5. Router `vendors.py` (`GET`, `POST` → `201`, `PATCH /{id}`) con `VendorCreate`, `VendorUpdate` (`extra="forbid"`) y `VendorResponse` (fechas UTC con `Z`, como F5.8), con los límites de D14. Los `404`/`409` salen de los handlers por base del paso 0.2. Registrar el router en `main.py`.
 3.6. `backend/README.md`: endpoints de beneficiarios y el `PATCH /api/treasury` ampliado.
 3.7. `find` empata por `vendor_key(tax_id)` y, si no, por `vendor_key(legal_name)` no vacía, prefiriendo el NIT (D17). Prompt de Gemini (`gemini_ocr.py`, regla 6): `vendor_tax_id` sin la etiqueta. Pruebas: formatos distintos de NIT y razón social encuentran al proveedor (fake y PostgreSQL), alta duplicada con otro formato → `409`, y `vendor_key` de PostgreSQL igual a `_normalize` en ejemplos con tildes, puntos y guiones.
+3.8. COMP-01: `find_match` de sanciones compara razón social, NIT y cuenta con `vendor_key`, sin llaves vacías (D18).
 
 ## 4. HITL-02 como lista permitida (Core, F7.4)
 

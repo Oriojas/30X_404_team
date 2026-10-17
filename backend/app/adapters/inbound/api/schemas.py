@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
 
 from app.core.domain.models import (
     CompanyRules,
@@ -17,6 +17,7 @@ from app.core.domain.models import (
     TreasuryStatus,
     Vendor,
 )
+from app.core.domain.rules_pipeline import _normalize
 
 
 def _utc_iso(value: Optional[datetime]) -> Optional[str]:
@@ -172,6 +173,13 @@ class VendorResponse(BaseModel):
 _VENDOR_CONFIG = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
+def _con_letras_o_digitos(value: Optional[str]) -> Optional[str]:
+    # La llave de comparación (vendor_key / _normalize) de "---" o "..." es vacía: no identificaría a nadie
+    if value is not None and not _normalize(value):
+        raise ValueError("Debe tener al menos una letra o un dígito.")
+    return value
+
+
 class VendorCreate(BaseModel):
     """Alta en la lista permitida desde el Dashboard. is_pep queda en False: la condición PEP la define cumplimiento."""
     model_config = _VENDOR_CONFIG
@@ -180,6 +188,8 @@ class VendorCreate(BaseModel):
     bank_account: str = Field(min_length=1, max_length=80)
     contract_amount_usd: Optional[float] = Field(default=None, gt=0)
     updated_by: str = Field(min_length=1, max_length=100)
+
+    _llaves = field_validator("tax_id", "legal_name")(_con_letras_o_digitos)
 
 
 class VendorUpdate(BaseModel):
@@ -190,6 +200,8 @@ class VendorUpdate(BaseModel):
     contract_amount_usd: Optional[float] = Field(default=None, gt=0)
     active: Optional[bool] = None
     updated_by: str = Field(min_length=1, max_length=100)
+
+    _llaves = field_validator("legal_name")(_con_letras_o_digitos)
 
     @model_validator(mode="after")
     def _sin_nulos_obligatorios(self) -> "VendorUpdate":

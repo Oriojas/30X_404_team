@@ -4,7 +4,9 @@ Verifica /api/health, toma una foto del saldo (PATCH /api/treasury con el saldo 
 TC-01..TC-08 por POST /api/invoices y, con --origen, el preflight de CORS.
 
 TC-08 baja el presupuesto del período por un momento (PATCH /api/treasury con monthly_budget_usd, que no mueve
-la foto) y lo restaura al final, también si el caso falla.
+la foto) y lo restaura al final, también si el caso falla. Mientras tanto, una factura real que llegue (Telegram,
+subida web) se evalúa contra ese presupuesto rebajado, y si el proceso muere antes de restaurar, el presupuesto
+queda bajo. Con tráfico real, correr con --omitir-tc08 o en una ventana sin facturas entrantes.
 
 La foto del saldo cambia la tesorería del backend: lo aprobado antes (corridas anteriores, Telegram) deja
 de comprometer el saldo, para que TC-01 no escale por FIN-01/FIN-03 (Fase 6).
@@ -106,6 +108,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("url_base", help="URL del backend, p. ej. https://backend.up.railway.app")
     parser.add_argument("--origen", help="dominio del frontend para comprobar CORS")
+    parser.add_argument("--omitir-tc08", action="store_true",
+                        help="no correr TC-08 (baja el presupuesto real por un momento)")
     args = parser.parse_args()
 
     resultados = []
@@ -116,7 +120,8 @@ def main() -> None:
             for caso, estado, regla, payload in CASOS:
                 esperado = estado + (f" + {regla}" if regla else "")
                 resultados.append((caso, esperado, *revisar_caso(client, caso, estado, regla, payload)))
-            resultados.append((TC_08[0], f"{TC_08[1]} + {TC_08[2]}", *revisar_tc08(client)))
+            if not args.omitir_tc08:
+                resultados.append((TC_08[0], f"{TC_08[1]} + {TC_08[2]}", *revisar_tc08(client)))
             resultados.append(("rules", "HTTP 200", *revisar_reglas(client)))
             if args.origen:
                 resultados.append(("cors", args.origen, *revisar_cors(client, args.origen)))

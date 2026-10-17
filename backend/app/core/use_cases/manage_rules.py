@@ -29,8 +29,11 @@ class UpdateRulesUseCase:
         updates = {k: v for k, v in changes.items() if v is not None and hasattr(current, k)}
         merged = replace(current, **updates)
         if merged.max_payment_usd < merged.max_autonomous_usd:
-            # Se señala el campo que cambió: el que el usuario tiene que corregir
-            field = "max_payment_usd" if "max_payment_usd" in updates else "max_autonomous_usd"
+            # Se señala el campo que cambió de verdad, el que hay que corregir: el dashboard envía todas
+            # las reglas en cada guardado, así que estar en la solicitud no basta
+            changed = {k for k, v in updates.items() if v != getattr(current, k)}
+            field = "max_autonomous_usd" if changed & {"max_autonomous_usd", "max_payment_usd"} == {"max_autonomous_usd"} \
+                else "max_payment_usd"
             raise InvalidRulesError(field, f"El tope por pago (${merged.max_payment_usd:,.2f}) no puede ser menor "
                                            f"que el umbral de aprobación autónoma (${merged.max_autonomous_usd:,.2f}).")
         return await self.rules.save(merged)

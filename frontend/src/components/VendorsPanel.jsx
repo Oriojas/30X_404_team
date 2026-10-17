@@ -86,6 +86,11 @@ export default function VendorsPanel({ vendors, loading, error, readOnly = false
     // Tarifa vacía = sin tarifa acordada (null), no 0
     const contract = form.contract_amount_usd === '' ? null : Number(form.contract_amount_usd)
     const payload = { legal_name: form.legal_name.trim(), bank_account: form.bank_account.trim(), contract_amount_usd: contract }
+    // En la edición solo viaja lo que cambió (PATCH): un proveedor sin cuenta registrada no obliga a inventarla
+    const changes = isCreate ? payload : Object.fromEntries(Object.entries(payload).filter(([field, value]) => {
+      const before = editing[field] ?? (field === 'contract_amount_usd' ? null : '')
+      return value !== before
+    }))
 
     setSaving(true)
     setFieldErrors({})
@@ -95,8 +100,12 @@ export default function VendorsPanel({ vendors, loading, error, readOnly = false
         const created = await onCreate({ ...payload, tax_id: form.tax_id.trim() })
         setNotice(`${created.legal_name} quedó en la lista permitida: sus próximas facturas ya no escalan por HITL-02.`)
       } else {
-        const updated = await onUpdate(editing.id, payload)
-        setNotice(`Cambios guardados para ${updated.legal_name}.`)
+        if (Object.keys(changes).length === 0) {
+          closeForm()
+          return
+        }
+        const updated = await onUpdate(editing.id, changes)
+        setNotice(`Cambios guardados: ${updated.legal_name}`)
       }
       closeForm()
     } catch (err) {
