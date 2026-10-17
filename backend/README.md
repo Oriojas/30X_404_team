@@ -164,6 +164,17 @@ railway domain --service backend   # solo la primera vez: genera el dominio púb
 
 Un `apply` de proyecto completo **borra lo que no esté en el archivo**: todo servicio nuevo se agrega primero a `railway.ts`. Después de aplicar, `railway config plan` debe responder "already up to date".
 
+### Foto del saldo tras el primer deploy de la Fase 6
+
+La migración solo cambia el `DEFAULT` de `treasury_accounts.updated_at`: la fila que ya existe en producción conserva la fecha del seed original, así que **todo lo aprobado desde entonces** (humos, Telegram, aprobaciones del Drawer) queda comprometido y el disponible puede quedar en cero o negativo. Paso obligatorio justo después del deploy:
+
+```bash
+curl -s -X PATCH https://backend-production-ea088.up.railway.app/api/treasury \
+  -H "Content-Type: application/json" -d '{"balance_usd": 8500}'
+```
+
+`scripts/humo_produccion.py` hace lo mismo antes de TC-01. No se automatiza en `schema.sql` porque corre en cada arranque: liberaría lo comprometido en cada redeploy.
+
 ### Secretos
 
 Nunca van al repo ni a `railway.ts`, donde figuran como `preserve()`. Se cargan una vez y se mantienen entre `apply`:

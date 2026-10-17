@@ -131,18 +131,25 @@ class FixedTreasury:
         return await self.get(company_id)
 
 
+def approved_at(invoice):
+    """Fecha de aprobación como el CASE de PostgresTreasuryRepository.get (D4)."""
+    if invoice.decision_status == DecisionStatus.AUTO_APPROVED:
+        return invoice.processed_at
+    return invoice.decided_at or invoice.processed_at
+
+
 class LedgerTreasury:
     """Saldo con foto: compromete lo aprobado en InMemoryInvoices después de snapshot_at.
-    La lectura cede el control, como una consulta real: sin candado, dos evaluaciones ven el mismo disponible."""
+    Lee y luego cede el control, como una consulta real: sin candado, dos evaluaciones ven el mismo disponible."""
 
     def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None):
         self.invoices, self.balance_usd = invoices, balance_usd
         self.snapshot_at = snapshot_at or datetime.utcnow()
 
     async def get(self, company_id):
-        await asyncio.sleep(0)
         committed = sum(i.usd_amount for i in self.invoices.items.values()
-                        if i.decision_status in APPROVED and (i.decided_at or i.processed_at) > self.snapshot_at)
+                        if i.decision_status in APPROVED and approved_at(i) > self.snapshot_at)
+        await asyncio.sleep(0)  # el resultado llega después: puede quedar obsoleto si nadie serializa
         return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000, committed_usd=committed,
                               snapshot_at=self.snapshot_at)
 

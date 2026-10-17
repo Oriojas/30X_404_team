@@ -119,11 +119,14 @@ export default function App() {
   const [treasury, setTreasury] = useState(null)
   const shownTreasury = treasury ?? (apiAvailable === false ? DEFAULT_TREASURY : null)
 
-  // Lo comprometido cambia con cada aprobación: se relee tras subir, decidir o refrescar
+  // Lo comprometido cambia con cada aprobación: se relee tras subir, decidir o refrescar.
+  // Solo cuenta la respuesta de la última lectura: una más lenta de antes no pisa una más nueva.
+  const treasuryRequest = useRef(0)
   const loadTreasury = useCallback(() => {
+    const requestId = ++treasuryRequest.current
     getTreasury()
       .then((data) => {
-        if (data && typeof data === 'object') setTreasury(data)
+        if (requestId === treasuryRequest.current && data && typeof data === 'object') setTreasury(data)
       })
       .catch(() => {
         // Sin tesorería: el hero y la tarjeta muestran "—" (o el seed en modo demostración);

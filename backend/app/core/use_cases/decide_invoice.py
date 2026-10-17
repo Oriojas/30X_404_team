@@ -12,12 +12,8 @@ from typing import Optional
 
 from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
 from app.core.domain.models import DecisionStatus, HumanDecision, ProcessedInvoice
-from app.core.domain.rules_pipeline import RulesPipeline
+from app.core.domain.rules_pipeline import RulesPipeline, format_usd
 from app.core.ports.outbound import InvoiceRepository, NotificationPort, RulesRepository, TreasuryRepository
-
-
-def _usd(value: float) -> str:
-    return f"{'-' if value < 0 else ''}${abs(value):,.2f} USD"
 
 
 class DecideInvoiceUseCase:
@@ -87,7 +83,7 @@ class DecideInvoiceUseCase:
         treasury = await self.treasury.get(self.company_id)
         rules = await self.rules.get(self.company_id)
         alerts = self.pipeline.evaluate_solvency(invoice.usd_amount, treasury, rules)
-        summary = f" Solvencia al aprobar: disponible {_usd(treasury.available_usd)} para un pago de {_usd(invoice.usd_amount)}"
+        summary = f" Solvencia al aprobar: disponible {format_usd(treasury.available_usd)} para un pago de {format_usd(invoice.usd_amount)}"
         if not alerts:
             return summary + ", sin alertas FIN."
         detail = " ".join(f"[{a.code}] {a.message}" for a in alerts)

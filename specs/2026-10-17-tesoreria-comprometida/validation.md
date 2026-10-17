@@ -41,6 +41,7 @@
 
 ## Después del merge (producción)
 
+- [ ] Justo después del deploy, `PATCH /api/treasury` con el saldo del seed (o `humo_produccion.py`): la fila existente conserva el `updated_at` del seed original y, sin la foto, todo lo aprobado desde entonces compromete el saldo (ver `backend/README.md`).
 - [ ] `humo_produccion.py` verde contra producción, con la foto tomada antes de TC-01.
 - [ ] El dashboard público muestra el disponible y el presupuesto del mismo `GET /api/treasury` con que decide el agente.
 - [ ] F6.1 a F6.6 marcados en [roadmap.md](../roadmap.md) con la referencia a esta validación.

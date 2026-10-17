@@ -4,11 +4,12 @@ Demuestran que el Core funciona sin Gemini, PostgreSQL ni Telegram.
 """
 
 import asyncio
+from datetime import datetime, timedelta
 
 import pytest
 
 from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
-from app.core.domain.models import DecisionStatus, ExtractedInvoice, HumanDecision, Vendor
+from app.core.domain.models import DecisionStatus, ExtractedInvoice, HumanDecision, ProcessedInvoice, Vendor
 from app.core.domain.rules_pipeline import RulesPipeline
 from app.core.use_cases import DecideInvoiceUseCase, ProcessInvoiceUseCase
 
@@ -161,27 +162,34 @@ def test_factura_sin_conversion_a_usd_no_se_puede_aprobar_pero_si_rechazar():
     assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
 
 
+def ledger_setup(lock):
+    """Tesorería que compromete lo aprobado ($8,500, colchón $1,000) y un proveedor con historial anterior a la foto."""
+    invoices = InMemoryInvoices()
+    # Historial anterior a la foto: da antigüedad al proveedor (HITL-02) y no compromete
+    invoices.items[1] = ProcessedInvoice(
+        id=1, invoice_number="OLD-1", vendor_name=VENDOR.legal_name, original_amount=100, original_currency="USD",
+        usd_amount=100, fx_rate_applied=1.0, decision_status=DecisionStatus.AUTO_APPROVED, audit_explanation="x",
+        processed_at=datetime.utcnow() - timedelta(days=10))
+    treasury = LedgerTreasury(invoices)
+    rules = InMemoryRules(max_autonomous_usd=20000)
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=invoices, rules=rules,
+        vendors=InMemoryVendors(Vendor(VENDOR.tax_id, VENDOR.legal_name, contract_amount_usd=20000)),
+        sanctions=NoSanctions(), treasury=treasury, company_id="TEST", solvency_lock=lock,
+    )
+    decide = DecideInvoiceUseCase(invoices, treasury, rules, "TEST", solvency_lock=lock)
+    return use_case, decide, invoices, treasury
+
+
+def usd(number, amount):
+    return ExtractedInvoice(invoice_number=number, vendor_name=VENDOR.legal_name, original_amount=amount,
+                            original_currency="USD")
+
+
 def test_dos_ingestas_concurrentes_no_comprometen_mas_que_el_disponible():
     """F6.4: $8,500 de saldo y $1,000 de colchón; facturas de $4,000 y $4,100 a la vez: solo una sale aprobada sola.
     (Montos distintos para que INTEG-01 no las tome como duplicadas.)"""
-    from dataclasses import replace
-    from datetime import datetime, timedelta
-
-    invoices = InMemoryInvoices()
-    # Historial anterior a la foto: da antigüedad al proveedor (HITL-02) y no compromete
-    asyncio.run(invoices.save(replace(
-        asyncio.run(build(cop_invoice())[0].from_extracted(cop_invoice("OLD-1", 100_000), "API")).invoice,
-        decision_status=DecisionStatus.AUTO_APPROVED, processed_at=datetime.utcnow() - timedelta(days=10))))
-    lock = asyncio.Lock()
-    use_case = ProcessInvoiceUseCase(
-        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=invoices,
-        rules=InMemoryRules(max_autonomous_usd=5000), vendors=InMemoryVendors(VENDOR), sanctions=NoSanctions(),
-        treasury=LedgerTreasury(invoices), company_id="TEST", solvency_lock=lock,
-    )
-
-    def usd(number, amount):
-        return ExtractedInvoice(invoice_number=number, vendor_name=VENDOR.legal_name, original_amount=amount,
-                                original_currency="USD")
+    use_case, _, _, _ = ledger_setup(asyncio.Lock())
 
     async def race():
         return await asyncio.gather(use_case.from_extracted(usd("DS-A", 4000), "TELEGRAM"),
@@ -192,4 +200,31 @@ def test_dos_ingestas_concurrentes_no_comprometen_mas_que_el_disponible():
     assert statuses == [DecisionStatus.AUTO_APPROVED, DecisionStatus.SCALED_TO_HUMAN]
     scaled = first if first.decision_status == DecisionStatus.SCALED_TO_HUMAN else second
     assert "FIN-03" in scaled.audit_explanation
+
+
+def test_aprobacion_e_ingesta_simultaneas_comparten_el_candado():
+    """F6.4: una aprobación y una ingesta a la vez leen el disponible en orden, no el mismo valor."""
+    use_case, decide, _, _ = ledger_setup(asyncio.Lock())
+    scaled = asyncio.run(use_case.from_extracted(usd("DS-BIG", 15000), "API")).invoice  # FIN-01: $15,000 > $8,500
+    assert scaled.decision_status == DecisionStatus.SCALED_TO_HUMAN
+
+    async def race():
+        return await asyncio.gather(decide.execute(scaled.id, HumanDecision.APPROVE, "CFO"),
+                                    use_case.from_extracted(usd("DS-C", 4000), "WEB"))
+
+    approved, ingested = asyncio.run(race())
+    assert approved.decision_status == DecisionStatus.HUMAN_APPROVED
+    # La aprobación tomó el candado primero y comprometió $15,000: la ingesta ve el disponible ya negativo
+    assert ingested.invoice.decision_status == DecisionStatus.SCALED_TO_HUMAN
+    assert "FIN-01" in ingested.invoice.audit_explanation
+
+
+def test_container_comparte_un_solo_candado_de_solvencia():
+    """D7: ingesta, decisión humana y foto del saldo usan la misma instancia, cableada en container.py."""
+    from app.config import Settings
+    from app.container import Container
+
+    container = Container(Settings(database_url=None, gemini_api_key="", telegram_bot_token=""))
+    lock = container.process_invoice.solvency_lock
+    assert container.decide_invoice.solvency_lock is lock and container.update_treasury.solvency_lock is lock
 
