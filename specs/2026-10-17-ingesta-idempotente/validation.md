@@ -47,9 +47,9 @@
 
 ## Verificación recomendada (no bloquea el merge)
 
-- [ ] Con el backend en Docker + PostgreSQL, repetir con `curl` una subida con la misma `Idempotency-Key` y confirmar `201` → `200` y una sola fila en el Audit Log.
-- [ ] Reenviar a mano un update de Telegram al webhook (mismo cuerpo JSON) y confirmar que el chat recibe un solo aviso.
-- [ ] Subir por la web un fixture ya enviado por Telegram y confirmar el rechazo INTEG-01 en el dashboard.
+- [x] Con el backend en Docker + PostgreSQL, repetir con `curl` una subida con la misma `Idempotency-Key` y confirmar `201` → `200` y una sola fila en el Audit Log. *(Fase 5, F5.4: en producción, `humo_produccion.py` del 17-oct-2026 devolvió `200` en TC-01 a TC-06, con las mismas `Idempotency-Key` de la Fase 4, y `201` en TC-07, que era nuevo (id 20). Cada caso tiene una sola fila de canal `API` en el Audit Log. La corrida local doble está en [despliegue-railway/validation.md](../2026-10-17-despliegue-railway/validation.md).)*
+- [x] Reenviar a mano un update de Telegram al webhook (mismo cuerpo JSON) y confirmar que el chat recibe un solo aviso. *(Fase 5, F5.2, 17-oct-2026, en producción: `POST /api/webhook/telegram` con el secret y el `update_id` 239648102 de la factura 21 → `200 {"status": "duplicate", "decision": "HUMAN_APPROVED"}`; no apareció otra factura y el chat no recibió aviso. El cuerpo llevó `chat_id` 0 y un `file_id` ficticio: la deduplicación por `update_id` ocurre antes de avisar y de descargar, así que una repetición no toca el chat ni Telegram.)*
+- [x] Subir por la web un fixture ya enviado por Telegram y confirmar el rechazo INTEG-01 en el dashboard. *(Fase 5, F5.3, 17-oct-2026, en producción: el mismo `factura_nube_andina.pdf` subido por `POST /api/invoices/upload` (el endpoint del botón de subida, canal `WEB`, con `Idempotency-Key`) → `201`, factura 22, `REJECTED` por INTEG-01 "el archivo es idéntico a la factura #21"; visible así en el Audit Log del dashboard. El botón no se pulsó porque el selector de archivos del sistema no se puede automatizar.)*
 
 ## Cómo correr
 

@@ -88,13 +88,13 @@ Hallazgo de la validación de la Fase 4: el hero y la tarjeta de colchón mostra
 
 Pruebas recomendadas de las Fases 2, 3 y 4 que quedaron sin marcar porque faltaba el despliegue, y el caso trampa de "no cuadra con lo acordado", que aún no está en la Test Suite de la demo.
 
-- [ ] **F5.1 — Aviso de la decisión humana:** enviar una factura por Telegram, aprobarla desde el Drawer del dashboard público y confirmar que el chat recibe el aviso del resultado (principio 4 de [mission.md](mission.md)).
-- [ ] **F5.2 — Update repetido:** reenviar con `curl` el mismo cuerpo de un update al webhook de producción (con el secret) y confirmar `200 {"status": "duplicate"}` y un solo aviso en el chat.
-- [ ] **F5.3 — Hash entre canales:** subir por la web un archivo que ya llegó por Telegram y ver el rechazo por INTEG-01 en el dashboard.
-- [ ] **F5.4 — Marcar lo ya cubierto:** `Idempotency-Key` `201` → `200` (segunda corrida de `humo_produccion.py`) y build con `frontend/Dockerfile` (Fase 4), con la referencia en cada `validation.md`.
-- [ ] **F5.5 — TC-07:** agregar a `casos_demo.py`, `humo_produccion.py` y la Test Suite de [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md) el caso trampa "factura que no cuadra con lo acordado" (TC-07, `SCALED_TO_HUMAN` por INTEG-02). El caso trampa de presupuesto (TC-08) depende de poder editar el presupuesto y queda en F7.6.
-- [ ] **F5.6 — Datos para el pitch:** tiempo de arranque en frío del backend y captura del dashboard en producción.
-- [ ] **F5.7 — CI:** workflow de GitHub Actions que corre `pytest` con los fakes (las pruebas de integración se omiten sin `TEST_DATABASE_URL`) y `npm run build` en cada PR. El servicio de PostgreSQL en el CI queda en F9.6.
+- [x] **F5.1 — Aviso de la decisión humana:** enviar una factura por Telegram, aprobarla desde el Drawer del dashboard público y confirmar que el chat recibe el aviso del resultado (principio 4 de [mission.md](mission.md)). *(Hecho el 17-oct-2026: NA-4521 por Telegram, aprobada desde el Drawer; el chat recibió el aviso.)*
+- [x] **F5.2 — Update repetido:** reenviar con `curl` el mismo cuerpo de un update al webhook de producción (con el secret) y confirmar `200 {"status": "duplicate"}` y un solo aviso en el chat. *(Hecho el 17-oct-2026: `200 duplicate` con el `update_id` 239648102, sin factura ni aviso nuevos.)*
+- [x] **F5.3 — Hash entre canales:** subir por la web un archivo que ya llegó por Telegram y ver el rechazo por INTEG-01 en el dashboard. *(Hecho el 17-oct-2026: factura 22 `REJECTED` por INTEG-01.)*
+- [x] **F5.4 — Marcar lo ya cubierto:** `Idempotency-Key` `201` → `200` (segunda corrida de `humo_produccion.py`) y build con `frontend/Dockerfile` (Fase 4), con la referencia en cada `validation.md`. *(Hecho el 17-oct-2026.)*
+- [x] **F5.5 — TC-07:** agregar a `casos_demo.py`, `humo_produccion.py` y la Test Suite de [reglas_pago_agente_v3.md](../docs/reglas-negocio/reglas_pago_agente_v3.md) el caso trampa "factura que no cuadra con lo acordado" (TC-07, `SCALED_TO_HUMAN` por INTEG-02). El caso trampa de presupuesto (TC-08) depende de poder editar el presupuesto y queda en F7.6. *(Hecho el 17-oct-2026: AWS por $1,500 contra una tarifa de $1,000; PR #17.)*
+- [x] **F5.6 — Datos para el pitch:** tiempo de arranque en frío del backend y captura del dashboard en producción. *(Hecho el 17-oct-2026: el contenedor arranca en 0.7 s y el redeploy tarda 25 s; capturas en `docs/pitch_presentacion/`.)*
+- [x] **F5.7 — CI:** workflow de GitHub Actions que corre `pytest` con los fakes (las pruebas de integración se omiten sin `TEST_DATABASE_URL`) y `npm run build` en cada PR. El servicio de PostgreSQL en el CI queda en F9.6. *(Hecho el 17-oct-2026: `.github/workflows/ci.yml`, en verde en PR #17 y en `master`; ver [validación](2026-10-17-validaciones-casos-trampa-ci/validation.md).)*
 
 **Listo cuando:** las verificaciones recomendadas de las Fases 2 a 4 están marcadas con evidencia, la demo cubre los casos trampa del reto que ya permite el código (duplicado, beneficiario nuevo, no cuadra con lo acordado, monto sobre el límite, saldo insuficiente) y cada PR muestra el resultado de las pruebas.
 

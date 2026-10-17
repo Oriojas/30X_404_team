@@ -129,15 +129,24 @@ Para asegurar que la grabación del video y la revisión de los jurados sea impe
 
 El criterio de **Viabilidad Técnica (20%)** exige que el código respalde exactamente lo que se muestra en el video. Antes de grabar, verificar:
 
-- [ ] El webhook de Telegram recibe fotos/PDF y responde. Ya está implementado (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`); falta probarlo con el bot real registrado con `setWebhook`.
+- [x] El webhook de Telegram recibe fotos/PDF y responde (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`), registrado con `setWebhook` en producción (F4.3) y probado con una factura real (F5.1).
 - [x] `adapters/outbound/ocr/gemini_ocr.py` llama realmente a Gemini (`google-genai`) y devuelve el JSON estructurado (Fase 1 del roadmap).
 - [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-07 probados contra PostgreSQL.
 - [x] `/api/invoices` y `/api/rules` leen y escriben en PostgreSQL.
-- [ ] El Dashboard muestra datos reales de la API (hoy usa datos *mock* como respaldo): Fase 3 del roadmap.
-- [ ] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`). El backend ya está listo; falta el frontend (Fase 3).
-- [ ] En Railway, el backend corre con `DB_AUTO_MIGRATE=true` (crea las tablas al arrancar) y `DB_SEED_DEMO=true` (proveedores con historial, listas restrictivas y saldo de $8,500 USD).
+- [x] El Dashboard muestra datos reales de la API (Fase 3); los datos *mock* solo aparecen, con un banner, si la API no responde.
+- [x] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`); el chat de origen recibe el aviso (F5.1).
+- [x] En Railway, el backend corre con `DB_AUTO_MIGRATE=true` (crea las tablas al arrancar) y `DB_SEED_DEMO=true` (proveedores con historial, listas restrictivas y saldo de $8,500 USD).
 - [ ] Las tasas del FX Engine usadas en la demo coinciden con las cifras narradas (hoy son tasas de referencia fijas).
-- [x] Textos de la landing sin respaldo en el código (SOC2, ISO 27001, AES-256, SLA, "dispersión bancaria", SPEI/ACH, latencias y KPIs inventados) ya fueron corregidos. Los datos del dashboard siguen siendo de demostración hasta conectar `/api/invoices`; no presentarlos como métricas reales en el video.
+- [x] Textos de la landing sin respaldo en el código (SOC2, ISO 27001, AES-256, SLA, "dispersión bancaria", SPEI/ACH, latencias y KPIs inventados) ya fueron corregidos. El Audit Log y las métricas del dashboard vienen de `/api/invoices`; incluyen las facturas de las pruebas de humo, así que se presentan como datos de la demo, no como métricas de clientes.
+
+---
+
+## 📊 PARTE 5: Datos de Producción para el Pitch (Fase 5, F5.6 · 17-oct-2026)
+
+- **Arranque del backend:** el contenedor pasa de "Starting Container" a "Application startup complete" en **0.7 s**, y el primer `GET /api/health` responde `200` a los **0.9 s** (logs de Railway). Un `railway redeploy` completo, hasta que el despliegue nuevo queda activo, tardó **25 s**. Railway mantiene la versión anterior sirviendo hasta que la nueva está sana, así que el jurado no ve la demo caída. Tras el redeploy, `/api/health` respondió `database: connected` en 0.6 s.
+- **Capturas del dashboard público** (`https://30x404team-production.up.railway.app`):
+  - [Hero con la tesorería real](dashboard_produccion_hero.jpg): $8,500.00 USD, colchón de $1,000 USD y liquidez del 88 %.
+  - [Audit Log](dashboard_produccion_audit_log.jpg): 22 facturas, 55 % de autonomía, 7 pendientes HITL y 3 decisiones humanas; arriba, NA-4521 aprobada por una persona (Telegram) y su reenvío por la web rechazado por `INTEG-01`.
 
 ---
 

@@ -70,9 +70,9 @@
 
 ## Verificación recomendada (no bloquea el merge)
 
-- [ ] Enviar una factura por Telegram, pulsar **Actualizar** y aprobarla desde el Drawer; confirmar que el chat recibe el aviso de la decisión.
+- [x] Enviar una factura por Telegram, pulsar **Actualizar** y aprobarla desde el Drawer; confirmar que el chat recibe el aviso de la decisión. *(Fase 5, F5.1, 17-oct-2026, en producción: `factura_nube_andina.pdf` enviada como documento por Telegram → factura 21, NA-4521, `SCALED_TO_HUMAN` por HITL-01; aprobada desde el Drawer del dashboard público por "CFO Demo" con nota; el chat recibió "✅ Pago aprobado por un operador · Factura #NA-4521 · $3,000.00 USD" con la explicación y la nota.)*
 - [x] Revisar el dashboard en un ancho de 375 px (Drawer, subida y tabla usables). *(Sin scroll horizontal de la página; la tabla y los filtros se desplazan dentro de su contenedor.)*
-- [ ] Build de producción con `frontend/Dockerfile` apuntando al backend local.
+- [x] Build de producción con `frontend/Dockerfile` apuntando al backend local. *(Fase 5, F5.4: queda cubierto por F4.4. Railway construye el servicio `frontend` desde `frontend/Dockerfile` con `ARG VITE_API_BASE_URL` apuntando al backend público, y el dashboard consume la API real sin modo demostración; ver [despliegue-railway/validation.md](../2026-10-17-despliegue-railway/validation.md).)*
 
 ## Hallazgos y riesgos aceptados
 
