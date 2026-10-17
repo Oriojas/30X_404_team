@@ -269,10 +269,10 @@ export default function AuditTable({
         {/* Tabla de Auditoría con In-Header Filters y Filas Semánticas (Alternativa 1) */}
         <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
           
-          {/* Barra superior de la tabla con métrica de eventos y estado del ledger */}
+          {/* Barra superior de la tabla con métrica de eventos y gobernanza */}
           <div className="px-5 py-3 border-b border-brand-border bg-slate-50/70 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-brand-navy">Registro de Trazabilidad Criptográfica</span>
+              <span className="font-display font-bold text-brand-navy">Registro de Trazabilidad</span>
               <span className="px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700 font-mono font-medium text-[11px]">
                 {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Evento' : 'Eventos'}
               </span>
@@ -288,12 +288,10 @@ export default function AuditTable({
                   <span>Limpiar {activeFiltersCount} filtro{activeFiltersCount > 1 ? 's' : ''}</span>
                 </button>
               )}
-              <span className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[15px] text-slate-400">lock</span>
-                SHA-256 Ledger Verificado
+              <span className="flex items-center gap-1 text-brand-teal font-mono text-[11px]">
+                <span className="material-symbols-outlined text-[15px]">verified_user</span>
+                4 Capas de Gobernanza
               </span>
-              <span className="text-slate-300">·</span>
-              <span className="text-brand-teal font-mono text-[11px]">4 Capas de Gobernanza</span>
             </div>
           </div>
 

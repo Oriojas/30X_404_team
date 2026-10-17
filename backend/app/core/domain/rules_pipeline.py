@@ -44,7 +44,6 @@ class EvaluationContext:
     vendor: Optional[Vendor] = None
     sanctions_match: Optional[str] = None
     is_duplicate: bool = False
-    vendor_has_history: bool = False
     # Factura vigente con el mismo archivo (SHA-256): INTEG-01 la cita en la explicación
     duplicate_of_invoice_id: Optional[int] = None
 
@@ -156,6 +155,10 @@ class RulesPipeline:
         t = ctx.treasury
         # Solvencia contra el disponible: el saldo de la foto menos lo ya aprobado después de ella (F6.2)
         available = t.available_usd
+        # FIN-04: tope duro. Sin conversión a USD, evaluate_invoice ya salta toda la Capa 3
+        if ctx.usd_amount > rules.max_payment_usd:
+            alerts.append(_reject("FIN-04", f"El pago de {format_usd(ctx.usd_amount)} supera el tope máximo por pago "
+                                            f"definido por la empresa ({format_usd(rules.max_payment_usd)})."))
         liquidity = (f"Saldo {format_usd(t.balance_usd)}, comprometido en pagos aprobados {format_usd(t.committed_usd)}, "
                      f"disponible {format_usd(available)}.")
         if ctx.usd_amount > available:
@@ -171,8 +174,13 @@ class RulesPipeline:
         alerts = []
         if ctx.currency_supported and ctx.usd_amount > rules.max_autonomous_usd:
             alerts.append(_escalate("HITL-01", f"El monto de {format_usd(ctx.usd_amount)} excede el límite autónomo de {format_usd(rules.max_autonomous_usd)}."))
-        if not ctx.vendor or not ctx.vendor_has_history:
-            alerts.append(_escalate("HITL-02", "Proveedor nuevo sin historial de pagos. Requiere verificación inicial por un operador."))
+        # Lista permitida (F7.4): el alta desde el dashboard es la verificación inicial; ya no se exige historial
+        if not ctx.vendor:
+            alerts.append(_escalate("HITL-02", "Beneficiario fuera de la lista permitida: el proveedor no está registrado. "
+                                               "Requiere verificación inicial y alta por un aprobador."))
+        elif not ctx.vendor.active:
+            alerts.append(_escalate("HITL-02", f"Beneficiario inactivo en la lista permitida ({ctx.vendor.legal_name}). "
+                                               "Requiere revisión de un aprobador."))
         inconsistencies = [a.code for a in prior if a.code in INCONSISTENCY_CODES]
         if len(inconsistencies) >= AMBIGUITY_ALERTS_THRESHOLD:
             alerts.append(_escalate("HITL-03", f"Acumulación de pequeñas inconsistencias detectadas ({', '.join(inconsistencies)})."))
@@ -198,7 +206,7 @@ class RulesPipeline:
 
         if status == DecisionStatus.AUTO_APPROVED:
             return (f"Pago aprobado automáticamente: {amount} dentro del límite autónomo, "
-                    "proveedor verificado con historial, sin alertas de cumplimiento y saldo suficiente.")
+                    "proveedor activo en la lista permitida, sin alertas de cumplimiento y saldo suficiente.")
         reasons = " ".join(f"[{a.code}] {a.message}" for a in alerts if a.severity == status)
         if status == DecisionStatus.REJECTED:
             return f"Pago frenado: {reasons}"

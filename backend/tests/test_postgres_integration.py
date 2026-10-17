@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.casos_demo import CASOS, SALDO_DEMO_USD
+from scripts.casos_demo import CASOS, SALDO_DEMO_USD, TC_08, presupuesto_para_tc08
 
 from .fakes import FakeGenAIClient
 
@@ -73,6 +73,20 @@ def test_demo_suite_against_seeded_database(client):
         assert invoice["decision_status"] == estado, (caso, invoice["audit_explanation"])
         assert regla is None or regla in invoice["audit_explanation"], (caso, invoice["audit_explanation"])
         resultados[caso] = invoice
+
+    # TC-08, como humo_produccion.py: presupuesto un dólar por debajo de gasto del mes + monto, y restaurarlo.
+    # El PATCH con solo presupuesto no mueve la foto: lo comprometido por TC-01 sigue ahí (F7.1).
+    before_tc08 = client.get("/api/treasury").json()
+    lowered = client.patch("/api/treasury",
+                           json={"monthly_budget_usd": presupuesto_para_tc08(before_tc08["month_spent_usd"])}).json()
+    assert lowered["snapshot_at"] == before_tc08["snapshot_at"] and lowered["committed_usd"] == 450
+    caso, estado, regla, payload = TC_08
+    tc08 = post_invoice(client, **payload)
+    assert tc08["decision_status"] == estado, (caso, tc08["audit_explanation"])
+    assert regla in tc08["audit_explanation"] and "FIN-01" not in tc08["audit_explanation"]
+    assert "FIN-03" not in tc08["audit_explanation"] and "HITL" not in tc08["audit_explanation"]
+    restored = client.patch("/api/treasury", json={"monthly_budget_usd": before_tc08["monthly_budget_usd"]}).json()
+    assert restored["monthly_budget_usd"] == 25000 and restored["snapshot_at"] == before_tc08["snapshot_at"]
     tc04 = resultados["TC-04"]
 
     gbp = post_invoice(client, invoice_number="AWS-GBP-1", vendor_name="Amazon Web Services LATAM",
@@ -101,6 +115,11 @@ def test_demo_suite_against_seeded_database(client):
 
     rules = client.post("/api/rules", json={"max_autonomous_usd": 5000}).json()
     assert rules["max_autonomous_usd"] == 5000 and client.get("/api/rules").json()["max_autonomous_usd"] == 5000
+    # F7.2: la columna nueva toma el default en la fila del seed y se guarda; nunca bajo el umbral
+    assert rules["max_payment_usd"] == 20000
+    assert client.post("/api/rules", json={"max_payment_usd": 4000}).status_code == 422
+    assert client.post("/api/rules", json={"max_payment_usd": 30000}).json()["max_payment_usd"] == 30000
+    assert client.get("/api/rules").json()["max_payment_usd"] == 30000
 
     upload = client.post("/api/invoices/upload", files={"file": ("f.png", b"\x89PNG fake", "image/png")})
     assert upload.status_code == 201 and upload.json()["decision_status"] == "SCALED_TO_HUMAN"
@@ -360,3 +379,156 @@ def test_tesoreria_compromete_lo_aprobado_despues_de_la_foto_con_la_fecha_de_apr
         assert fresh.snapshot_at > photo.snapshot_at
 
     run_with_db(scenario)
+
+
+def test_presupuesto_solo_update_sin_mover_la_foto_ni_crear_la_fila():
+    """F7.1: set_monthly_budget nunca inserta (un upsert inventaría saldo y foto) y no mueve updated_at;
+    set_balance conserva el presupuesto guardado si no llega uno nuevo."""
+    from datetime import datetime, timedelta
+    import pytest as _pytest
+    from app.adapters.outbound.db.postgres_repository import PostgresTreasuryRepository
+    from app.core.domain.errors import TreasuryNotInitializedError
+    from app.core.domain.models import TreasuryStatus
+
+    async def scenario(db):
+        treasury = PostgresTreasuryRepository(db, TreasuryStatus(balance_usd=0.0, monthly_budget_usd=0.0))
+        pool = db.require_pool()
+
+        with _pytest.raises(TreasuryNotInitializedError):
+            await treasury.set_monthly_budget("EMPRESA", 12000)
+        assert await pool.fetchval("SELECT count(*) FROM treasury_accounts WHERE company_id = 'EMPRESA'") == 0
+
+        foto = datetime.utcnow().replace(microsecond=0) - timedelta(hours=1)
+        creada = await treasury.set_balance("EMPRESA", 8500, foto, monthly_budget_usd=25000)
+        assert (creada.balance_usd, creada.monthly_budget_usd, creada.snapshot_at) == (8500, 25000, foto)
+
+        cambiada = await treasury.set_monthly_budget("EMPRESA", 12000)
+        assert (cambiada.balance_usd, cambiada.monthly_budget_usd, cambiada.snapshot_at) == (8500, 12000, foto)
+
+        nueva_foto = foto + timedelta(minutes=30)
+        sin_presupuesto = await treasury.set_balance("EMPRESA", 9000, nueva_foto)
+        assert (sin_presupuesto.balance_usd, sin_presupuesto.monthly_budget_usd) == (9000, 12000)
+        assert sin_presupuesto.snapshot_at == nueva_foto
+
+    run_with_db(scenario)
+
+
+def test_lista_permitida_con_el_seed_alta_unicidad_y_baja_logica(client):
+    """F7.3: la migración deja activos a los proveedores del seed; NIT y razón social (sin mayúsculas) son únicos;
+    la baja es lógica y find la sigue devolviendo para COMP-02/INTEG-02."""
+    vendors = client.get("/api/vendors").json()
+    assert len(vendors) == 6 and all(v["active"] for v in vendors)
+    aws = next(v for v in vendors if v["tax_id"] == "US-91-1646860")
+
+    new = {"tax_id": "901.555.010-2", "legal_name": "Diseño Creativo Bogotá S.A.S.",
+           "bank_account": "CO-BANCOLOMBIA-55500011122", "updated_by": "CFO Demo"}
+    created = client.post("/api/vendors", json=new)
+    assert created.status_code == 201 and created.json()["updated_at"].endswith("Z")
+    assert client.post("/api/vendors", json={**new, "legal_name": "Otro"}).status_code == 409          # NIT
+    assert client.post("/api/vendors", json={**new, "tax_id": "OTRO",
+                                             "legal_name": "DISEÑO CREATIVO bogotá s.a.s."}).status_code == 409
+    assert client.patch(f"/api/vendors/{aws['id']}",
+                        json={"legal_name": new["legal_name"].lower(), "updated_by": "CFO"}).status_code == 409
+    assert client.patch("/api/vendors/99999", json={"active": False, "updated_by": "CFO"}).status_code == 404
+
+    off = client.patch(f"/api/vendors/{aws['id']}", json={"active": False, "updated_by": "CFO Demo"}).json()
+    assert off["active"] is False and off["updated_by"] == "CFO Demo" and off["contract_amount_usd"] == 1000
+    assert len(client.get("/api/vendors").json()) == 7
+
+    async def find_inactive():
+        import asyncpg
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        row = await conn.fetchrow("SELECT active, updated_at FROM vendors WHERE tax_id = 'US-91-1646860'")
+        await conn.close()
+        return row
+
+    import asyncio
+    row = asyncio.run(find_inactive())
+    assert row["active"] is False
+    assert abs((row["updated_at"] - datetime.utcnow()).total_seconds()) < 60  # UTC, aunque la base esté en Bogotá
+
+    async def find_with_repository():
+        # Pool propio: el de la app vive en el event loop del TestClient
+        from app.adapters.outbound.db.postgres_repository import PostgresDatabase, PostgresVendorRepository
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=False)
+        try:
+            return await PostgresVendorRepository(db).find("US-91-1646860", None)
+        finally:
+            await db.close()
+
+    found = asyncio.run(find_with_repository())
+    assert found.active is False and found.bank_account == "US-CHASE-000123456"
+
+
+def test_vendor_key_de_postgres_coincide_con_normalize_y_find_tolera_formatos(client):
+    """F7.3: find() y la unicidad usan vendor_key (schema.sql), la misma llave que _normalize del Core.
+    Los formatos son los que el OCR puede devolver para proveedores del seed."""
+    import asyncio
+    import asyncpg
+    from app.adapters.outbound.db.postgres_repository import PostgresDatabase, PostgresVendorRepository
+    from app.core.domain.rules_pipeline import _normalize
+
+    samples = ["900.584.112-4", "Logística Express MX S.A. de C.V.", "Diseño Creativo Bogotá S.A.S.",
+               "  ÁÉÍÓÚ ñ Ü ç  ", "LOGÍSTICA ÑANDÚ", "PA-155-7788", "...", ""]
+    lookups = [
+        ("900584112-4", None, "900.584.112-4"),
+        ("lem850101ab1", None, "LEM850101AB1"),
+        (None, "Logistica Express MX SA de CV", "LEM850101AB1"),   # sin tildes ni puntos
+        (None, "NUBE ANDINA CONSULTORES SAS", "901.223.450-1"),
+        ("US-91-1646860", "Nube Andina Consultores S.A.S.", "US-91-1646860"),  # el NIT manda sobre el nombre
+        (None, "...", None),
+        (None, None, None),
+        ("-", None, None),                                            # NIT sin letras ni dígitos: no empata
+        ("--", "...", None),                                          # ambas llaves vacías
+    ]
+
+    async def scenario():
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        keys = [await conn.fetchval("SELECT vendor_key($1)", s) for s in samples]
+        await conn.close()
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=False)
+        try:
+            repo = PostgresVendorRepository(db)
+            found = [await repo.find(tax_id, name) for tax_id, name, _ in lookups]
+        finally:
+            await db.close()
+        return keys, found
+
+    keys, found = asyncio.run(scenario())
+    assert keys == [_normalize(s) for s in samples]
+    assert [f.tax_id if f else None for f in found] == [expected for *_, expected in lookups]
+
+    new = {"tax_id": "9005841124", "legal_name": "Otro S.A.S.", "bank_account": "X", "updated_by": "CFO"}
+    assert client.post("/api/vendors", json=new).status_code == 409                       # NIT de DevStudio
+    assert client.post("/api/vendors", json={**new, "tax_id": "NUEVO-1",
+                                             "legal_name": "Devstudio Latam SAS"}).status_code == 409
+
+
+def test_find_match_de_sanciones_tolera_el_formato_del_ocr(client):
+    """COMP-01 compara con vendor_key: el NIT, la razón social o la cuenta sancionados empatan aunque el OCR
+    los lea sin guiones, puntos ni mayúsculas. Una llave vacía (nombre vacío o solo símbolos) no empata."""
+    import asyncio
+    from app.adapters.outbound.db.postgres_repository import PostgresDatabase, PostgresSanctionsRepository
+
+    lookups = [
+        (None, "PA1557788", None),
+        ("global trade partners ltd.", None, None),
+        (None, None, "PA BANCO PACIFICO 998877"),
+        ("", None, None),
+        ("...", "--", " - "),
+        (None, None, None),
+    ]
+
+    async def scenario():
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=False)
+        try:
+            repo = PostgresSanctionsRepository(db)
+            return [await repo.find_match(*lookup) for lookup in lookups]
+        finally:
+            await db.close()
+
+    matches = asyncio.run(scenario())
+    assert matches == ["OFAC: Global Trade Partners Ltd"] * 3 + [None] * 3

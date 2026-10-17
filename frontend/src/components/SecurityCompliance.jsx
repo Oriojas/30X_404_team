@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { TELEGRAM_BOT_URL } from '../api'
 
 export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
   const [submitted, setSubmitted] = useState(false)
@@ -37,7 +38,7 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
                 Comienza a automatizar pagos corporativos de forma segura
               </h2>
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                Conecta tu canal de Telegram (WhatsApp y correo próximamente), define tus reglas de gobernanza y obtén decisiones explicables con $0.00 FX Markup para Latinoamérica.
+                Conecta tu canal de Telegram (WhatsApp y correo próximamente), define tus reglas de gobernanza y obtén decisiones explicables con normalización multidivisa para Latinoamérica.
               </p>
             </div>
 
@@ -51,7 +52,7 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
               </button>
 
               <a
-                href="https://t.me/blinka_paybot"
+                href={TELEGRAM_BOT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-3 rounded-xl text-slate-300 hover:text-white font-semibold text-sm transition-colors flex items-center gap-1.5"
@@ -119,7 +120,7 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
             ) : (
               <form onSubmit={handleDemoSubmit} className="space-y-3">
                 <p className="text-xs text-brand-muted">
-                  Descubre cómo implementar agentes de pago autónomos en tu empresa con $0 FX Markup.
+                  Descubre cómo implementar agentes de pago autónomos en tu empresa con gobernanza financiera.
                 </p>
 
                 <div>

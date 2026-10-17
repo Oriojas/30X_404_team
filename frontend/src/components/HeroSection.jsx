@@ -1,5 +1,5 @@
 import React from 'react'
-import { availableUsd, formatUsd, headroomColor, headroomText, parseApiDate, treasuryHeadroom } from '../api'
+import { availableUsd, formatUsd, headroomColor, headroomText, parseApiDate, treasuryHeadroom, TELEGRAM_BOT_URL } from '../api'
 
 export default function HeroSection({ treasury, rules }) {
   const available = availableUsd(treasury)
@@ -9,53 +9,47 @@ export default function HeroSection({ treasury, rules }) {
   return (
     <section className="w-full py-12 lg:py-16 border-b border-brand-border/60 bg-transparent" id="producto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
           {/* Left Column (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col space-y-6">
-            {/* Enterprise Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-brand-border w-fit shadow-xs">
-              <span className="text-brand-teal text-xs font-bold">⚡</span>
-              <span className="font-mono text-xs text-brand-steel font-semibold tracking-wide">
-                B2B Autonomous Financial Ops • Telegram, Gemini & Reglas Deterministas
-              </span>
-            </div>
+          <div className="lg:col-span-7 flex flex-col justify-between">
+            <div className="space-y-6">
+              {/* Main Headline */}
+              <h1 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl text-brand-navy tracking-tight leading-[1.15]">
+                Agentes IA que deciden los pagos de tu empresa{' '}
+                <span className="text-brand-teal">sin perder el control</span>
+              </h1>
 
-            {/* Main Headline */}
-            <h1 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl text-brand-navy tracking-tight leading-[1.15]">
-              Agentes IA que deciden los pagos de tu empresa{' '}
-              <span className="text-brand-teal">sin perder el control</span>
-            </h1>
+              {/* Subheadline */}
+              <p className="text-sm sm:text-base text-brand-muted leading-relaxed font-normal max-w-2xl">
+                Automatiza la recepción y evaluación de facturas con visión multimodal (Gemini Flash), validación SARLAFT/OFAC, verificación de saldos en tesorería y <strong className="text-brand-navy">normalización multidivisa a USD</strong> en tiempo real. Aprueba, frena o escala a aprobación humana ante anomalías o reglas críticas.
+              </p>
 
-            {/* Subheadline */}
-            <p className="text-sm sm:text-base text-brand-muted leading-relaxed font-normal max-w-2xl">
-              Automatiza la recepción y evaluación de facturas con visión multimodal (Gemini Flash), validación SARLAFT/OFAC, verificación de saldos en tesorería y conversión a USD con <strong className="text-brand-navy">$0.00 FX Markup</strong>. Aprueba, frena o escala a aprobación humana ante anomalías o reglas críticas.
-            </p>
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <a
+                  href="#telegram-demo"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-teal text-white font-semibold text-sm hover:bg-brand-tealHover transition-all shadow-sm active:scale-95"
+                >
+                  <span>Ver Demo en Vivo</span>
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </a>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-1">
-              <a
-                href="#telegram-demo"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-teal text-white font-semibold text-sm hover:bg-brand-tealHover transition-all shadow-sm active:scale-95"
-              >
-                <span>Ver Demo en Vivo</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-              </a>
-
-              <a
-                href="https://t.me/blinka_paybot"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-brand-border text-brand-navy font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-              >
-                <svg className="w-4 h-4 fill-current text-brand-teal" viewBox="0 0 24 24">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.458c.538-.196 1.006.128.832.965z" />
-                </svg>
-                <span>Probar en Telegram</span>
-              </a>
+                <a
+                  href={TELEGRAM_BOT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-brand-border text-brand-navy font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                >
+                  <svg className="w-4 h-4 fill-current text-brand-teal" viewBox="0 0 24 24">
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.458c.538-.196 1.006.128.832.965z" />
+                  </svg>
+                  <span>Probar en Telegram</span>
+                </a>
+              </div>
             </div>
 
             {/* KPI Metrics Strip */}
-            <div className="pt-2">
+            <div className="pt-6 mt-auto">
               <div className="grid grid-cols-3 gap-2 sm:gap-4 p-4 rounded-xl bg-white border border-brand-border shadow-sm">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
@@ -67,10 +61,10 @@ export default function HeroSection({ treasury, rules }) {
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">
                   <div className="flex items-center gap-1">
-                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">$0.00</span>
-                    <span className="text-xs font-mono font-semibold text-brand-teal">FX</span>
+                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">5+</span>
+                    <span className="material-symbols-outlined text-brand-teal text-[18px]">currency_exchange</span>
                   </div>
-                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Markup Cambiario (Blinka)</span>
+                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Monedas Normalizadas (COP, MXN...)</span>
                 </div>
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">
@@ -85,8 +79,8 @@ export default function HeroSection({ treasury, rules }) {
           </div>
 
           {/* Right Column (5 cols): Live Treasury & Agent Terminal */}
-          <div className="lg:col-span-5 w-full">
-            <div className="bg-white rounded-2xl border border-brand-border shadow-xl p-5 sm:p-6 flex flex-col gap-4 relative overflow-hidden">
+          <div className="lg:col-span-5 w-full flex flex-col">
+            <div className="bg-white rounded-2xl border border-brand-border shadow-xl p-5 sm:p-6 flex flex-col gap-4 relative overflow-hidden h-full">
               {/* Subtle Ambient Radial Highlight */}
               <div className="absolute -top-16 -right-16 w-44 h-44 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none" />
 

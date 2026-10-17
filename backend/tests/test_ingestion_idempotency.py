@@ -115,7 +115,8 @@ def test_solicitudes_concurrentes_con_la_misma_clave_procesan_una_sola_vez():
 def test_mismo_archivo_por_otro_canal_salta_el_ocr_y_se_rechaza_por_integ01():
     use_case, ocr, invoices, notifier, _ = build()
     original = asyncio.run(use_case.from_document(b"factura", "image/png", "TELEGRAM", chat_id=7, external_id="1"))
-    assert original.invoice.decision_status == DecisionStatus.SCALED_TO_HUMAN  # HITL-02, vigente
+    # Vigente (no rechazada): solo una factura vigente hace rechazar la copia por hash
+    assert original.invoice.decision_status == DecisionStatus.AUTO_APPROVED
     assert len(original.invoice.file_sha256) == 64
 
     copy = asyncio.run(use_case.from_document(b"factura", "image/png", "WEB", external_id="otra-clave")).invoice

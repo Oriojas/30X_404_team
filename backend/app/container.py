@@ -23,13 +23,16 @@ from app.config import Settings
 from app.core.domain.models import CompanyRules, TreasuryStatus
 from app.core.domain.rules_pipeline import RulesPipeline
 from app.core.use_cases import (
+    CreateVendorUseCase,
     DecideInvoiceUseCase,
     GetRulesUseCase,
     GetTreasuryUseCase,
     ListInvoicesUseCase,
+    ListVendorsUseCase,
     ProcessInvoiceUseCase,
     UpdateRulesUseCase,
     UpdateTreasuryBalanceUseCase,
+    UpdateVendorUseCase,
 )
 
 
@@ -53,6 +56,7 @@ class Container:
         invoice_repo = PostgresInvoiceRepository(self.db)
         rules_repo = PostgresRulesRepository(self.db, default_rules)
         treasury_repo = PostgresTreasuryRepository(self.db, default_treasury)
+        vendor_repo = PostgresVendorRepository(self.db)
 
         # Un solo candado de solvencia para ingesta, decisión humana y foto del saldo (F6.4).
         # Basta con una réplica del backend; con varias se cambia por pg_advisory_xact_lock.
@@ -65,7 +69,7 @@ class Container:
             pipeline=RulesPipeline(),
             invoices=invoice_repo,
             rules=rules_repo,
-            vendors=PostgresVendorRepository(self.db),
+            vendors=vendor_repo,
             sanctions=PostgresSanctionsRepository(self.db),
             treasury=treasury_repo,
             company_id=company_id,
@@ -81,6 +85,9 @@ class Container:
         self.update_rules = UpdateRulesUseCase(rules_repo, company_id)
         self.get_treasury = GetTreasuryUseCase(treasury_repo, company_id)
         self.update_treasury = UpdateTreasuryBalanceUseCase(treasury_repo, company_id, solvency_lock)
+        self.list_vendors = ListVendorsUseCase(vendor_repo)
+        self.create_vendor = CreateVendorUseCase(vendor_repo)
+        self.update_vendor = UpdateVendorUseCase(vendor_repo)
 
     def status(self) -> dict:
         return {

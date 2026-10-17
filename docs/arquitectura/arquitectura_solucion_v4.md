@@ -26,7 +26,7 @@ flowchart TD
 
         subgraph Core ["CORE DEL SISTEMA (core/ - Logica de Negocio Pura)"]
             UseCases["Casos de Uso - ProcessInvoice, DecideInvoice, ListInvoices, Get/UpdateRules"]
-            FX["FX Engine (Conversion a USD a $0 Markup)"]
+            FX["FX Engine (Normalizacion Multidivisa a USD)"]
             Rules["Motor de Reglas Blinka (Tuberia de Decision en 4 Capas)"]
             Audit["Generador de Explicabilidad (Audit Log Estructurado)"]
             Ports["Puertos de Salida - OCR, FX, Facturas, Reglas, Proveedores, Sanciones, Tesoreria, Notificaciones"]
@@ -116,7 +116,7 @@ flowchart TD
     subgraph Pipeline ["Tuberia Determinista en 4 Capas"]
         Capa1["Capa 1: Compliance y SARLAFT (Listas OFAC/ONU y Cuentas Autorizadas)"]
         Capa2["Capa 2: Integridad y Duplicados (Chequeo 30 dias y Confianza OCR > 85%)"]
-        Capa3["Capa 3: Solvencia y FX Engine (Normalizacion USD a $0 Markup y Saldo Blinka)"]
+        Capa3["Capa 3: Solvencia y FX Engine (Normalizacion a USD y Saldo Blinka)"]
         Capa4["Capa 4: Gobierno y Human-in-the-Loop (Umbral $2,000 USD y Proveedor Nuevo)"]
 
         Capa1 -->|"Pasa"| Capa2
@@ -162,8 +162,7 @@ flowchart TD
 
 ### Capa 3: Solvencia & Conversión de Divisas (FX Engine)
 - **Extracción de Moneda:** Soporte para facturas en COP, MXN, EUR, BRL, ARS y USD.
-- **Normalización FX:** Conversión automática a USD usando la tasa de cambio de referencia.
-- **Garantía Blinka:** Transacciones con **$0.00 FX Markup**.
+- **Normalización FX:** Conversión automática a USD usando la tasa de cambio de referencia interna para evaluación unificada.
 - **Saldo:** Verificación de saldo disponible en la cuenta USD de Blinka (`balance_usd >= usd_amount`) y colchón mínimo de tesorería.
 - **Presupuesto:** El acumulado aprobado del mes más la factura no puede superar el presupuesto mensual (`treasury_accounts`).
 

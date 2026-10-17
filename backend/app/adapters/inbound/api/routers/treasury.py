@@ -19,5 +19,6 @@ async def get_treasury(use_case: GetTreasuryUseCase = Depends(get_get_treasury))
 async def update_treasury_balance(
     payload: TreasuryBalanceUpdate, use_case: UpdateTreasuryBalanceUseCase = Depends(get_update_treasury)
 ):
-    """Registra el saldo vigente como foto nueva: lo aprobado antes deja de comprometerlo."""
-    return TreasuryResponse.from_domain(await use_case.execute(payload.balance_usd))
+    """Con balance_usd toma una foto nueva del saldo (lo aprobado antes deja de comprometerlo).
+    Con solo monthly_budget_usd cambia el presupuesto sin mover la foto; 409 si aún no hay saldo registrado."""
+    return TreasuryResponse.from_domain(await use_case.execute(payload.balance_usd, payload.monthly_budget_usd))

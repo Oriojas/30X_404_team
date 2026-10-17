@@ -13,7 +13,7 @@
 
 ### Slide 1: Portada & Propuesta de Valor
 * **Título Principal:** Blinka PayAgent — Agentes IA de Decisión de Pagos con Gobernanza Financiera.
-* **Subtítulo:** Automatizando la decisión de pago de cuentas corporativas con cero pagos indebidos, conversión de divisas sin sobrecosto y trazabilidad total.
+* **Subtítulo:** Automatizando la decisión de pago de cuentas corporativas con cero pagos indebidos, normalización multidivisa a USD y trazabilidad total.
 * **Mensaje Clave:** Transformamos la gestión manual de cuentas por pagar en un proceso autónomo, seguro y 100% auditable.
 * **Elemento Visual:** Mockup interactivo dividido: a la izquierda el chat de Telegram enviando una factura; a la derecha la interfaz web de Blinka PayAgent con insignias de estado en tiempo real.
 
@@ -23,7 +23,7 @@
 * **Título:** El Cuello de Botella de Cuentas por Pagar en Empresas Globales.
 * **Puntos de Dolor:**
   1. **Ineficiencia Operativa:** Cientos de horas perdidas revisando facturas por correo, WhatsApp o PDF a mano.
-  2. **Fricción Multidivisa:** Facturas de proveedores en COP, MXN, EUR, BRL o ARS pagadas desde cuentas de tesorería en USD, sufriendo altas comisiones de cambio (*FX Markups*).
+  2. **Fricción Multidivisa:** Facturas de proveedores en COP, MXN, EUR, BRL o ARS pagadas desde cuentas de tesorería en USD, sufriendo altas comisiones y discrepancias cambiarias.
   3. **Riesgo de Pagos Indebidos:** Alto riesgo de aprobar cobros duplicados (<30 días) o pagar a proveedores en listas restrictivas (SARLAFT/OFAC/ONU).
 * **Métrica Impacto:** Las validaciones manuales repetitivas consumen la mayor parte del tiempo de los equipos de finanzas en PyMEs/Startups. *(Citar la fuente de la cifra exacta si se muestra un porcentaje en pantalla; si no hay fuente, usar el enunciado cualitativo.)*
 
@@ -45,7 +45,7 @@
   * **Ingesta / Adaptadores:** Telegram Webhook y subida de archivos en el dashboard (desacoplados del Core; WhatsApp y correo como canales futuros). Los canales solo ingresan facturas: no aprueban.
   * **Core del Agente (FastAPI):**
     * **Gemini Flash (modelo configurable por `GEMINI_MODEL`):** únicamente OCR multimodal y extracción estructurada de campos (JSON).
-    * **FX Engine:** normalización de divisas a USD con tasa de referencia y $0.00 FX Markup.
+    * **FX Engine:** normalización de divisas a USD con tasas de referencia oficiales (para la demo/presentación se usan tasas fijas internas deterministas; no se usa API externa en la demo).
     * **Motor de Reglas Determinista:** código Python puro, **no** decidido por el LLM, lo que garantiza decisiones reproducibles y auditables.
     * **Audit Logger:** explicación en lenguaje natural por factura.
   * **Base de Datos (PostgreSQL en Railway):** Audit Log (`invoices`), reglas (`company_rules`), proveedores (`vendors`), listas restrictivas (`sanctions_list`) y tesorería (`treasury_accounts`).
@@ -73,7 +73,7 @@
 * **Título:** Resultados Medibles para Blinka y sus Clientes.
 * **Métricas de Éxito:**
   * ⏱️ **Hasta ~90% menos carga manual** en el procesamiento de facturas *(estimación de diseño, ver `especificacion_solucion.md`; presentar como estimado, no como medición).*
-  * 💵 **$0.00 en sobrecostos por cambio de divisa** gracias a la garantía FX de las cuentas Blinka.
+  * 💱 **Soporte multidivisa unificado (5+ monedas: COP, MXN, EUR, BRL, ARS):** normalización a USD para evaluar umbrales y solvencia sin fisuras (tasas de referencia fijas para la demo, sin API externa).
   * 🔒 **Cero pagos indebidos por diseño:** ante cualquier duda, el agente frena o escala; nunca aprueba fuera de reglas.
   * 💲 **Costo operativo por factura mínimo:** una sola llamada a Gemini Flash por documento y reglas deterministas sin costo de inferencia. *(Medir el consumo real antes de mostrar una cifra.)*
 * **Llamado a la Acción (CTA):** Solución desplegada en Railway, repositorio público con licencia MIT en GitHub y arquitectura lista para escalar a WhatsApp y correo corporativo.
@@ -87,13 +87,13 @@
 | Tiempo | Seccion / Escena | Guion Hablado (Narrador / Presentador) | Accion Visual en Pantalla |
 | :--- | :--- | :--- | :--- |
 | **0:00 - 0:15** | **El Gancho** | *"En América Latina, las empresas globales pierden cientos de horas procesando facturas manualmente por correo o WhatsApp, lidiando con monedas locales como pesos o euros, y arriesgándose constantemente a aprobar pagos duplicados."* | Primer plano del presentador o animación de caos financiero con hojas de cálculo y facturas en PDF. |
-| **0:15 - 0:35** | **La Presentación** | *"Presentamos **Blinka PayAgent**: un agente inteligente de pagos corporativos que recibe facturas por Telegram, las lee con visión multimodal de Gemini, convierte divisas a USD sin sobrecosto y decide autónomamente qué pagar, qué frenar y qué escalar."* | Transición al logotipo de Blinka PayAgent y captura del dashboard en Railway (`30x404team-production.up.railway.app`). |
+| **0:15 - 0:35** | **La Presentación** | *"Presentamos **Blinka PayAgent**: un agente inteligente de pagos corporativos que recibe facturas por Telegram, las lee con visión multimodal de Gemini, normaliza divisas a USD con tasas de referencia (sin requerir APIs externas para la demo) y decide autónomamente qué pagar, qué frenar y qué escalar."* | Transición al logotipo de Blinka PayAgent y captura del dashboard en Railway (`30x404team-production.up.railway.app`). |
 | **0:35 - 1:00** | **Demo Caso 1 (Aprobación Autónoma)** | *"Veamos la magia en acción. Enviamos por Telegram la foto de una factura en pesos colombianos de un proveedor ya conocido. El agente extrae los datos, convierte la cifra a USD, verifica listas restrictivas, valida el saldo y aprueba el pago en segundos."* | Grabación de pantalla: Envío de foto por Telegram $\rightarrow$ Respuesta del bot en Telegram $\rightarrow$ Aparece `AUTO_APPROVED` 🟢 en el Dashboard de React. |
 | **1:00 - 1:25** | **Demo Caso 2 (Frenado por Duplicado)** | *"¿Qué pasa si intentan cobrarnos dos veces? Reenviamos la misma factura. El agente detecta de inmediato que ya existe un cobro idéntico en los últimos 30 días, frena la transacción y notifica el rechazo en Telegram, evitando un pago indebido."* | Reenvío de la factura en Telegram $\rightarrow$ El bot responde "Rechazado por factura duplicada" $\rightarrow$ Fila en rojo `REJECTED` 🔴 en el Audit Log. |
 | **1:25 - 1:50** | **Demo Caso 3 (Escalamiento Human-in-the-Loop)** | *"Ahora enviamos una factura en euros equivalente a unos $3,480 USD. Como supera nuestro límite autónomo de $2,000 USD, el agente no paga: la deja en revisión, avisa por Telegram y el gerente la aprueba o rechaza desde el dashboard, dejando registrado quién decidió."* | Envío de factura de €3,200 EUR $\rightarrow$ El bot avisa que quedó en revisión $\rightarrow$ Fila en naranja `SCALED_TO_HUMAN` 🟠 $\rightarrow$ Aprobación en el dashboard (`HUMAN_APPROVED`). |
 | **1:50 - 2:20** | **Explicabilidad & Dashboard** | *"Toda la operación se refleja en nuestro Dashboard en React desplegado en Railway. Al hacer clic en cualquier transacción, el equipo financiero lee la justificación exacta en lenguaje natural y la regla que se disparó, garantizando trazabilidad total. Y el umbral de autonomía es configurable desde el mismo panel."* | Navegación por la tabla de auditoría en el navegador, mostrando el panel de detalles, las justificaciones y el control de reglas. |
 | **2:20 - 2:45** | **Arquitectura Hexagonal** | *"Diseñamos el sistema bajo arquitectura hexagonal en FastAPI. Gemini solo lee la factura; las decisiones las toma un motor de reglas determinista de cuatro capas, por eso cada resultado es reproducible y auditable. Telegram es solo un adaptador: podemos sumar correo o WhatsApp sin tocar la lógica de negocio."* | Diagrama de arquitectura de la solución mostrando la separación entre adaptadores, FastAPI, Gemini, motor de reglas y PostgreSQL. |
-| **2:45 - 3:00** | **Cierre & ROI** | *"Blinka PayAgent reduce drásticamente el trabajo manual, elimina el sobrecosto por cambio de divisa y no aprueba nada fuera de las reglas. El repositorio es abierto y la app está funcionando en vivo. ¡Muchas gracias!"* | Pantalla final con URL de la app en Railway, enlace al repositorio de GitHub y QR de contacto. |
+| **2:45 - 3:00** | **Cierre & ROI** | *"Blinka PayAgent reduce drásticamente el trabajo manual, unifica la tesorería multidivisa y no aprueba nada fuera de las reglas. El repositorio es abierto y la app está funcionando en vivo. ¡Muchas gracias!"* | Pantalla final con URL de la app en Railway, enlace al repositorio de GitHub y QR de contacto. |
 
 ---
 
@@ -143,7 +143,7 @@ El criterio de **Viabilidad Técnica (20%)** exige que el código respalde exact
 - [x] El Dashboard muestra datos reales de la API (Fase 3); los datos *mock* solo aparecen, con un banner, si la API no responde.
 - [x] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`); el chat de origen recibe el aviso (F5.1).
 - [x] En Railway, el backend corre con `DB_AUTO_MIGRATE=true` (crea las tablas al arrancar) y `DB_SEED_DEMO=true` (proveedores con historial, listas restrictivas y saldo de $8,500 USD).
-- [ ] Las tasas del FX Engine usadas en la demo coinciden con las cifras narradas (hoy son tasas de referencia fijas).
+- [x] Las tasas del FX Engine usadas en la demo corresponden a tasas de referencia internas fijas (`static_rates.py`), de forma transparente y determinista sin requerir API externa para la presentación.
 - [x] Textos de la landing sin respaldo en el código (SOC2, ISO 27001, AES-256, SLA, "dispersión bancaria", SPEI/ACH, latencias y KPIs inventados) ya fueron corregidos. El Audit Log y las métricas del dashboard vienen de `/api/invoices`; incluyen las facturas de las pruebas de humo, así que se presentan como datos de la demo, no como métricas de clientes.
 
 ---

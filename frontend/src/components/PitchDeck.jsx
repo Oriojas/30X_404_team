@@ -171,7 +171,7 @@ function SlideProblem() {
     {
       icon: 'currency_exchange',
       title: 'Fricción multidivisa',
-      text: 'Facturas en COP, MXN, EUR, BRL o ARS pagadas desde tesorerías en USD, con altas comisiones de cambio (FX markups).'
+      text: 'Facturas en COP, MXN, EUR, BRL o ARS pagadas desde tesorerías en USD, con altas comisiones y discrepancias cambiarias.'
     },
     {
       icon: 'gpp_maybe',
@@ -211,7 +211,7 @@ function SlideSolution() {
     { status: 'SCALED_TO_HUMAN', verb: 'Escalar', text: 'Supera el umbral, proveedor nuevo o saldo insuficiente. Decide una persona en el dashboard.' }
   ]
   const pillars = [
-    { icon: 'bolt', title: 'Autonomía', text: 'Facturas de proveedores con historial y bajo $2,000 USD se aprueban solas.' },
+    { icon: 'bolt', title: 'Autonomía', text: 'Facturas de proveedores de la lista permitida y bajo $2,000 USD se aprueban solas.' },
     { icon: 'shield', title: 'Seguridad', text: 'Rechazo inmediato de duplicados y listas restrictivas; ante la duda, escala.' },
     { icon: 'visibility', title: 'Explicabilidad', text: 'Cada decisión con justificación en lenguaje natural y regla disparada.' }
   ]
@@ -257,7 +257,7 @@ function SlideSolution() {
 function SlideArchitecture() {
   const coreSteps = [
     { n: '1', title: 'Gemini Flash', sub: 'OCR multimodal + extracción JSON' },
-    { n: '2', title: 'FX Engine', sub: 'Normaliza a USD · $0.00 markup' },
+    { n: '2', title: 'FX Engine', sub: 'Normaliza divisas a USD (tasas internas)' },
     { n: '3', title: 'Reglas Blinka', sub: '4 capas deterministas · sin LLM' },
     { n: '4', title: 'Audit Logger', sub: 'Explicación en lenguaje natural' }
   ]
@@ -427,7 +427,7 @@ function SlideAudit() {
 function SlideImpact() {
   const metrics = [
     { big: '~90%', label: 'menos carga manual', note: 'Estimación de diseño' },
-    { big: '$0.00', label: 'markup cambiario', note: 'Garantía de cuentas Blinka' },
+    { big: '5+', label: 'divisas normalizadas', note: 'COP, MXN, EUR, BRL, ARS a USD' },
     { big: '0', label: 'pagos fuera de reglas', note: 'Por diseño: ante la duda, escala' },
     { big: '1', label: 'llamada a Gemini por factura', note: 'Reglas sin costo de inferencia' }
   ]
@@ -472,7 +472,7 @@ const SLIDES = [
   {
     id: 'portada',
     dark: true,
-    notes: '0:00 · Gancho. Presentar Blinka PayAgent: recibe facturas por Telegram, las lee con Gemini, convierte divisas sin sobrecosto y decide qué pagar, frenar o escalar.',
+    notes: '0:00 · Gancho. Presentar Blinka PayAgent: recibe facturas por Telegram, las lee con Gemini, normaliza divisas a USD con tasas de referencia (sin requerir API externa) y decide qué pagar, frenar o escalar.',
     Component: SlideCover
   },
   {
@@ -498,7 +498,7 @@ const SLIDES = [
   {
     id: 'impacto',
     dark: true,
-    notes: '2:45–3:00 · Cierre: ~90% menos carga manual (estimado), $0.00 FX, cero pagos fuera de reglas por diseño. URL y repositorio abierto.',
+    notes: '2:45–3:00 · Cierre: ~90% menos carga manual (estimado), normalización multidivisa instantánea, cero pagos fuera de reglas por diseño. URL y repositorio abierto.',
     Component: SlideImpact
   }
 ]

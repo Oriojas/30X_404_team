@@ -39,7 +39,7 @@ Las empresas constituidas en EE. UU. con equipos y proveedores en LatAm reciben 
 - Tubería de 4 capas con la matriz de reglas v3 y decisión `AUTO_APPROVED` / `SCALED_TO_HUMAN` / `REJECTED`.
 - Aprobación humana en el dashboard y aviso al canal de origen.
 - Audit Log explicable con la regla disparada y la razón de cada decisión.
-- Test Suite TC-01 a TC-07 demostrable con datos ficticios.
+- Test Suite TC-01 a TC-08 demostrable con datos ficticios.
 
 **No entra (por definición del reto):**
 - Ejecutar pagos reales o mover dinero.
@@ -61,6 +61,6 @@ Aspiraciones, no compromisos del MVP:
 | Criterio | Meta |
 | :--- | :--- |
 | **Autonomía** | % de facturas resueltas sin intervención humana (`AUTO_APPROVED` + `REJECTED` sobre el total). Las decisiones `HUMAN_*` no cuentan como autónomas. |
-| **Seguridad** | Cero pagos aprobados fuera de las reglas. Los siete casos de la Test Suite dan siempre el resultado esperado. |
+| **Seguridad** | Cero pagos aprobados fuera de las reglas. Los ocho casos de la Test Suite dan siempre el resultado esperado. |
 | **Explicabilidad** | Cualquier operador entiende la decisión leyendo solo el Audit Log. |
 | **Viabilidad** | Demo pública desplegada en Railway, con el repositorio respaldando exactamente lo que se muestra. |

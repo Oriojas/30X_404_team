@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from app.adapters.inbound.api.routers import invoices
 from app.adapters.outbound.ocr.gemini_ocr import GeminiOCRAdapter
 from app.core.domain.models import Vendor
-from app.core.domain.rules_pipeline import RulesPipeline
+from app.core.domain.rules_pipeline import RulesPipeline, _normalize
 from app.core.use_cases import ProcessInvoiceUseCase
 
 from .fakes import (
@@ -28,11 +28,13 @@ GLOBAL_TRADE = Vendor("PA-155-7788", "Global Trade Partners Ltd", bank_account="
 
 
 class OFACList:
-    """Lista restrictiva con el proveedor de TC-06."""
+    """Lista restrictiva con el proveedor de TC-06; compara con la llave de vendor_key, como PostgreSQL."""
 
     async def find_match(self, name, tax_id, bank_account):
-        if bank_account == GLOBAL_TRADE.bank_account or tax_id == GLOBAL_TRADE.tax_id:
-            return f"OFAC: {GLOBAL_TRADE.legal_name}"
+        for received, listed in ((name, GLOBAL_TRADE.legal_name), (tax_id, GLOBAL_TRADE.tax_id),
+                                 (bank_account, GLOBAL_TRADE.bank_account)):
+            if _normalize(received) and _normalize(received) == _normalize(listed):
+                return f"OFAC: {GLOBAL_TRADE.legal_name}"
         return None
 
 

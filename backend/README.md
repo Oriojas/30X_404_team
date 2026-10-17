@@ -40,7 +40,7 @@ backend/app/
 │       ├── db/
 │       │   ├── postgres_repository.py # Repositorios -> PostgreSQL (asyncpg)
 │       │   ├── schema.sql             # DDL idempotente de todas las tablas
-│       │   └── seed.sql               # Datos de demostración para la Test Suite TC-01..TC-07
+│       │   └── seed.sql               # Datos de demostración para la Test Suite TC-01..TC-08
 │       └── telegram/telegram_client.py# Notificador del canal TELEGRAM y descarga de adjuntos
 ├── config.py                          # Settings (pydantic-settings) leídos del .env raíz
 ├── container.py                       # Composition root: conecta adaptadores con puertos
@@ -115,7 +115,7 @@ pytest
 ```
 Las pruebas unitarias usan adaptadores falsos, así que no necesitan Gemini, PostgreSQL ni Telegram.
 
-La prueba de integración corre la Test Suite TC-01..TC-07 contra un PostgreSQL real con el seed. Usa una base desechable, porque la prueba borra y recrea las tablas:
+La prueba de integración corre la Test Suite TC-01..TC-08 contra un PostgreSQL real con el seed. Usa una base desechable, porque la prueba borra y recrea las tablas:
 ```bash
 docker run -d --rm --name blinka-pg-test -e POSTGRES_USER=blinka -e POSTGRES_PASSWORD=blinka -e POSTGRES_DB=blinka_test -p 54329:5432 postgres:16-alpine
 TEST_DATABASE_URL=postgresql://blinka:blinka@localhost:54329/blinka_test pytest
@@ -200,7 +200,7 @@ El script nunca imprime el token. Si `TELEGRAM_WEBHOOK_SECRET` cambia, hay que v
 
 ### Prueba de humo
 
-Verifica `/api/health`, toma una foto del saldo con `PATCH /api/treasury` (el saldo del seed, `SALDO_DEMO_USD`), recorre TC-01..TC-07 y revisa `/api/rules` y el CORS del frontend. La foto libera lo comprometido por corridas anteriores, para que TC-01 no escale por FIN-01/FIN-03: ojo, cambia la tesorería del backend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
+Verifica `/api/health`, toma una foto del saldo con `PATCH /api/treasury` (el saldo del seed, `SALDO_DEMO_USD`), recorre TC-01..TC-08 y revisa `/api/rules` y el CORS del frontend. La foto libera lo comprometido por corridas anteriores, para que TC-01 no escale por FIN-01/FIN-03: ojo, cambia la tesorería del backend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. TC-08 baja el presupuesto del período un momento (sin mover la foto) y lo restaura al final, también si el caso falla. Mientras tanto, una factura real que llegue se evalúa con ese presupuesto rebajado: con tráfico real, usa `--omitir-tc08` o una ventana sin facturas entrantes. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
 
 ```bash
 cd backend
@@ -223,9 +223,12 @@ Sale con código `1` si algún caso falla. Supone el seed de demostración y las
 | `POST` | `/api/invoices/upload` | Canal de ingesta web: `multipart/form-data` con campo `file` (JPG, PNG, WEBP o PDF, máx. 10 MB). Acepta `Idempotency-Key` |
 | `POST` | `/api/invoices/{id}/decision` | Decisión humana sobre una factura `SCALED_TO_HUMAN`: `{"decision": "APPROVE" \| "REJECT", "decided_by": "...", "note": "..."}`. Responde `404` si no existe y `409` si no está escalada |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
-| `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
+| `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas, incluido el tope duro por pago (`max_payment_usd`, FIN-04). `422` con el campo si el tope queda por debajo de `max_autonomous_usd` |
 | `GET` | `/api/treasury` | Saldo de la foto, comprometido, disponible, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
-| `PATCH` | `/api/treasury` | Registra el saldo vigente (`balance_usd`) como foto nueva: lo aprobado antes deja de comprometerlo |
+| `PATCH` | `/api/treasury` | `balance_usd` registra el saldo vigente como foto nueva (lo aprobado antes deja de comprometerlo); `monthly_budget_usd` cambia el presupuesto del periodo (FIN-02) sin mover la foto. Al menos uno; con solo presupuesto y sin saldo registrado, `409` |
+| `GET` | `/api/vendors` | Lista permitida de beneficiarios (activos e inactivos) con cuenta autorizada, tarifa acordada, PEP y último cambio (`updated_by`, `updated_at`) |
+| `POST` | `/api/vendors` | Alta en la lista permitida: `{tax_id, legal_name, bank_account, contract_amount_usd?, updated_by}`. Queda activa y con `is_pep = false`. `409` si el NIT o la razón social ya existen, aun con otro formato (se comparan sin mayúsculas, tildes ni signos con `vendor_key`) |
+| `PATCH` | `/api/vendors/{id}` | Edita `legal_name`, `bank_account`, `contract_amount_usd` (`null` la quita) o `active` (`false` es la baja lógica). `tax_id` e `is_pep` no se editan (`422`). `404` si no existe |
 
 ### Ingesta idempotente
 
@@ -248,7 +251,7 @@ curl -s -X POST localhost:8000/api/invoices/upload -H "Idempotency-Key: $(uuidge
 
 ### Tesorería comprometida
 
-- `balance_usd` es una **foto** del saldo a la fecha de `treasury_accounts.updated_at` (UTC). Lo aprobado después (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`) queda **comprometido**, y FIN-01 y FIN-03 evalúan contra el **disponible** (saldo − comprometido). `PATCH /api/treasury` con `{"balance_usd": ...}` toma una foto nueva.
+- `balance_usd` es una **foto** del saldo a la fecha de `treasury_accounts.updated_at` (UTC). Lo aprobado después (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`) queda **comprometido**, y FIN-01 y FIN-03 evalúan contra el **disponible** (saldo − comprometido). `PATCH /api/treasury` con `{"balance_usd": ...}` toma una foto nueva; con solo `{"monthly_budget_usd": ...}` cambia el presupuesto sin moverla, porque si la moviera liberaría lo comprometido sin que cambie el saldo.
 - Al aprobar desde el dashboard se revalida la solvencia: la persona siempre puede aprobar, y el Audit Log registra el disponible y las alertas FIN vigentes. Una factura sin conversión a USD (INTEG-04) responde `409`: solo se puede rechazar.
 - **Una sola réplica:** la lectura de la tesorería, la evaluación y el guardado se serializan con un `asyncio.Lock` compartido (ingesta, decisión humana y `PATCH`), creado en `container.py`. Solo protege dentro de un proceso. Con más réplicas o workers de `uvicorn`, hay que cambiarlo por `pg_advisory_xact_lock` en una transacción de PostgreSQL.
 

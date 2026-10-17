@@ -161,7 +161,7 @@ Además, todos los imports son absolutos desde `app` y el Core solo depende de l
 | :--- | :--- |
 | `core/domain/models.py` | Entidades: `ExtractedInvoice`, `Vendor`, `TreasuryStatus`, `CompanyRules`, `Decision`, `ProcessedInvoice`, `DecisionStatus` |
 | `core/domain/rules_pipeline.py` | Tubería determinista de 4 capas y generación de la explicación |
-| `core/domain/fx_converter.py` | Conversión pura a USD ($0.00 markup) |
+| `core/domain/fx_converter.py` | Conversión y normalización pura a USD |
 | `core/domain/audit_logger.py` | Construye el registro del Audit Log |
 | `core/domain/errors.py` | `InvoiceNotFoundError`, `InvalidDecisionStateError` |
 | `core/ports/outbound.py` | Contratos de los adaptadores de salida |

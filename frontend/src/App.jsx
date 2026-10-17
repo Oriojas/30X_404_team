@@ -3,13 +3,17 @@ import Navbar from './components/Navbar'
 import HeroSection from './components/HeroSection'
 import AgentWorkflow from './components/AgentWorkflow'
 import RuleControls from './components/RuleControls'
+import VendorsPanel from './components/VendorsPanel'
 import AuditTable from './components/AuditTable'
 import AuditDrawer from './components/AuditDrawer'
 import InvoiceUpload from './components/InvoiceUpload'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
 import TopographyBackground from './components/TopographyBackground'
-import { listInvoices, getRules, getTreasury, decideInvoice, saveRules, DEFAULT_RULES, DEFAULT_TREASURY } from './api'
+import {
+  listInvoices, getRules, getTreasury, decideInvoice, saveRules, updateTreasury,
+  getVendors, createVendor, updateVendor, DEFAULT_RULES, DEFAULT_TREASURY, DEFAULT_VENDORS
+} from './api'
 
 // Datos de demostración (misma forma que InvoiceResponse): solo se muestran si la API no responde.
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
@@ -84,7 +88,7 @@ const INITIAL_INVOICES = [
     processed_at: minutesAgo(120),
     channel_source: 'TELEGRAM',
     evaluations: {},
-    audit_explanation: 'Monto en divisa local ($52,000 MXN) convertido a tasa de referencia (19.50 MXN/USD) con $0.00 FX Markup Blinka totaliza $2,666.67 USD, superando el umbral autónomo de $2,000 USD. Escalado al aprobador financiero.'
+    audit_explanation: 'Monto en divisa local ($52,000 MXN) normalizado a tasa de referencia (19.50 MXN/USD) totaliza $2,666.67 USD, superando el umbral autónomo de $2,000 USD. Escalado al aprobador financiero.'
   },
   {
     id: 6,
@@ -99,7 +103,7 @@ const INITIAL_INVOICES = [
     processed_at: minutesAgo(180),
     channel_source: 'TELEGRAM',
     evaluations: {},
-    audit_explanation: 'Monto de $1,500,000 COP convertido a tasa 4,200 COP/USD equivale a $357.14 USD ($0 Markup Blinka). Dentro del umbral autónomo ($2,000 USD) y validado en SARLAFT.'
+    audit_explanation: 'Monto de $1,500,000 COP normalizado a tasa 4,200 COP/USD equivale a $357.14 USD. Dentro del umbral autónomo ($2,000 USD) y validado en SARLAFT.'
   }
 ]
 
@@ -133,6 +137,31 @@ export default function App() {
         // un refresco fallido conserva el último valor leído
       })
   }, [])
+
+  // Lista permitida: null hasta que responde; en modo demostración se muestra la del seed
+  const [vendors, setVendors] = useState(null)
+  const [vendorsError, setVendorsError] = useState(null)
+  const shownVendors = vendors ?? (apiAvailable === false ? DEFAULT_VENDORS : [])
+  const loadVendors = useCallback(() => {
+    getVendors()
+      .then((data) => {
+        setVendors(data)
+        setVendorsError(null)
+      })
+      .catch((err) => setVendorsError(err.message || 'No se pudo cargar la lista permitida.'))
+  }, [])
+
+  const handleCreateVendor = async (vendor) => {
+    const created = await createVendor(vendor)
+    loadVendors()
+    return created
+  }
+
+  const handleUpdateVendor = async (vendorId, changes) => {
+    const updated = await updateVendor(vendorId, changes)
+    setVendors((prev) => (prev || []).map((v) => (v.id === updated.id ? updated : v)))
+    return updated
+  }
 
   // Con la API disponible se muestran siempre los datos reales, aunque la lista esté vacía
   const loadInvoices = useCallback(async () => {
@@ -169,12 +198,26 @@ export default function App() {
         // Fallback a reglas predeterminadas
       })
     loadTreasury()
-  }, [loadInvoices, loadTreasury])
+    loadVendors()
+  }, [loadInvoices, loadTreasury, loadVendors])
 
-  // Las reglas locales solo cambian con la respuesta de la API; un error (p. ej. 422) sube al panel
-  const handleSaveRules = async (newRules) => {
+  // Las reglas locales solo cambian con la respuesta de la API; un error (p. ej. 422) sube al panel.
+  // El presupuesto vive en la tesorería: segunda llamada, solo si cambió. Si falla, las reglas ya quedaron
+  // guardadas: se recargan reglas y tesorería para no mostrar un estado falso y el error se marca del presupuesto.
+  const handleSaveRules = async (newRules, monthlyBudgetUsd) => {
     const saved = await saveRules(newRules)
     setRules((prev) => ({ ...prev, ...saved }))
+    if (monthlyBudgetUsd == null) return saved
+    try {
+      const updated = await updateTreasury({ monthly_budget_usd: monthlyBudgetUsd })
+      treasuryRequest.current += 1  // una lectura anterior aún en vuelo no pisa este valor
+      setTreasury(updated)
+    } catch (err) {
+      err.step = 'budget'
+      getRules().then((data) => data && setRules((prev) => ({ ...prev, ...data }))).catch(() => {})
+      loadTreasury()
+      throw err
+    }
     return saved
   }
 
@@ -222,6 +265,16 @@ export default function App() {
           treasury={shownTreasury}
           readOnly={apiAvailable === false}
           onSave={handleSaveRules}
+        />
+
+        {/* Section 3b: Lista permitida de beneficiarios (HITL-02) */}
+        <VendorsPanel
+          vendors={shownVendors}
+          loading={vendors == null && apiAvailable !== false && !vendorsError}
+          error={vendorsError}
+          readOnly={apiAvailable === false}
+          onCreate={handleCreateVendor}
+          onUpdate={handleUpdateVendor}
         />
 
         {/* Section 4: Live Audit Table */}
