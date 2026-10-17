@@ -1,5 +1,5 @@
 import React from 'react'
-import { availableUsd, formatUsd, headroomColor, headroomText, parseApiDate, treasuryHeadroom } from '../api'
+import { availableUsd, formatUsd, headroomColor, headroomText, parseApiDate, treasuryHeadroom, TELEGRAM_BOT_URL } from '../api'
 
 export default function HeroSection({ treasury, rules }) {
   const available = availableUsd(treasury)
@@ -35,7 +35,7 @@ export default function HeroSection({ treasury, rules }) {
                 </a>
 
                 <a
-                  href="https://t.me/blinka_paybot"
+                  href={TELEGRAM_BOT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-brand-border text-brand-navy font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm active:scale-95"

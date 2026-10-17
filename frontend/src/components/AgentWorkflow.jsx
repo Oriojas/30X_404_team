@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
+import { TELEGRAM_BOT_URL } from '../api'
 
 export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
+  const botUsername = TELEGRAM_BOT_URL.split('/').pop() ? `@${TELEGRAM_BOT_URL.split('/').pop()}` : '@blinka_pay_test_bot'
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -107,13 +109,13 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
 
               <div className="flex items-center gap-1 text-slate-300">
                 <a
-                  href="https://t.me/blinka_paybot"
+                  href={TELEGRAM_BOT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1.5 rounded hover:bg-white/10 text-xs font-mono text-cyan-300 flex items-center gap-1"
                   title="Abrir en Telegram real"
                 >
-                  <span>@blinka_paybot</span>
+                  <span>{botUsername}</span>
                   <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                 </a>
               </div>

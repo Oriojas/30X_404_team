@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { TELEGRAM_BOT_URL } from '../api'
 
 export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
   const [submitted, setSubmitted] = useState(false)
@@ -51,7 +52,7 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
               </button>
 
               <a
-                href="https://t.me/blinka_paybot"
+                href={TELEGRAM_BOT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-3 rounded-xl text-slate-300 hover:text-white font-semibold text-sm transition-colors flex items-center gap-1.5"
