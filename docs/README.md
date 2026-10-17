@@ -12,7 +12,8 @@ Este directorio centraliza la arquitectura, especificaciones funcionales, reglas
 docs/
 ├── README.md                          # Este índice de navegación
 ├── arquitectura/                      # Arquitectura de sistemas y despliegue
-│   ├── arquitectura_solucion_v3.md    # [VIGENTE] Arquitectura Gemini All-in-One (FastAPI + React + Postgres + Gemini)
+│   ├── arquitectura_solucion_v4.md    # [VIGENTE] Arquitectura Hexagonal Monorepo (Puertos y Adaptadores + FX Engine)
+│   ├── arquitectura_solucion_v3.md    # [Histórico] Arquitectura Gemini All-in-One
 │   ├── arquitectura_solucion_v2.md    # [Histórico] Arquitectura híbrida (Gemini Flash + DeepSeek)
 │   └── arquitectura_solucion_v1.md    # [Histórico] Versión inicial de arquitectura
 ├── reglas-negocio/                    # Políticas, pipeline determinista y compliance
@@ -25,22 +26,27 @@ docs/
     └── DESIGN.md                      # Design System, tokens de color (Blinka) y tipografía
 ```
 
+> **Nota:** El [Plan de Trabajo Oficial (plan_de_trabajo.md)](../plan_de_trabajo.md) se encuentra disponible en la raíz del repositorio con el cronograma por fases y la división de roles del equipo.
+
 ---
 
 ## 📌 Documentos Vigentes y de Referencia Principal
 
 Para evaluar la solución durante la Hackathon, los documentos oficiales de referencia son:
 
-1. **[Arquitectura de Solución (v3)](arquitectura/arquitectura_solucion_v3.md):**  
-   Define el stack unificado alrededor de **Google Gemini** (OCR multimodal + motor de razonamiento de reglas), servidor FastAPI en Python, PostgreSQL nativo en Railway y frontend en React.js con Tailwind CSS.
+1. **[Arquitectura de Solución (v4)](arquitectura/arquitectura_solucion_v4.md):**  
+   Define la **Arquitectura Hexagonal (Puertos y Adaptadores)** en monorepo, adaptadores de canal (Telegram), adaptadores de persistencia (PostgreSQL en Railway), el Core con Gemini 1.5 Flash y el módulo de conversión de divisas (**FX Engine** a $0 markup).
 
-2. **[Reglas de Negocio y Pipeline Determinista (v3)](reglas-negocio/reglas_pago_agente_v3.md):**  
+2. **[Plan de Trabajo Oficial](../plan_de_trabajo.md):**  
+   Cronograma por fases (Viernes 16 a Domingo 18), asignación de roles entre Oscar Riojas y Luis Felipe Marín Giraldo, y suite de casos de prueba.
+
+3. **[Reglas de Negocio y Pipeline Determinista (v3)](reglas-negocio/reglas_pago_agente_v3.md):**  
    Especificación detallada de las 4 capas de evaluación (Compliance/SARLAFT, Integridad, Solvencia y Gobernanza HITL), matriz de reglas (COMP, INTEG, FIN, HITL), test suite obligatorio y formato del Audit Log.
 
-3. **[Especificación Funcional de la Solución](especificaciones/especificacion_solucion.md):**  
+4. **[Especificación Funcional de la Solución](especificaciones/especificacion_solucion.md):**  
    Flujo conversacional de ingesta vía Telegram, extracción multimodal y experiencia del dashboard administrativo.
 
-4. **[Sistema de Diseño y Tokens](diseno/DESIGN.md):**  
+5. **[Sistema de Diseño y Tokens](diseno/DESIGN.md):**  
    Paleta de colores oficial de Blinka (`#04243C`, `#2B9CAE`, `#1D3557`), tipografías, componentes y lineamientos de interfaz.
 
 ---
