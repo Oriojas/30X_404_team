@@ -1,0 +1,66 @@
+# ==============================================================================
+# BLINKA PAYAGENT - UNIFIED .GITIGNORE (MONOREPO)
+# Regla del Proyecto: Un solo archivo .gitignore en el directorio raíz.
+# ==============================================================================
+
+# Variables de Entorno (Privadas - NUNCA incluir en Git)
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# Python & Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+ENV/
+
+# Node.js & Frontend
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+frontend/dist/
+frontend/dist-ssr/
+dist/
+**/dist/
+*.local
+
+# Railway CLI & Despliegues Locales
+.railway/
+
+# Editores y Sistema Operativo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.log

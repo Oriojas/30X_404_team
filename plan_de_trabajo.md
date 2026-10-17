@@ -58,6 +58,22 @@ flowchart TD
 
 ---
 
+## 2.1 Reglas Estrictas de Configuración y Documentación del Monorepo
+
+Para garantizar orden, portabilidad y evitar dispersión de configuraciones en el equipo:
+
+1. **Un solo archivo `.env` en el directorio raíz:**
+   - Todas las variables de entorno (Backend FastAPI, PostgreSQL, Telegram Bot, Gemini API y Frontend Vite) se declaran en el archivo raíz `.env`.
+   - El repositorio incluye un único archivo plantilla `.env.example` en la raíz con valores ficticios y documentados. Está estrictamente prohibido crear archivos `.env` o `.env.example` dentro de subcarpetas (`backend/` o `frontend/`).
+2. **Un solo archivo `.gitignore` en el directorio raíz:**
+   - Un único archivo centralizado `.gitignore` en la raíz gobierna las exclusiones de todo el proyecto (Python, Node.js, artefactos de build, variables de entorno y logs). Queda prohibido crear archivos `.gitignore` anidados.
+3. **Estructura Documental de READMEs:**
+   - **README principal:** Ubicado en la raíz (`README.md`), presenta la visión general de la solución, arquitectura, guía de inicio rápido y referencias directas a los submódulos.
+   - **README de Backend:** Ubicado en `backend/README.md`, detalla los endpoints, configuración de FastAPI, dependencias y arquitectura hexagonal.
+   - **README de Frontend:** Ubicado en `frontend/README.md`, detalla los componentes React, diseño con Tailwind CSS y conexión con la API.
+
+---
+
 ## 3. Módulo Especial: Regla de Conversión de Divisas (FX Engine)
 
 Uno de los requerimientos clave del Reto Blinka es la gestión de operaciones multidivisa (pagos a proveedores en Latinoamérica en monedas locales como COP, MXN, EUR, BRL o ARS desde una cuenta corporativa en USD).
@@ -152,9 +168,11 @@ flowchart LR
 
 ### 🔴 FASE 1: Setup e Infraestructura Monorepo (Viernes 16 - Noche)
 - [x] **Monorepo:** Configurar estructura hexagonal en `Oriojas/30X_404_team`.
+- [x] **Reglas de Monorepo:** Centralización en un solo `.env` y un solo `.gitignore` en el directorio raíz.
+- [x] **Estructura Documental:** Creación de `README.md` principal, `backend/README.md` y `frontend/README.md`.
 - [x] **Railway Setup:** Proyecto `Blinka-PayAgent` en Railway con PostgreSQL, Backend FastAPI y Frontend React.
 - [x] **Git Access:** Compartir acceso de GitHub a Luis Felipe Marín Giraldo y establecer ramas `main` y `develop`.
-- [ ] **Base de Datos:** Ejecutar script DDL inicial en PostgreSQL (`invoices`, `audit_logs`).
+- [ ] **Base de Datos:** Ejecutar script DDL inicial en PostgreSQL (`invoices`, `company_rules`).
 
 ### 🟡 FASE 2: Backend, OCR & Reglas de Negocio (Sábado 17 - Mañana)
 - [ ] **Telegram Adapter:** Servidor FastAPI recibiendo Webhooks y fotos/PDFs de Telegram.
