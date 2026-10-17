@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.casos_demo import CASOS
+from scripts.casos_demo import CASOS, SALDO_DEMO_USD
 
 from .fakes import FakeGenAIClient
 
@@ -65,6 +65,8 @@ def test_demo_suite_against_seeded_database(client):
     # Del seed solo DS-1042 (hace 3 días, 1.200 USD) cae en el mes; las aprobadas de hace 35 a 50 días no cuentan
     assert treasury["month_spent_usd"] == (1200.0 if datetime.utcnow().day > 3 else 0.0)
 
+    # Como humo_produccion.py: foto del saldo antes de TC-01
+    assert client.patch("/api/treasury", json={"balance_usd": SALDO_DEMO_USD}).json()["committed_usd"] == 0
     resultados = {}
     for caso, estado, regla, payload in CASOS:
         invoice = post_invoice(client, **payload)

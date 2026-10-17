@@ -1,6 +1,10 @@
 """
 Prueba de humo contra un backend desplegado (Fase 4, F4.5).
-Verifica /api/health, recorre TC-01..TC-07 por POST /api/invoices y, con --origen, el preflight de CORS.
+Verifica /api/health, toma una foto del saldo (PATCH /api/treasury con el saldo del seed), recorre
+TC-01..TC-07 por POST /api/invoices y, con --origen, el preflight de CORS.
+
+La foto del saldo cambia la tesorería del backend: lo aprobado antes (corridas anteriores, Telegram) deja
+de comprometer el saldo, para que TC-01 no escale por FIN-01/FIN-03 (Fase 6).
 
 Cada caso usa un Idempotency-Key fijo (humo-tc-01 … humo-tc-07): repetir el humo devuelve las mismas
 facturas (200) en vez de crear duplicados que INTEG-01 rechazaría. Esas respuestas son la repetición de
@@ -18,7 +22,7 @@ import sys
 
 import httpx
 
-from scripts.casos_demo import CASOS
+from scripts.casos_demo import CASOS, SALDO_DEMO_USD
 
 ESTADOS_HUMANOS = {"HUMAN_APPROVED", "HUMAN_REJECTED"}
 
@@ -31,6 +35,19 @@ def revisar_health(client: httpx.Client) -> tuple[bool, str]:
         body = {}
     ok = isinstance(body, dict) and body.get("status") == "ok" and body.get("database") == "connected"
     return ok, f"HTTP {response.status_code} {body}"
+
+
+def tomar_foto_del_saldo(client: httpx.Client) -> tuple[bool, str]:
+    response = client.patch("/api/treasury", json={"balance_usd": SALDO_DEMO_USD})
+    try:
+        body = response.json() if response.status_code == 200 else {}
+    except ValueError:
+        body = {}
+    ok = (isinstance(body, dict) and body.get("balance_usd") == SALDO_DEMO_USD
+          and body.get("committed_usd") == 0)
+    detalle = (f"saldo {body.get('balance_usd')}, comprometido {body.get('committed_usd')}"
+               if ok else f"HTTP {response.status_code} {response.text[:120]}")
+    return ok, detalle
 
 
 def revisar_caso(client: httpx.Client, caso: str, estado: str, regla: str | None, payload: dict) -> tuple[bool, str]:
@@ -72,6 +89,7 @@ def main() -> None:
     with httpx.Client(base_url=args.url_base.rstrip("/"), timeout=60) as client:
         try:
             resultados.append(("health", "ok + connected", *revisar_health(client)))
+            resultados.append(("foto", f"saldo {SALDO_DEMO_USD:g}, comprometido 0", *tomar_foto_del_saldo(client)))
             for caso, estado, regla, payload in CASOS:
                 esperado = estado + (f" + {regla}" if regla else "")
                 resultados.append((caso, esperado, *revisar_caso(client, caso, estado, regla, payload)))
