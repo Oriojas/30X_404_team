@@ -14,7 +14,7 @@
 | Canal de ingesta | Telegram Bot API vía `httpx` | En uso |
 | Frontend | React 18 + Vite 5 + Tailwind CSS 3 + lucide-react | En uso |
 | Contenedores | Docker: `python:3.12-slim` (backend), `node:20-alpine` + Nginx (frontend) | En uso |
-| Despliegue | Railway (PostgreSQL + backend + frontend en un solo canvas) | Pendiente |
+| Despliegue | Railway (PostgreSQL + backend + frontend en un solo canvas), infraestructura en `.railway/railway.ts` (IaC, SDK `railway` + Railway CLI) | En curso (Fase 4) |
 | Pruebas | pytest (unitarias, arquitectura e integración con PostgreSQL real) | En uso |
 
 ## Backend

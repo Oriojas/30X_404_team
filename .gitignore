@@ -51,8 +51,8 @@ dist/
 **/dist/
 *.local
 
-# Railway CLI & Despliegues Locales
-.railway/
+# Railway: .railway/railway.ts (Infrastructure as Code) sí se versiona; los planes no
+railway-plan*.json
 
 # Editores y Sistema Operativo
 .DS_Store
