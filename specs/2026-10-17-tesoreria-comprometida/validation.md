@@ -41,10 +41,10 @@
 
 ## Después del merge (producción)
 
-- [ ] Justo después del deploy, `PATCH /api/treasury` con el saldo del seed (o `humo_produccion.py`): la fila existente conserva el `updated_at` del seed original y, sin la foto, todo lo aprobado desde entonces compromete el saldo (ver `backend/README.md`).
-- [ ] `humo_produccion.py` verde contra producción, con la foto tomada antes de TC-01.
-- [ ] El dashboard público muestra el disponible y el presupuesto del mismo `GET /api/treasury` con que decide el agente.
-- [ ] F6.1 a F6.6 marcados en [roadmap.md](../roadmap.md) con la referencia a esta validación.
+- [x] Justo después del deploy, `PATCH /api/treasury` con el saldo del seed (o `humo_produccion.py`): la fila existente conserva el `updated_at` del seed original y, sin la foto, todo lo aprobado desde entonces compromete el saldo (ver `backend/README.md`). *(17-oct-2026, tras el merge de #20. Antes de la foto, producción tenía $7,950 comprometidos y $550 disponibles (foto de las 10:00 UTC). Después: comprometido $0, disponible $8,500, foto de las 15:48 UTC.)*
+- [x] `humo_produccion.py` verde contra producción, con la foto tomada antes de TC-01. *(11/11, con CORS. Los 7 casos respondieron `200`: son la repetición de corridas anteriores (misma `Idempotency-Key`), no una evaluación nueva del deploy. La lógica nueva quedó evaluada en local y en la integración con PostgreSQL.)*
+- [x] El dashboard público muestra el disponible y el presupuesto del mismo `GET /api/treasury` con que decide el agente. *(Sin modo demostración: disponible $8,500.00, saldo $8,500.00, comprometido $0.00, liquidez 88 % OK; presupuesto $25,000, gasto del mes $9,150, restante $15,850. Sin errores en la consola.)*
+- [x] F6.1 a F6.6 marcados en [roadmap.md](../roadmap.md) con la referencia a esta validación.
 
 ## No bloqueante
 
