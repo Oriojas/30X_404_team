@@ -14,7 +14,7 @@ from app.adapters.inbound.telegram import webhook as telegram_webhook
 from app.adapters.outbound.db.postgres_repository import DatabaseUnavailableError
 from app.config import get_settings
 from app.container import Container
-from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
+from app.core.domain.errors import ConflictError, NotFoundError
 
 settings = get_settings()
 
@@ -44,18 +44,14 @@ app.add_middleware(
 )
 
 
-@app.exception_handler(InvoiceNotFoundError)
-async def invoice_not_found(_: Request, exc: InvoiceNotFoundError):
+# Un handler por tipo de error de dominio: cada error nuevo solo elige su base en errors.py
+@app.exception_handler(NotFoundError)
+async def not_found(_: Request, exc: NotFoundError):
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
-@app.exception_handler(InvalidDecisionStateError)
-async def invalid_decision_state(_: Request, exc: InvalidDecisionStateError):
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-
-@app.exception_handler(UnconvertedAmountApprovalError)
-async def unconverted_amount_approval(_: Request, exc: UnconvertedAmountApprovalError):
+@app.exception_handler(ConflictError)
+async def conflict(_: Request, exc: ConflictError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
