@@ -61,9 +61,9 @@ Cualquier canal puede entregar la misma factura más de una vez. Se resuelve en 
 
 ## Fase 4 — Despliegue en Railway
 
-- [ ] **F4.1 — Backend:** servicio desde `backend/Dockerfile` con `DATABASE_URL`, `DB_AUTO_MIGRATE=true` y `DB_SEED_DEMO=true` (demo).
-- [ ] **F4.2 — Secretos:** `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` y `ALLOWED_ORIGINS` con la URL del frontend.
-- [ ] **F4.3 — Webhook:** registrar `setWebhook` con la URL pública y el `secret_token`.
+- [x] **F4.1 — Backend:** servicio desde `backend/Dockerfile` con `DATABASE_URL`, `DB_AUTO_MIGRATE=true` y `DB_SEED_DEMO=true` (demo). *(Hecho el 17-oct-2026: definido en `.railway/railway.ts` (IaC), en línea en `https://backend-production-ea088.up.railway.app` con Postgres y el seed.)*
+- [x] **F4.2 — Secretos:** `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` y `ALLOWED_ORIGINS` con la URL del frontend. *(Hecho el 17-oct-2026: secretos cargados en Railway, nunca en el repo.)*
+- [x] **F4.3 — Webhook:** registrar `setWebhook` con la URL pública y el `secret_token`. *(Hecho el 17-oct-2026: `backend/scripts/registrar_webhook.py`; una factura real por Telegram llegó y se escaló.)*
 - [ ] **F4.4 — Frontend:** servicio desde `frontend/Dockerfile` con `VITE_API_BASE_URL` apuntando al backend. El Dockerfile aún no declara `ARG VITE_API_BASE_URL`: hay que agregarlo para que Vite la reciba en el build.
 - [ ] **F4.5 — Humo en producción:** `/api/health` conectado, Test Suite por la API, una factura por Telegram y otra por la web.
 
