@@ -292,20 +292,46 @@ class PostgresTreasuryRepository:
         self.defaults = defaults
 
     async def get(self, company_id: str) -> TreasuryStatus:
-        # processed_at se guarda en UTC sin zona: el mes en curso se corta en UTC.
-        # invoices no tiene company_id (MVP de una empresa): el acumulado es de toda la tabla.
+        # Las fechas se guardan en UTC sin zona: el mes en curso se corta en UTC.
+        # Fecha de aprobación: processed_at en AUTO_APPROVED, decided_at en HUMAN_APPROVED (processed_at si falta,
+        # como en el historial del seed). Comprometido = aprobado después de la foto del saldo (updated_at).
+        # invoices no tiene company_id (MVP de una empresa): los acumulados son de toda la tabla.
         row = await self.db.require_pool().fetchrow(
             """
-            SELECT t.balance_usd, t.monthly_budget_usd,
-                   (SELECT COALESCE(SUM(usd_amount), 0) FROM invoices
-                     WHERE processed_at >= date_trunc('month', timezone('UTC', now()))
-                       AND decision_status = ANY($2::text[])) AS month_spent_usd
+            WITH approved AS (
+                SELECT usd_amount,
+                       CASE WHEN decision_status = $2 THEN processed_at
+                            ELSE COALESCE(decided_at, processed_at) END AS approved_at
+                FROM invoices WHERE decision_status = ANY($3::text[])
+            )
+            SELECT t.balance_usd, t.monthly_budget_usd, t.updated_at,
+                   (SELECT COALESCE(SUM(usd_amount), 0) FROM approved
+                     WHERE approved_at >= date_trunc('month', timezone('UTC', now()))) AS month_spent_usd,
+                   (SELECT COALESCE(SUM(usd_amount), 0) FROM approved
+                     WHERE approved_at > t.updated_at) AS committed_usd
             FROM (SELECT 1) AS one
             LEFT JOIN treasury_accounts t ON t.company_id = $1
             """,
-            company_id, list(APPROVED),
+            company_id, DecisionStatus.AUTO_APPROVED.value, list(APPROVED),
         )
         month_spent = float(row["month_spent_usd"])
         if row["balance_usd"] is None:
             return TreasuryStatus(self.defaults.balance_usd, self.defaults.monthly_budget_usd, month_spent)
-        return TreasuryStatus(float(row["balance_usd"]), float(row["monthly_budget_usd"]), month_spent)
+        return TreasuryStatus(
+            balance_usd=float(row["balance_usd"]),
+            monthly_budget_usd=float(row["monthly_budget_usd"]),
+            month_spent_usd=month_spent,
+            committed_usd=float(row["committed_usd"]),
+            snapshot_at=row["updated_at"],
+        )
+
+    async def set_balance(self, company_id: str, balance_usd: float, as_of: datetime) -> TreasuryStatus:
+        # Foto nueva: as_of (UTC, reloj de la app) deja fuera de lo comprometido todo lo aprobado hasta ahora.
+        await self.db.require_pool().execute(
+            """INSERT INTO treasury_accounts (company_id, balance_usd, monthly_budget_usd, updated_at)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (company_id) DO UPDATE SET
+                   balance_usd = EXCLUDED.balance_usd, updated_at = EXCLUDED.updated_at""",
+            company_id, balance_usd, self.defaults.monthly_budget_usd, as_of,
+        )
+        return await self.get(company_id)

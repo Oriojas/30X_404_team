@@ -14,7 +14,7 @@ from app.adapters.inbound.telegram import webhook as telegram_webhook
 from app.adapters.outbound.db.postgres_repository import DatabaseUnavailableError
 from app.config import get_settings
 from app.container import Container
-from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError
+from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
 
 settings = get_settings()
 
@@ -51,6 +51,11 @@ async def invoice_not_found(_: Request, exc: InvoiceNotFoundError):
 
 @app.exception_handler(InvalidDecisionStateError)
 async def invalid_decision_state(_: Request, exc: InvalidDecisionStateError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(UnconvertedAmountApprovalError)
+async def unconverted_amount_approval(_: Request, exc: UnconvertedAmountApprovalError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 

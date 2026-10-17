@@ -49,8 +49,9 @@ class EvaluationContext:
     duplicate_of_invoice_id: Optional[int] = None
 
 
-def _usd(value: float) -> str:
-    return f"${value:,.2f} USD"
+def format_usd(value: float) -> str:
+    """Monto en USD para el Audit Log; los negativos como -$1,950.00 USD."""
+    return f"{'-' if value < 0 else ''}${abs(value):,.2f} USD"
 
 
 def _normalize(text: Optional[str]) -> str:
@@ -103,6 +104,10 @@ class RulesPipeline:
         status = self._final_status(alerts)
         return Decision(status, self._explain(status, alerts, invoice, context), evaluations, alerts)
 
+    def evaluate_solvency(self, usd_amount: float, treasury: TreasuryStatus, rules: CompanyRules) -> List[RuleAlert]:
+        """Solo la Capa 3, con la tesorería vigente: la usa la revalidación al aprobar (F6.3)."""
+        return self._solvency(None, EvaluationContext(usd_amount=usd_amount, fx_rate=1.0, treasury=treasury), rules, [])
+
     # ---------------------------------------------------------------- Capa 1
     def _compliance(self, invoice, ctx: EvaluationContext, rules, _prior) -> List[RuleAlert]:
         if ctx.sanctions_match:
@@ -134,7 +139,7 @@ class RulesPipeline:
             alerts.append(_escalate("INTEG-04", f"Moneda {invoice.original_currency.upper()} no soportada por el FX Engine: no es posible normalizar el monto a USD. Requiere revisión."))
         contract = ctx.vendor.contract_amount_usd if ctx.vendor else None
         if ctx.currency_supported and contract is not None and ctx.usd_amount > contract:
-            alerts.append(_escalate("INTEG-02", f"El valor cobrado ({_usd(ctx.usd_amount)}) supera la tarifa acordada en el contrato ({_usd(contract)})."))
+            alerts.append(_escalate("INTEG-02", f"El valor cobrado ({format_usd(ctx.usd_amount)}) supera la tarifa acordada en el contrato ({format_usd(contract)})."))
 
         missing = [label for label, value in (("número de factura", invoice.invoice_number),
                                               ("proveedor", invoice.vendor_name)) if not value]
@@ -149,19 +154,23 @@ class RulesPipeline:
     def _solvency(self, invoice, ctx: EvaluationContext, rules: CompanyRules, _prior) -> List[RuleAlert]:
         alerts = []
         t = ctx.treasury
-        if ctx.usd_amount > t.balance_usd:
-            alerts.append(_escalate("FIN-01", f"Saldo insuficiente en la cuenta Blinka ({_usd(t.balance_usd)}) para ejecutar el pago de {_usd(ctx.usd_amount)}."))
-        elif t.balance_usd - ctx.usd_amount < rules.min_treasury_buffer_usd:
-            alerts.append(_escalate("FIN-03", f"El pago dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería ({_usd(rules.min_treasury_buffer_usd)})."))
+        # Solvencia contra el disponible: el saldo de la foto menos lo ya aprobado después de ella (F6.2)
+        available = t.available_usd
+        liquidity = (f"Saldo {format_usd(t.balance_usd)}, comprometido en pagos aprobados {format_usd(t.committed_usd)}, "
+                     f"disponible {format_usd(available)}.")
+        if ctx.usd_amount > available:
+            alerts.append(_escalate("FIN-01", f"Saldo disponible insuficiente en la cuenta Blinka para ejecutar el pago de {format_usd(ctx.usd_amount)}. {liquidity}"))
+        elif available - ctx.usd_amount < rules.min_treasury_buffer_usd:
+            alerts.append(_escalate("FIN-03", f"El pago de {format_usd(ctx.usd_amount)} dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería ({format_usd(rules.min_treasury_buffer_usd)}). {liquidity}"))
         if t.month_spent_usd + ctx.usd_amount > t.monthly_budget_usd:
-            alerts.append(_escalate("FIN-02", f"El pago excede el presupuesto disponible del período ({_usd(t.monthly_budget_usd - t.month_spent_usd)} restantes de {_usd(t.monthly_budget_usd)})."))
+            alerts.append(_escalate("FIN-02", f"El pago excede el presupuesto disponible del período ({format_usd(t.monthly_budget_usd - t.month_spent_usd)} restantes de {format_usd(t.monthly_budget_usd)})."))
         return alerts
 
     # ---------------------------------------------------------------- Capa 4
     def _hitl(self, invoice, ctx: EvaluationContext, rules: CompanyRules, prior: List[RuleAlert]) -> List[RuleAlert]:
         alerts = []
         if ctx.currency_supported and ctx.usd_amount > rules.max_autonomous_usd:
-            alerts.append(_escalate("HITL-01", f"El monto de {_usd(ctx.usd_amount)} excede el límite autónomo de {_usd(rules.max_autonomous_usd)}."))
+            alerts.append(_escalate("HITL-01", f"El monto de {format_usd(ctx.usd_amount)} excede el límite autónomo de {format_usd(rules.max_autonomous_usd)}."))
         if not ctx.vendor or not ctx.vendor_has_history:
             alerts.append(_escalate("HITL-02", "Proveedor nuevo sin historial de pagos. Requiere verificación inicial por un operador."))
         inconsistencies = [a.code for a in prior if a.code in INCONSISTENCY_CODES]
@@ -181,7 +190,7 @@ class RulesPipeline:
     @staticmethod
     def _explain(status: DecisionStatus, alerts: List[RuleAlert], invoice: ExtractedInvoice,
                  ctx: EvaluationContext) -> str:
-        amount = _usd(ctx.usd_amount)
+        amount = format_usd(ctx.usd_amount)
         if not ctx.currency_supported:
             amount = f"{invoice.original_amount:,.2f} {invoice.original_currency.upper()} (sin conversión a USD)"
         elif invoice.original_currency.upper() != "USD":

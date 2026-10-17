@@ -89,9 +89,14 @@ class SanctionsRepository(Protocol):
 
 
 class TreasuryRepository(Protocol):
-    """Saldo y presupuesto de la cuenta Blinka, con el acumulado aprobado del mes en curso (FIN-02)."""
+    """Saldo y presupuesto de la cuenta Blinka, con lo comprometido desde la foto del saldo
+    y el acumulado aprobado del mes en curso (FIN-02)."""
 
     async def get(self, company_id: str) -> TreasuryStatus: ...
+
+    async def set_balance(self, company_id: str, balance_usd: float, as_of: datetime) -> TreasuryStatus:
+        """Toma una foto nueva del saldo a la fecha as_of (UTC): libera lo aprobado hasta esa fecha."""
+        ...
 
 
 class NotificationPort(Protocol):

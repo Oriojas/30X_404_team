@@ -12,6 +12,16 @@ from pydantic import BaseModel, Field, field_serializer
 from app.core.domain.models import CompanyRules, ExtractedInvoice, HumanDecision, ProcessedInvoice, TreasuryStatus
 
 
+def _utc_iso(value: Optional[datetime]) -> Optional[str]:
+    # La base guarda TIMESTAMP sin zona, siempre en UTC: se marca con "Z" para que el navegador
+    # lo convierta a su hora local en vez de tomarlo como hora local.
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 class InvoiceCreateRequest(BaseModel):
     """Payload para procesar una nueva factura manualmente o vía API (sin OCR)."""
     invoice_number: str
@@ -59,13 +69,7 @@ class InvoiceResponse(BaseModel):
 
     @field_serializer("processed_at", "decided_at")
     def _as_utc(self, value: Optional[datetime]) -> Optional[str]:
-        # La base guarda TIMESTAMP sin zona, siempre en UTC: se marca con "Z" para que el navegador
-        # lo convierta a su hora local en vez de tomarlo como hora local.
-        if value is None:
-            return None
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        return _utc_iso(value)
 
     @classmethod
     def from_domain(cls, invoice: ProcessedInvoice) -> "InvoiceResponse":
@@ -96,14 +100,26 @@ class CompanyRulesResponse(BaseModel):
 
 
 class TreasuryResponse(BaseModel):
-    """Liquidez de la cuenta Blinka expuesta al Dashboard."""
+    """Liquidez de la cuenta Blinka expuesta al Dashboard: saldo de la foto, comprometido y disponible."""
     balance_usd: float
+    committed_usd: float
+    available_usd: float
+    snapshot_at: Optional[datetime] = None
     monthly_budget_usd: float
     month_spent_usd: float
 
+    @field_serializer("snapshot_at")
+    def _as_utc(self, value: Optional[datetime]) -> Optional[str]:
+        return _utc_iso(value)
+
     @classmethod
     def from_domain(cls, treasury: TreasuryStatus) -> "TreasuryResponse":
-        return cls(**asdict(treasury))
+        return cls(**asdict(treasury), available_usd=treasury.available_usd)
+
+
+class TreasuryBalanceUpdate(BaseModel):
+    """Saldo vigente de la cuenta Blinka: toma una foto nueva. El presupuesto se edita en la Fase 7 (F7.1)."""
+    balance_usd: float = Field(gt=0)
 
 
 class CompanyRulesUpdate(BaseModel):

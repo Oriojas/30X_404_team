@@ -164,6 +164,17 @@ railway domain --service backend   # solo la primera vez: genera el dominio púb
 
 Un `apply` de proyecto completo **borra lo que no esté en el archivo**: todo servicio nuevo se agrega primero a `railway.ts`. Después de aplicar, `railway config plan` debe responder "already up to date".
 
+### Foto del saldo tras el primer deploy de la Fase 6
+
+La migración solo cambia el `DEFAULT` de `treasury_accounts.updated_at`: la fila que ya existe en producción conserva la fecha del seed original, así que **todo lo aprobado desde entonces** (humos, Telegram, aprobaciones del Drawer) queda comprometido y el disponible puede quedar en cero o negativo. Paso obligatorio justo después del deploy:
+
+```bash
+curl -s -X PATCH https://backend-production-ea088.up.railway.app/api/treasury \
+  -H "Content-Type: application/json" -d '{"balance_usd": 8500}'
+```
+
+`scripts/humo_produccion.py` hace lo mismo antes de TC-01. No se automatiza en `schema.sql` porque corre en cada arranque: liberaría lo comprometido en cada redeploy.
+
 ### Secretos
 
 Nunca van al repo ni a `railway.ts`, donde figuran como `preserve()`. Se cargan una vez y se mantienen entre `apply`:
@@ -189,7 +200,7 @@ El script nunca imprime el token. Si `TELEGRAM_WEBHOOK_SECRET` cambia, hay que v
 
 ### Prueba de humo
 
-Verifica `/api/health`, TC-01..TC-07, `/api/rules` y el CORS del frontend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
+Verifica `/api/health`, toma una foto del saldo con `PATCH /api/treasury` (el saldo del seed, `SALDO_DEMO_USD`), recorre TC-01..TC-07 y revisa `/api/rules` y el CORS del frontend. La foto libera lo comprometido por corridas anteriores, para que TC-01 no escale por FIN-01/FIN-03: ojo, cambia la tesorería del backend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
 
 ```bash
 cd backend
@@ -213,7 +224,8 @@ Sale con código `1` si algún caso falla. Supone el seed de demostración y las
 | `POST` | `/api/invoices/{id}/decision` | Decisión humana sobre una factura `SCALED_TO_HUMAN`: `{"decision": "APPROVE" \| "REJECT", "decided_by": "...", "note": "..."}`. Responde `404` si no existe y `409` si no está escalada |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
-| `GET` | `/api/treasury` | Saldo, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
+| `GET` | `/api/treasury` | Saldo de la foto, comprometido, disponible, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
+| `PATCH` | `/api/treasury` | Registra el saldo vigente (`balance_usd`) como foto nueva: lo aprobado antes deja de comprometerlo |
 
 ### Ingesta idempotente
 
@@ -233,6 +245,12 @@ Una misma entrega se procesa una sola vez por canal, aunque llegue repetida:
 ```bash
 curl -s -X POST localhost:8000/api/invoices/upload -H "Idempotency-Key: $(uuidgen)" -F "file=@tests/fixtures/factura_devstudio.png"
 ```
+
+### Tesorería comprometida
+
+- `balance_usd` es una **foto** del saldo a la fecha de `treasury_accounts.updated_at` (UTC). Lo aprobado después (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`) queda **comprometido**, y FIN-01 y FIN-03 evalúan contra el **disponible** (saldo − comprometido). `PATCH /api/treasury` con `{"balance_usd": ...}` toma una foto nueva.
+- Al aprobar desde el dashboard se revalida la solvencia: la persona siempre puede aprobar, y el Audit Log registra el disponible y las alertas FIN vigentes. Una factura sin conversión a USD (INTEG-04) responde `409`: solo se puede rechazar.
+- **Una sola réplica:** la lectura de la tesorería, la evaluación y el guardado se serializan con un `asyncio.Lock` compartido (ingesta, decisión humana y `PATCH`), creado en `container.py`. Solo protege dentro de un proceso. Con más réplicas o workers de `uvicorn`, hay que cambiarlo por `pg_advisory_xact_lock` en una transacción de PostgreSQL.
 
 ---
 

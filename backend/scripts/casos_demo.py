@@ -2,7 +2,13 @@
 Casos de demostración TC-01..TC-07 sobre el seed (DB_SEED_DEMO=true) y las reglas por defecto.
 Fuente única para tests/test_postgres_integration.py y scripts/humo_produccion.py.
 Cada caso: (id, decision_status esperado, regla que debe aparecer en audit_explanation o None, payload).
+
+Antes de TC-01 se toma una foto del saldo con PATCH /api/treasury y SALDO_DEMO_USD (Fase 6): así lo aprobado
+en corridas anteriores deja de comprometer el saldo y TC-01 no escala por FIN-01/FIN-03.
 """
+
+# Saldo del seed (treasury_accounts): TC-05 lo supera
+SALDO_DEMO_USD = 8500.00
 
 CASOS = [
     ("TC-01", "AUTO_APPROVED", None, {

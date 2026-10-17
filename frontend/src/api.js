@@ -17,11 +17,32 @@ export const DEFAULT_RULES = {
 // Tesorería del seed de demostración: solo en modo demostración (con la API viva nunca se finge un saldo)
 export const DEFAULT_TREASURY = {
   balance_usd: 8500,
+  committed_usd: 0,
+  available_usd: 8500,
+  snapshot_at: null,
   monthly_budget_usd: 25000,
   month_spent_usd: 0
 }
 
-// Holgura sobre el colchón: qué parte del saldo queda libre por encima de la reserva (FIN-03).
+// Disponible = saldo de la foto − pagos aprobados después de ella (FIN-01 y FIN-03 deciden con este valor).
+// Un backend anterior a la Fase 6 no envía available_usd: el disponible es el saldo.
+export function availableUsd(treasury) {
+  if (!treasury || treasury.balance_usd == null) return null
+  if (treasury.available_usd != null) return treasury.available_usd
+  return treasury.balance_usd - (treasury.committed_usd ?? 0)
+}
+
+// Presupuesto del período (FIN-02): gastado y restante del mes; null si falta el presupuesto.
+export function budgetUsage(treasury) {
+  if (!treasury || treasury.monthly_budget_usd == null) return null
+  const budget = Number(treasury.monthly_budget_usd)
+  const spent = Number(treasury.month_spent_usd ?? 0)
+  if (!Number.isFinite(budget) || !Number.isFinite(spent)) return null
+  const pct = budget > 0 ? Math.min(100, (spent / budget) * 100) : 100
+  return { budget, spent, remaining: budget - spent, pct, ok: spent < budget }
+}
+
+// Holgura sobre el colchón: qué parte del disponible queda libre por encima de la reserva (FIN-03).
 // null si falta el saldo o la reserva no es un número válido (p. ej. el campo está vacío mientras se edita).
 export function treasuryHeadroom(balanceUsd, bufferUsd) {
   if (balanceUsd == null || bufferUsd == null || bufferUsd === '') return null
@@ -45,8 +66,11 @@ export function headroomColor(headroom) {
   return headroom.ok ? 'text-emerald-700' : 'text-red-600'
 }
 
+// Negativos como "-$1,950" (p. ej. un disponible sobregirado por una excepción aprobada), no "$-1,950"
 export function formatUsd(amount, decimals = 0) {
-  return `$${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
+  const value = Number(amount || 0)
+  const text = Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+  return `${value < 0 ? '-' : ''}$${text}`
 }
 
 // El backend guarda las fechas en UTC y las envía con "Z". Una fecha sin zona (backend anterior)

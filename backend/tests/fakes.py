@@ -89,8 +89,11 @@ class InMemoryInvoices:
 
 
 class InMemoryRules:
+    def __init__(self, **overrides):
+        self.overrides = overrides
+
     async def get(self, company_id):
-        return CompanyRules(company_id="TEST")
+        return CompanyRules(company_id="TEST", **self.overrides)
 
     async def save(self, rules):
         return rules
@@ -110,11 +113,49 @@ class NoSanctions:
 
 
 class FixedTreasury:
-    def __init__(self, month_spent_usd=0.0):
+    """Saldo de $8,500 y presupuesto de $25,000; set_balance toma una foto nueva y libera lo comprometido."""
+
+    def __init__(self, month_spent_usd=0.0, committed_usd=0.0, snapshot_at=None):
+        self.balance_usd = 8500.0
         self.month_spent_usd = month_spent_usd
+        self.committed_usd = committed_usd
+        self.snapshot_at = snapshot_at
 
     async def get(self, company_id):
-        return TreasuryStatus(balance_usd=8500, monthly_budget_usd=25000, month_spent_usd=self.month_spent_usd)
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000,
+                              month_spent_usd=self.month_spent_usd, committed_usd=self.committed_usd,
+                              snapshot_at=self.snapshot_at)
+
+    async def set_balance(self, company_id, balance_usd, as_of):
+        self.balance_usd, self.committed_usd, self.snapshot_at = balance_usd, 0.0, as_of
+        return await self.get(company_id)
+
+
+def approved_at(invoice):
+    """Fecha de aprobación como el CASE de PostgresTreasuryRepository.get (D4)."""
+    if invoice.decision_status == DecisionStatus.AUTO_APPROVED:
+        return invoice.processed_at
+    return invoice.decided_at or invoice.processed_at
+
+
+class LedgerTreasury:
+    """Saldo con foto: compromete lo aprobado en InMemoryInvoices después de snapshot_at.
+    Lee y luego cede el control, como una consulta real: sin candado, dos evaluaciones ven el mismo disponible."""
+
+    def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None):
+        self.invoices, self.balance_usd = invoices, balance_usd
+        self.snapshot_at = snapshot_at or datetime.utcnow()
+
+    async def get(self, company_id):
+        committed = sum(i.usd_amount for i in self.invoices.items.values()
+                        if i.decision_status in APPROVED and approved_at(i) > self.snapshot_at)
+        await asyncio.sleep(0)  # el resultado llega después: puede quedar obsoleto si nadie serializa
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000, committed_usd=committed,
+                              snapshot_at=self.snapshot_at)
+
+    async def set_balance(self, company_id, balance_usd, as_of):
+        self.balance_usd, self.snapshot_at = balance_usd, as_of
+        return await self.get(company_id)
 
 
 class SpyNotifier:
