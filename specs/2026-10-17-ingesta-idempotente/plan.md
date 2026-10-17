@@ -28,7 +28,7 @@
 ## 4. Caso de uso (F2.3 + F2.6)
 
 4.1. `ProcessInvoiceUseCase.__init__` recibe `ingestion: Optional[IngestionLog] = None` (sin log, se comporta como hoy).
-4.2. Envoltorio privado `_idempotent(channel, external_id, work)` que aplica D9: `claim` → si hay registro devolver `IngestionResult(duplicate=True, in_progress=status == "PROCESSING", invoice=...)` → ejecutar `work` → `complete` → en excepción `release` y relanzar.
+4.2. Envoltorio privado `_idempotent(channel, external_id, work)` que aplica D9: `claim` → si hay registro devolver `IngestionResult(duplicate=True, in_progress=status == "PROCESSING", invoice=...)` → ejecutar `work` → `complete` → `notify_decision`; ante cualquier excepción (incluida la cancelación) `release` y relanzar.
 4.3. `from_document(..., external_id=None)` y `from_extracted(..., external_id=None)` devuelven `IngestionResult`; `notify_received` queda dentro del trabajo reclamado.
 4.4. En `from_document`, calcular `hashlib.sha256(file_bytes).hexdigest()`. Si `find_by_file_hash` encuentra una factura dentro de `duplicate_check_days`, saltar el OCR, reconstruir el `ExtractedInvoice` con sus datos y evaluar con `is_duplicate=True` y una explicación INTEG-01 que cite la factura original (D8).
 4.5. Guardar el hash en la factura nueva en todos los casos.

@@ -28,7 +28,7 @@ class FakeProcessInvoice:
     async def from_remote_document(self, load_file, mime_type, channel_source, chat_id=None, external_id=None):
         await load_file()
         self.calls.append((mime_type, channel_source, chat_id, external_id))
-        return SimpleNamespace(duplicate=False,
+        return SimpleNamespace(duplicate=False, in_progress=False,
                                invoice=SimpleNamespace(decision_status=DecisionStatus.SCALED_TO_HUMAN))
 
 
@@ -109,7 +109,7 @@ def test_update_repetido_responde_duplicate_sin_descargar_ni_avisar():
     assert len(notifier.received) == 1 and len(notifier.decisions) == 1
 
 
-def test_update_en_proceso_responde_200_duplicate():
+def test_update_en_proceso_responde_503_para_que_telegram_reintente():
     import asyncio
 
     use_case, invoices, notifier, log = real_use_case()
@@ -117,8 +117,13 @@ def test_update_en_proceso_responde_200_duplicate():
     asyncio.run(log.claim("TELEGRAM", "9001"))  # la primera entrega sigue procesando
 
     response = post(client, token=SECRET)
-    assert response.status_code == 200 and response.json() == {"status": "duplicate"}
+    assert response.status_code == 503
     assert files.downloaded == [] and invoices.items == {} and notifier.received == []
+
+    # La primera entrega falló y liberó la clave: el reintento de Telegram sí se procesa
+    asyncio.run(log.release("TELEGRAM", "9001"))
+    retry = post(client, token=SECRET)
+    assert retry.json() == {"status": "processed", "decision": "SCALED_TO_HUMAN"} and len(invoices.items) == 1
 
 
 def test_update_distinto_con_el_mismo_archivo_se_frena_por_integ01():

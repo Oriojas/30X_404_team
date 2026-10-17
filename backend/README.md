@@ -141,7 +141,7 @@ En Railway, la variable `$PORT` es asignada en runtime y el contenedor arranca a
 | Método | Ruta | Descripción |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | Estado del servicio y de la conexión a PostgreSQL |
-| `POST` | `/api/webhook/telegram` | Canal de ingesta: fotos y documentos de Telegram. Un `update_id` repetido responde `200 {"status": "duplicate"}` |
+| `POST` | `/api/webhook/telegram` | Canal de ingesta: fotos y documentos de Telegram. Un `update_id` ya procesado responde `200 {"status": "duplicate"}`; uno aún en proceso, `503` |
 | `GET` | `/api/invoices` | Listado histórico de facturas y decisiones del Audit Log (arreglo JSON, con `evaluations` por capa) |
 | `POST` | `/api/invoices` | Evaluación de una factura con datos ya estructurados (sin OCR). Acepta `Idempotency-Key` |
 | `POST` | `/api/invoices/upload` | Canal de ingesta web: `multipart/form-data` con campo `file` (JPG, PNG, WEBP o PDF, máx. 10 MB). Acepta `Idempotency-Key` |
@@ -157,7 +157,7 @@ Una misma entrega se procesa una sola vez por canal, aunque llegue repetida:
 | :--- | :--- | :--- | :--- | :--- |
 | `POST /api/invoices/upload` | Header `Idempotency-Key` | `201` | `200` con la misma factura | `409` (reintenta con la misma clave) |
 | `POST /api/invoices` | Header `Idempotency-Key` | `201` | `200` con la misma factura | `409` |
-| Webhook de Telegram | `update_id` | `{"status": "processed", ...}` | `200 {"status": "duplicate", "decision": ...}` | `200 {"status": "duplicate"}` |
+| Webhook de Telegram | `update_id` | `{"status": "processed", ...}` | `200 {"status": "duplicate", "decision": ...}` | `503` (Telegram reintenta más tarde) |
 
 - El header es opcional (1 a 200 caracteres; si no, `422`). Sin él, cada solicitud crea una factura nueva.
 - Una repetición no reprocesa ni vuelve a avisar al canal; Telegram tampoco vuelve a descargar el archivo.

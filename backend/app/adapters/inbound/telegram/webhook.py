@@ -4,7 +4,9 @@ Recibe updates con fotos/PDFs, descarga el adjunto y lo entrega al caso de uso P
 Telegram es solo canal de ingesta: la aprobación de facturas escaladas se hace en el dashboard.
 
 Idempotencia: el update_id es el external_id. Telegram reintenta mientras no reciba 200, así que un update
-repetido (terminado o aún en proceso) responde 200 {"status": "duplicate"} sin volver a descargar ni avisar.
+ya procesado responde 200 {"status": "duplicate"} sin volver a descargar ni avisar. Si la primera entrega
+aún está en proceso se responde 503: Telegram reintenta más tarde y, si esa entrega falla y libera la clave,
+el reintento sí la procesa (con 200 el update se perdería).
 
 Seguridad: Telegram firma cada llamada con el header X-Telegram-Bot-Api-Secret-Token (configurado en
 setWebhook con secret_token). Sin TELEGRAM_WEBHOOK_SECRET el webhook queda deshabilitado (falla cerrado).
@@ -74,9 +76,8 @@ async def telegram_webhook(
         lambda: files.download_file(file_id), mime_type, channel_source="TELEGRAM", chat_id=chat_id,
         external_id=str(update_id) if update_id is not None else None,
     )
+    if result.in_progress:
+        raise HTTPException(503, "El update aún se está procesando; Telegram lo reintentará.")
     if result.duplicate:
-        body = {"status": "duplicate"}
-        if result.invoice:
-            body["decision"] = result.invoice.decision_status.value
-        return body
+        return {"status": "duplicate", "decision": result.invoice.decision_status.value}
     return {"status": "processed", "decision": result.invoice.decision_status.value}

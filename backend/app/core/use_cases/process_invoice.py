@@ -121,22 +121,28 @@ class ProcessInvoiceUseCase:
     async def _idempotent(
         self, channel: str, external_id: Optional[str], work: Callable[[], Awaitable[ProcessedInvoice]]
     ) -> IngestionResult:
-        """Reclama (canal, external_id) antes de procesar; una repetición devuelve la factura original sin avisos."""
-        if not self.ingestion or not external_id:
-            return IngestionResult(invoice=await work())
-
-        existing = await self.ingestion.claim(channel, external_id)
-        if existing:
-            invoice = await self.invoices.get(existing.invoice_id) if existing.invoice_id else None
-            return IngestionResult(invoice=invoice, duplicate=True)
+        """Reclama (canal, external_id) antes de procesar; una repetición devuelve la factura original sin avisos.
+        El dictamen se avisa después de marcar la entrega como completada: si el aviso falla, el reintento
+        no crea una segunda factura."""
+        claimed = bool(self.ingestion and external_id)
+        if claimed:
+            existing = await self.ingestion.claim(channel, external_id)
+            if existing:
+                invoice = await self.invoices.get(existing.invoice_id) if existing.invoice_id else None
+                return IngestionResult(invoice=invoice, duplicate=True)
 
         try:
             saved = await work()
-        except Exception:
-            # Libera la clave para que el reintento del canal sí se procese
-            await self.ingestion.release(channel, external_id)
+        except BaseException:
+            # Libera la clave (también si la solicitud se cancela) para que el reintento del canal sí se procese
+            if claimed:
+                await self.ingestion.release(channel, external_id)
             raise
-        await self.ingestion.complete(channel, external_id, saved.id)
+        if claimed:
+            await self.ingestion.complete(channel, external_id, saved.id)
+
+        if self.notifier:
+            await self.notifier.notify_decision(saved)
         return IngestionResult(invoice=saved)
 
     async def _evaluate(
@@ -160,11 +166,7 @@ class ProcessInvoiceUseCase:
             invoice, context.usd_amount, fx_rate, decision, channel_source, chat_id
         )
         processed.file_sha256 = file_sha256
-        saved = await self.invoices.save(processed)
-
-        if self.notifier:
-            await self.notifier.notify_decision(saved)
-        return saved
+        return await self.invoices.save(processed)
 
     @staticmethod
     def _extraction_of(invoice: ProcessedInvoice) -> ExtractedInvoice:

@@ -5,13 +5,15 @@
 
 ## Criterios bloqueantes
 
-> Verificado el 17-oct-2026 en `feat/ingesta-idempotente`: 62 pasadas (6 omitidas) sin `TEST_DATABASE_URL` ni red; 68 de 68 con PostgreSQL 16 en Docker, tres corridas seguidas sobre la misma base.
+> Verificado el 17-oct-2026 en `feat/ingesta-idempotente`: 64 pasadas (6 omitidas) sin `TEST_DATABASE_URL` ni red; 70 de 70 con PostgreSQL 16 en Docker, tres corridas seguidas sobre la misma base.
 
 ### Pruebas automáticas (fakes, sin red)
 
 - [x] `pytest` en `backend/` pasa completo, incluido `tests/test_architecture.py`, sin `GEMINI_API_KEY` ni internet.
 - [x] **Telegram:** el mismo `update_id` dos veces → una sola factura, un solo `notify_received` y un solo `notify_decision`; la segunda respuesta es `200 {"status": "duplicate"}` y el archivo no se vuelve a descargar.
-- [x] **Telegram en proceso:** un `update_id` reclamado y sin terminar → `200 {"status": "duplicate"}` (nunca un código que haga reintentar a Telegram).
+- [x] **Telegram en proceso:** un `update_id` reclamado y sin terminar → `503`, sin descargar. Si la primera entrega libera la clave, el reintento sí se procesa.
+- [x] **Aviso después de guardar:** si `notify_decision` falla, la entrega queda `COMPLETED` y el reintento devuelve la misma factura.
+- [x] **Cancelación:** una solicitud cancelada a mitad del OCR libera la clave.
 - [x] **Web y API:** la misma `Idempotency-Key` dos veces en `/upload` y en `POST /api/invoices` → `201` y luego `200` con el mismo `id`.
 - [x] **En proceso:** una clave reclamada sin factura → `409` con el mensaje "aún se está procesando".
 - [x] **Sin header:** dos subidas sin `Idempotency-Key` crean dos facturas (comportamiento actual intacto).

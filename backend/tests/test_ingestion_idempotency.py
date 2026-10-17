@@ -149,3 +149,35 @@ def test_hash_de_factura_rechazada_o_fuera_de_ventana_se_procesa_normal():
         invoices.items[invoice_id] = replace(invoice, processed_at=datetime.utcnow() - timedelta(days=40))
     asyncio.run(use_case.from_document(b"factura", "image/png", "WEB"))
     assert ocr.calls == 3
+
+
+def test_falla_del_aviso_despues_de_guardar_no_duplica_en_el_reintento():
+    use_case, _, invoices, notifier, log = build()
+
+    async def broken_notify(invoice):
+        raise ConnectionError("Telegram caído")
+
+    notifier.notify_decision = broken_notify
+    with pytest.raises(ConnectionError):
+        asyncio.run(use_case.from_extracted(cop_invoice(), "API", external_id="k-1"))
+    assert log.records[("API", "k-1")].status == IngestionStatus.COMPLETED
+
+    retry = asyncio.run(use_case.from_extracted(cop_invoice(), "API", external_id="k-1"))
+    assert retry.duplicate and retry.invoice.id == 1 and len(invoices.items) == 1
+
+
+def test_cancelacion_libera_la_clave():
+    use_case, ocr, invoices, _, log = build()
+
+    async def cancel_midway():
+        task = asyncio.create_task(use_case.from_document(b"img", "image/jpeg", "WEB", external_id="k-1"))
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(cancel_midway())
+    assert ocr.calls == 1  # se canceló con la clave ya reclamada, durante el OCR
+    assert ("WEB", "k-1") not in log.records and invoices.items == {}
+    assert not asyncio.run(use_case.from_document(b"img", "image/jpeg", "WEB", external_id="k-1")).duplicate
