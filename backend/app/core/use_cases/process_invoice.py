@@ -43,6 +43,7 @@ class ProcessInvoiceUseCase:
         company_id: str,
         notifier: Optional[NotificationPort] = None,
         ingestion: Optional[IngestionLog] = None,
+        solvency_lock: Optional[asyncio.Lock] = None,
     ):
         self.ocr = ocr
         self.fx_rates = fx_rates
@@ -55,6 +56,9 @@ class ProcessInvoiceUseCase:
         self.company_id = company_id
         self.notifier = notifier
         self.ingestion = ingestion
+        # Compartido con DecideInvoiceUseCase y el PATCH de tesorería (una instancia en container.py):
+        # dos evaluaciones no leen el mismo disponible. Vale con una sola réplica del backend.
+        self.solvency_lock = solvency_lock or asyncio.Lock()
 
     async def from_document(
         self,
@@ -154,18 +158,20 @@ class ProcessInvoiceUseCase:
         duplicate_of: Optional[int] = None,
     ) -> ProcessedInvoice:
         usd_amount, fx_rate = await self._convert_to_usd(invoice)
-        context = await self._build_context(invoice, usd_amount, fx_rate, company_rules.duplicate_check_days)
-        if duplicate_of is not None:
-            context.is_duplicate = True
-            context.duplicate_of_invoice_id = duplicate_of
+        # Desde la lectura de la tesorería hasta guardar el dictamen (el OCR queda fuera del candado)
+        async with self.solvency_lock:
+            context = await self._build_context(invoice, usd_amount, fx_rate, company_rules.duplicate_check_days)
+            if duplicate_of is not None:
+                context.is_duplicate = True
+                context.duplicate_of_invoice_id = duplicate_of
 
-        decision = self.pipeline.evaluate_invoice(invoice, context, company_rules)
-        # Sin conversión se registra 0 USD y tasa nula; la explicación (INTEG-04) muestra el monto original
-        processed = AuditLogger.build_processed_invoice(
-            invoice, context.usd_amount, fx_rate, decision, channel_source, chat_id
-        )
-        processed.file_sha256 = file_sha256
-        return await self.invoices.save(processed)
+            decision = self.pipeline.evaluate_invoice(invoice, context, company_rules)
+            # Sin conversión se registra 0 USD y tasa nula; la explicación (INTEG-04) muestra el monto original
+            processed = AuditLogger.build_processed_invoice(
+                invoice, context.usd_amount, fx_rate, decision, channel_source, chat_id
+            )
+            processed.file_sha256 = file_sha256
+            return await self.invoices.save(processed)
 
     @staticmethod
     def _extraction_of(invoice: ProcessedInvoice) -> ExtractedInvoice:

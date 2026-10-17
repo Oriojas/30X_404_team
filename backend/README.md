@@ -235,6 +235,12 @@ Una misma entrega se procesa una sola vez por canal, aunque llegue repetida:
 curl -s -X POST localhost:8000/api/invoices/upload -H "Idempotency-Key: $(uuidgen)" -F "file=@tests/fixtures/factura_devstudio.png"
 ```
 
+### Tesorería comprometida
+
+- `balance_usd` es una **foto** del saldo a la fecha de `treasury_accounts.updated_at` (UTC). Lo aprobado después (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`) queda **comprometido**, y FIN-01 y FIN-03 evalúan contra el **disponible** (saldo − comprometido). `PATCH /api/treasury` con `{"balance_usd": ...}` toma una foto nueva.
+- Al aprobar desde el dashboard se revalida la solvencia: la persona siempre puede aprobar, y el Audit Log registra el disponible y las alertas FIN vigentes. Una factura sin conversión a USD (INTEG-04) responde `409`: solo se puede rechazar.
+- **Una sola réplica:** la lectura de la tesorería, la evaluación y el guardado se serializan con un `asyncio.Lock` compartido (ingesta, decisión humana y `PATCH`), creado en `container.py`. Solo protege dentro de un proceso. Con más réplicas o workers de `uvicorn`, hay que cambiarlo por `pg_advisory_xact_lock` en una transacción de PostgreSQL.
+
 ---
 
 ## 🤖 Registrar el Webhook de Telegram

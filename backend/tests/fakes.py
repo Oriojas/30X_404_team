@@ -89,8 +89,11 @@ class InMemoryInvoices:
 
 
 class InMemoryRules:
+    def __init__(self, **overrides):
+        self.overrides = overrides
+
     async def get(self, company_id):
-        return CompanyRules(company_id="TEST")
+        return CompanyRules(company_id="TEST", **self.overrides)
 
     async def save(self, rules):
         return rules
@@ -125,6 +128,26 @@ class FixedTreasury:
 
     async def set_balance(self, company_id, balance_usd, as_of):
         self.balance_usd, self.committed_usd, self.snapshot_at = balance_usd, 0.0, as_of
+        return await self.get(company_id)
+
+
+class LedgerTreasury:
+    """Saldo con foto: compromete lo aprobado en InMemoryInvoices después de snapshot_at.
+    La lectura cede el control, como una consulta real: sin candado, dos evaluaciones ven el mismo disponible."""
+
+    def __init__(self, invoices, balance_usd=8500.0, snapshot_at=None):
+        self.invoices, self.balance_usd = invoices, balance_usd
+        self.snapshot_at = snapshot_at or datetime.utcnow()
+
+    async def get(self, company_id):
+        await asyncio.sleep(0)
+        committed = sum(i.usd_amount for i in self.invoices.items.values()
+                        if i.decision_status in APPROVED and (i.decided_at or i.processed_at) > self.snapshot_at)
+        return TreasuryStatus(balance_usd=self.balance_usd, monthly_budget_usd=25000, committed_usd=committed,
+                              snapshot_at=self.snapshot_at)
+
+    async def set_balance(self, company_id, balance_usd, as_of):
+        self.balance_usd, self.snapshot_at = balance_usd, as_of
         return await self.get(company_id)
 
 

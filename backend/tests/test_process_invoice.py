@@ -13,7 +13,8 @@ from app.core.domain.rules_pipeline import RulesPipeline
 from app.core.use_cases import DecideInvoiceUseCase, ProcessInvoiceUseCase
 
 from .fakes import (
-    FakeOCR, FakeRates, FixedTreasury, InMemoryInvoices, InMemoryRules, InMemoryVendors, NoSanctions, SpyNotifier,
+    FakeOCR, FakeRates, FixedTreasury, InMemoryInvoices, InMemoryRules, InMemoryVendors, LedgerTreasury, NoSanctions,
+    SpyNotifier,
 )
 
 VENDOR = Vendor("900.584.112-4", "DevStudio LatAm S.A.S.", contract_amount_usd=5000)
@@ -158,4 +159,37 @@ def test_factura_sin_conversion_a_usd_no_se_puede_aprobar_pero_si_rechazar():
 
     rejected = asyncio.run(decide.execute(integ04.id, HumanDecision.REJECT, "CFO"))
     assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
+
+
+def test_dos_ingestas_concurrentes_no_comprometen_mas_que_el_disponible():
+    """F6.4: $8,500 de saldo y $1,000 de colchón; facturas de $4,000 y $4,100 a la vez: solo una sale aprobada sola.
+    (Montos distintos para que INTEG-01 no las tome como duplicadas.)"""
+    from dataclasses import replace
+    from datetime import datetime, timedelta
+
+    invoices = InMemoryInvoices()
+    # Historial anterior a la foto: da antigüedad al proveedor (HITL-02) y no compromete
+    asyncio.run(invoices.save(replace(
+        asyncio.run(build(cop_invoice())[0].from_extracted(cop_invoice("OLD-1", 100_000), "API")).invoice,
+        decision_status=DecisionStatus.AUTO_APPROVED, processed_at=datetime.utcnow() - timedelta(days=10))))
+    lock = asyncio.Lock()
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=invoices,
+        rules=InMemoryRules(max_autonomous_usd=5000), vendors=InMemoryVendors(VENDOR), sanctions=NoSanctions(),
+        treasury=LedgerTreasury(invoices), company_id="TEST", solvency_lock=lock,
+    )
+
+    def usd(number, amount):
+        return ExtractedInvoice(invoice_number=number, vendor_name=VENDOR.legal_name, original_amount=amount,
+                                original_currency="USD")
+
+    async def race():
+        return await asyncio.gather(use_case.from_extracted(usd("DS-A", 4000), "TELEGRAM"),
+                                    use_case.from_extracted(usd("DS-B", 4100), "WEB"))
+
+    first, second = (r.invoice for r in asyncio.run(race()))
+    statuses = sorted([first.decision_status, second.decision_status])
+    assert statuses == [DecisionStatus.AUTO_APPROVED, DecisionStatus.SCALED_TO_HUMAN]
+    scaled = first if first.decision_status == DecisionStatus.SCALED_TO_HUMAN else second
+    assert "FIN-03" in scaled.audit_explanation
 

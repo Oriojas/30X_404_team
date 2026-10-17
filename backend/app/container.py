@@ -4,6 +4,8 @@ Composition Root
 Para cambiar Gemini, PostgreSQL o la fuente de tasas basta con modificar este archivo.
 """
 
+import asyncio
+
 from app.adapters.outbound.db.postgres_repository import (
     PostgresDatabase,
     PostgresIngestionLog,
@@ -52,6 +54,10 @@ class Container:
         rules_repo = PostgresRulesRepository(self.db, default_rules)
         treasury_repo = PostgresTreasuryRepository(self.db, default_treasury)
 
+        # Un solo candado de solvencia para ingesta, decisión humana y foto del saldo (F6.4).
+        # Basta con una réplica del backend; con varias se cambia por pg_advisory_xact_lock.
+        solvency_lock = asyncio.Lock()
+
         # Casos de uso
         self.process_invoice = ProcessInvoiceUseCase(
             ocr=GeminiOCRAdapter(settings.gemini_api_key, settings.gemini_model),
@@ -65,15 +71,16 @@ class Container:
             company_id=company_id,
             notifier=notifier,
             ingestion=PostgresIngestionLog(self.db),
+            solvency_lock=solvency_lock,
         )
         self.decide_invoice = DecideInvoiceUseCase(
-            invoice_repo, treasury_repo, rules_repo, company_id, notifier=notifier
+            invoice_repo, treasury_repo, rules_repo, company_id, notifier=notifier, solvency_lock=solvency_lock
         )
         self.list_invoices = ListInvoicesUseCase(invoice_repo)
         self.get_rules = GetRulesUseCase(rules_repo, company_id)
         self.update_rules = UpdateRulesUseCase(rules_repo, company_id)
         self.get_treasury = GetTreasuryUseCase(treasury_repo, company_id)
-        self.update_treasury = UpdateTreasuryBalanceUseCase(treasury_repo, company_id)
+        self.update_treasury = UpdateTreasuryBalanceUseCase(treasury_repo, company_id, solvency_lock)
 
     def status(self) -> dict:
         return {

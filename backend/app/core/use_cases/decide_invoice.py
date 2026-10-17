@@ -6,6 +6,7 @@ pero el Audit Log registra el disponible y las alertas FIN como excepción aprob
 Los canales de ingesta (Telegram, etc.) solo reciben el aviso del resultado.
 """
 
+import asyncio
 from datetime import datetime
 from typing import Optional
 
@@ -28,6 +29,7 @@ class DecideInvoiceUseCase:
         company_id: str,
         notifier: Optional[NotificationPort] = None,
         pipeline: Optional[RulesPipeline] = None,
+        solvency_lock: Optional[asyncio.Lock] = None,
     ):
         self.invoices = invoices
         self.treasury = treasury
@@ -35,9 +37,20 @@ class DecideInvoiceUseCase:
         self.company_id = company_id
         self.notifier = notifier
         self.pipeline = pipeline or RulesPipeline()
+        self.solvency_lock = solvency_lock or asyncio.Lock()
 
     async def execute(
         self, invoice_id: int, decision: HumanDecision, decided_by: str, note: Optional[str] = None
+    ) -> ProcessedInvoice:
+        # El mismo candado que la ingesta: la revalidación y el guardado ven un disponible estable
+        async with self.solvency_lock:
+            updated = await self._decide(invoice_id, decision, decided_by, note)
+        if self.notifier:
+            await self.notifier.notify_decision(updated)
+        return updated
+
+    async def _decide(
+        self, invoice_id: int, decision: HumanDecision, decided_by: str, note: Optional[str]
     ) -> ProcessedInvoice:
         invoice = await self.invoices.get(invoice_id)
         if invoice is None:
@@ -67,8 +80,6 @@ class DecideInvoiceUseCase:
             # Otro operador la decidió entre la lectura y la escritura
             current = await self.invoices.get(invoice_id)
             raise InvalidDecisionStateError(invoice_id, current.decision_status.value if current else "DESCONOCIDO")
-        if self.notifier:
-            await self.notifier.notify_decision(updated)
         return updated
 
     async def _revalidate_solvency(self, invoice: ProcessedInvoice, decided_by: str) -> str:
