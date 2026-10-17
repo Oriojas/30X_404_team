@@ -169,7 +169,7 @@ Además, todos los imports son absolutos desde `app` y el Core solo depende de l
 | `adapters/inbound/api/` | Routers REST (`routers/`) y DTOs Pydantic (`schemas.py`) |
 | `adapters/inbound/telegram/webhook.py` | Webhook con su propio puerto `TelegramFileSource` |
 | `adapters/outbound/db/` | `postgres_repository.py`, `schema.sql`, `seed.sql` |
-| `adapters/outbound/ocr/gemini_ocr.py` | Adaptador OCR (**stub** hasta la Fase 1 del roadmap) |
+| `adapters/outbound/ocr/gemini_ocr.py` | Adaptador OCR con `google-genai` (cliente asíncrono, `gemini-3.8-flash`); el modelo normaliza y el adaptador solo convierte tipos |
 | `adapters/outbound/fx/static_rates.py` | Tasas fijas; `None` si la moneda no está soportada |
 | `adapters/outbound/notifications/channel_router.py` | Enruta avisos por canal de origen |
 | `adapters/outbound/telegram/telegram_client.py` | `getFile`, descarga de adjuntos y `sendMessage` |
@@ -422,7 +422,7 @@ El backend aplica el esquema al arrancar, así que no hace falta ejecutar el DDL
 | :--- | :--- |
 | Hexágono, tubería de 4 capas, Audit Log, decisión humana, API REST | ✅ Implementado y probado (incluida la integración con PostgreSQL) |
 | Webhook de Telegram (secret token, descarga y avisos) | ✅ Implementado; sin probar contra la API real de Telegram |
-| OCR con Gemini | ⏳ Stub — Fase 1 del roadmap |
+| OCR con Gemini | ✅ Implementado y probado con cliente simulado y contra la API real con las facturas de `backend/tests/fixtures`; falta la subida de punta a punta con PostgreSQL (F1.7) |
 | Ingesta idempotente por canal | ⏳ Fase 2 |
 | Dashboard conectado a la API real | ⏳ Fase 3 |
 | Despliegue en Railway con estas variables | ⏳ Fase 4 |

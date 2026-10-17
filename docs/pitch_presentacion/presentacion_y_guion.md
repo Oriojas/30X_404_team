@@ -127,7 +127,7 @@ Para asegurar que la grabación del video y la revisión de los jurados sea impe
 El criterio de **Viabilidad Técnica (20%)** exige que el código respalde exactamente lo que se muestra en el video. Antes de grabar, verificar:
 
 - [ ] El webhook de Telegram recibe fotos/PDF y responde. Ya está implementado (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`); falta probarlo con el bot real registrado con `setWebhook`.
-- [ ] `adapters/outbound/ocr/gemini_ocr.py` llama realmente a Gemini (`google-genai`) y devuelve el JSON estructurado. Hoy es un stub: Fase 1 del roadmap.
+- [x] `adapters/outbound/ocr/gemini_ocr.py` llama realmente a Gemini (`google-genai`) y devuelve el JSON estructurado (Fase 1 del roadmap).
 - [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-06 probados contra PostgreSQL.
 - [x] `/api/invoices` y `/api/rules` leen y escriben en PostgreSQL.
 - [ ] El Dashboard muestra datos reales de la API (hoy usa datos *mock* como respaldo): Fase 3 del roadmap.
