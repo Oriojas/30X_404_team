@@ -153,9 +153,11 @@ CREATE TABLE rules_config (
 │   ├── tailwind.config.js
 │   └── package.json
 └── docs/
-    ├── reglas_pago_agente_v3.md
-    ├── especificacion_solucion.md
-    └── arquitectura_solucion_v2.md
+    ├── README.md
+    ├── arquitectura/
+    ├── reglas-negocio/
+    ├── especificaciones/
+    └── diseno/
 ```
 
 ---
