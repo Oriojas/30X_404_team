@@ -22,8 +22,11 @@ CREATE TABLE IF NOT EXISTS treasury_accounts (
     company_id VARCHAR(50) NOT NULL UNIQUE,
     balance_usd NUMERIC(14,2) NOT NULL,
     monthly_budget_usd NUMERIC(14,2) NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT timezone('UTC', now())
 );
+-- balance_usd es una foto del saldo a la fecha de updated_at (UTC, como las fechas de las facturas):
+-- lo aprobado después de esa fecha queda comprometido contra el saldo.
+ALTER TABLE treasury_accounts ALTER COLUMN updated_at SET DEFAULT timezone('UTC', now());
 
 -- 3. Registro de proveedores verificados (Capas 1, 2 y 4)
 CREATE TABLE IF NOT EXISTS vendors (

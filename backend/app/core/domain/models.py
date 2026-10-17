@@ -62,10 +62,17 @@ class Vendor:
 
 @dataclass
 class TreasuryStatus:
-    """Liquidez de la cuenta Blinka en USD al momento de evaluar."""
+    """Liquidez de la cuenta Blinka en USD al momento de evaluar.
+    balance_usd es una foto del saldo a la fecha snapshot_at (UTC); committed_usd es lo aprobado después."""
     balance_usd: float
     monthly_budget_usd: float
     month_spent_usd: float = 0.0
+    committed_usd: float = 0.0
+    snapshot_at: Optional[datetime] = None
+
+    @property
+    def available_usd(self) -> float:
+        return self.balance_usd - self.committed_usd
 
 
 @dataclass

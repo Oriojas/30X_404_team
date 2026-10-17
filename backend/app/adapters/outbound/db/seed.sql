@@ -9,9 +9,10 @@ INSERT INTO company_rules (company_id, max_autonomous_usd, sarlaft_check_enabled
 VALUES ('BLINKA_DEFAULT', 2000.00, TRUE, 30, 1000.00)
 ON CONFLICT (company_id) DO NOTHING;
 
--- Tesorería: $8,500 USD de saldo (TC-05 lo supera) y $25,000 USD de presupuesto mensual
-INSERT INTO treasury_accounts (company_id, balance_usd, monthly_budget_usd)
-VALUES ('BLINKA_DEFAULT', 8500.00, 25000.00)
+-- Tesorería: $8,500 USD de saldo (TC-05 lo supera) y $25,000 USD de presupuesto mensual.
+-- La foto del saldo (updated_at, en UTC) es posterior al historial de abajo: ese historial no compromete nada.
+INSERT INTO treasury_accounts (company_id, balance_usd, monthly_budget_usd, updated_at)
+VALUES ('BLINKA_DEFAULT', 8500.00, 25000.00, timezone('UTC', now()))
 ON CONFLICT (company_id) DO NOTHING;
 
 -- Proveedores verificados

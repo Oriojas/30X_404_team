@@ -60,6 +60,8 @@ def test_demo_suite_against_seeded_database(client):
     assert len(client.get("/api/invoices").json()) == 5
     treasury = client.get("/api/treasury").json()
     assert treasury["balance_usd"] == 8500 and treasury["monthly_budget_usd"] == 25000
+    # La foto del seed es posterior a su historial: nada comprometido (F6.1)
+    assert treasury["committed_usd"] == 0 and treasury["available_usd"] == 8500
     # Del seed solo DS-1042 (hace 3 días, 1.200 USD) cae en el mes; las aprobadas de hace 35 a 50 días no cuentan
     assert treasury["month_spent_usd"] == (1200.0 if datetime.utcnow().day > 3 else 0.0)
 
@@ -80,7 +82,13 @@ def test_demo_suite_against_seeded_database(client):
                            json={"decision": "APPROVE", "decided_by": "CFO Blinka", "note": "Contrato vigente"})
     assert decision.status_code == 200 and decision.json()["decision_status"] == "HUMAN_APPROVED"
     # FIN-02 suma lo aprobado del mes, autónomo o humano: TC-01 (450) + TC-04 aprobada por el CFO (3.500)
-    assert client.get("/api/treasury").json()["month_spent_usd"] == treasury["month_spent_usd"] + 3950
+    after = client.get("/api/treasury").json()
+    assert after["month_spent_usd"] == treasury["month_spent_usd"] + 3950
+    assert after["committed_usd"] == 3950 and after["available_usd"] == 8500 - 3950
+    # Una foto nueva del saldo libera lo comprometido, sin tocar el gasto del mes
+    snapshot = client.patch("/api/treasury", json={"balance_usd": 8500}).json()
+    assert snapshot["committed_usd"] == 0 and snapshot["month_spent_usd"] == after["month_spent_usd"]
+    assert snapshot["snapshot_at"] > treasury["snapshot_at"]
     assert client.post(f"/api/invoices/{tc04['id']}/decision",
                        json={"decision": "REJECT", "decided_by": "CFO"}).status_code == 409
     assert client.post("/api/invoices/9999/decision", json={"decision": "REJECT", "decided_by": "CFO"}).status_code == 404
@@ -287,5 +295,62 @@ def test_solicitudes_concurrentes_con_la_misma_clave_procesan_una_sola_vez_en_po
 
         again = await use_case.from_document(b"misma factura", "image/png", "WEB", external_id="race-1")
         assert again.duplicate and again.invoice.invoice_number == "R-1"
+
+    run_with_db(scenario)
+
+
+def test_tesoreria_compromete_lo_aprobado_despues_de_la_foto_con_la_fecha_de_aprobacion():
+    """F6.1: comprometido y gasto del mes usan processed_at en AUTO_APPROVED y decided_at en HUMAN_APPROVED;
+    la foto del saldo se escribe en UTC."""
+    from datetime import datetime, timedelta
+    from app.adapters.outbound.db.postgres_repository import PostgresInvoiceRepository, PostgresTreasuryRepository
+    from app.core.domain.models import DecisionStatus, ProcessedInvoice, TreasuryStatus
+
+    def invoice(number, amount, status, processed_at):
+        return ProcessedInvoice(
+            invoice_number=number, vendor_name="Proveedor", original_amount=amount, original_currency="USD",
+            usd_amount=amount, fx_rate_applied=1.0, decision_status=status, audit_explanation="x",
+            processed_at=processed_at)
+
+    async def scenario(db):
+        invoices = PostgresInvoiceRepository(db)
+        treasury = PostgresTreasuryRepository(db, TreasuryStatus(balance_usd=0.0, monthly_budget_usd=0.0))
+        now = datetime.utcnow()
+
+        async def approve(saved, decided_at):
+            await invoices.update_decision(saved.id, DecisionStatus.HUMAN_APPROVED, "x", "CFO", decided_at, None,
+                                           expected_status=DecisionStatus.SCALED_TO_HUMAN)
+
+        # Aprobada antes de la foto: cuenta en el mes, no compromete
+        await invoices.save(invoice("A", 100, DecisionStatus.AUTO_APPROVED, now - timedelta(minutes=2)))
+        photo = await treasury.set_balance("BLINKA_DEFAULT", 8500, datetime.utcnow())
+        assert photo.committed_usd == 0 and photo.balance_usd == 8500
+        # Sin foto previa, el DEFAULT del esquema también queda en UTC aunque la base esté en otra zona
+        async with db.require_pool().acquire() as conn:
+            await conn.execute("INSERT INTO treasury_accounts (company_id, balance_usd, monthly_budget_usd) "
+                               "VALUES ('OTRA', 1, 1)")
+            default_at = await conn.fetchval("SELECT updated_at FROM treasury_accounts WHERE company_id = 'OTRA'")
+        assert abs((default_at - datetime.utcnow()).total_seconds()) < 60
+
+        await invoices.save(invoice("B", 200, DecisionStatus.AUTO_APPROVED, datetime.utcnow()))
+        await approve(await invoices.save(invoice("C", 300, DecisionStatus.SCALED_TO_HUMAN, datetime.utcnow())),
+                      datetime.utcnow())
+        # Ingresada hace 40 días y aprobada hoy: compromete y cuenta en el mes por decided_at
+        await approve(await invoices.save(invoice("D", 400, DecisionStatus.SCALED_TO_HUMAN, now - timedelta(days=40))),
+                      datetime.utcnow())
+        # Ingresada hoy y aprobada hace 40 días: no compromete ni cuenta en el mes
+        await approve(await invoices.save(invoice("E", 500, DecisionStatus.SCALED_TO_HUMAN, datetime.utcnow())),
+                      now - timedelta(days=40))
+        # Escaladas y rechazadas no cuentan
+        await invoices.save(invoice("F", 600, DecisionStatus.SCALED_TO_HUMAN, datetime.utcnow()))
+        await invoices.save(invoice("G", 700, DecisionStatus.REJECTED, datetime.utcnow()))
+
+        status = await treasury.get("BLINKA_DEFAULT")
+        assert status.committed_usd == 900 and status.available_usd == 7600
+        assert status.month_spent_usd == 1000
+
+        fresh = await treasury.set_balance("BLINKA_DEFAULT", 9000, datetime.utcnow())
+        assert fresh.balance_usd == 9000 and fresh.committed_usd == 0 and fresh.month_spent_usd == 1000
+        assert fresh.snapshot_at > photo.snapshot_at
 
     run_with_db(scenario)

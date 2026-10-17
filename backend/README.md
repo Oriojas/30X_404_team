@@ -213,7 +213,8 @@ Sale con código `1` si algún caso falla. Supone el seed de demostración y las
 | `POST` | `/api/invoices/{id}/decision` | Decisión humana sobre una factura `SCALED_TO_HUMAN`: `{"decision": "APPROVE" \| "REJECT", "decided_by": "...", "note": "..."}`. Responde `404` si no existe y `409` si no está escalada |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
-| `GET` | `/api/treasury` | Saldo, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
+| `GET` | `/api/treasury` | Saldo de la foto, comprometido, disponible, presupuesto mensual y gasto aprobado del mes de la cuenta Blinka |
+| `PATCH` | `/api/treasury` | Registra el saldo vigente (`balance_usd`) como foto nueva: lo aprobado antes deja de comprometerlo |
 
 ### Ingesta idempotente
 

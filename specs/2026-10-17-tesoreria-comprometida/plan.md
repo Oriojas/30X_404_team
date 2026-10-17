@@ -7,7 +7,7 @@
 1.1. `schema.sql`: `treasury_accounts.updated_at` con `DEFAULT timezone('UTC', now())` (idempotente: `ALTER COLUMN ... SET DEFAULT`). `seed.sql` escribe `updated_at` con la misma expresión (D3).
 1.2. `TreasuryStatus` en `models.py`: agregar `committed_usd: float = 0.0` y `snapshot_at: Optional[datetime] = None`, y la propiedad `available_usd = balance_usd − committed_usd` (D5).
 1.3. `PostgresTreasuryRepository.get`: una sola consulta que devuelve saldo, presupuesto, `updated_at`, lo comprometido después de la foto y el gasto del mes, ambos con la fecha de aprobación de D4 (`processed_at` en `AUTO_APPROVED`, `decided_at` en `HUMAN_APPROVED`).
-1.4. Puerto `TreasuryRepository`: `set_balance(company_id, balance_usd) -> TreasuryStatus`, que actualiza saldo y `updated_at = timezone('UTC', now())`. Fake equivalente en `tests/fakes.py`.
+1.4. Puerto `TreasuryRepository`: `set_balance(company_id, balance_usd, as_of) -> TreasuryStatus`, que actualiza saldo y `updated_at = as_of` (UTC, reloj de la app; D3). Fake equivalente en `tests/fakes.py`.
 1.5. Caso de uso `UpdateTreasuryBalanceUseCase` en `query_treasury.py` (o archivo propio) y `PATCH /api/treasury` con `TreasuryBalanceUpdate` (`balance_usd > 0`, si no `422`) (D2).
 
 ## 2. Solvencia con el disponible (Core, F6.2)

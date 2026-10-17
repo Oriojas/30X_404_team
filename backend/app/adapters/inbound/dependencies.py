@@ -15,6 +15,7 @@ from app.core.use_cases import (
     ListInvoicesUseCase,
     ProcessInvoiceUseCase,
     UpdateRulesUseCase,
+    UpdateTreasuryBalanceUseCase,
 )
 
 
@@ -40,6 +41,10 @@ def get_get_treasury(request: Request) -> GetTreasuryUseCase:
 
 def get_update_rules(request: Request) -> UpdateRulesUseCase:
     return request.app.state.container.update_rules
+
+
+def get_update_treasury(request: Request) -> UpdateTreasuryBalanceUseCase:
+    return request.app.state.container.update_treasury
 
 
 def get_telegram_file_source(request: Request):

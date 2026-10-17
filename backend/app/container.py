@@ -27,6 +27,7 @@ from app.core.use_cases import (
     ListInvoicesUseCase,
     ProcessInvoiceUseCase,
     UpdateRulesUseCase,
+    UpdateTreasuryBalanceUseCase,
 )
 
 
@@ -70,6 +71,7 @@ class Container:
         self.get_rules = GetRulesUseCase(rules_repo, company_id)
         self.update_rules = UpdateRulesUseCase(rules_repo, company_id)
         self.get_treasury = GetTreasuryUseCase(treasury_repo, company_id)
+        self.update_treasury = UpdateTreasuryBalanceUseCase(treasury_repo, company_id)
 
     def status(self) -> dict:
         return {
