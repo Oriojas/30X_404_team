@@ -71,7 +71,7 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
         min_treasury_buffer_usd: Number(bufferUsd)
       },
       audit_protocol: "Audit Log PostgreSQL",
-      rail: "Blinka Zero-Markup FX"
+      rail: "Blinka Settlement Rail"
     }
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })

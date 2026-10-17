@@ -21,7 +21,7 @@ export default function HeroSection({ treasury, rules }) {
 
               {/* Subheadline */}
               <p className="text-sm sm:text-base text-brand-muted leading-relaxed font-normal max-w-2xl">
-                Automatiza la recepción y evaluación de facturas con visión multimodal (Gemini Flash), validación SARLAFT/OFAC, verificación de saldos en tesorería y conversión a USD con <strong className="text-brand-navy">$0.00 FX Markup</strong>. Aprueba, frena o escala a aprobación humana ante anomalías o reglas críticas.
+                Automatiza la recepción y evaluación de facturas con visión multimodal (Gemini Flash), validación SARLAFT/OFAC, verificación de saldos en tesorería y <strong className="text-brand-navy">normalización multidivisa a USD</strong> en tiempo real. Aprueba, frena o escala a aprobación humana ante anomalías o reglas críticas.
               </p>
 
               {/* CTA Buttons */}
@@ -61,10 +61,10 @@ export default function HeroSection({ treasury, rules }) {
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">
                   <div className="flex items-center gap-1">
-                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">$0.00</span>
-                    <span className="text-xs font-mono font-semibold text-brand-teal">FX</span>
+                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">5+</span>
+                    <span className="material-symbols-outlined text-brand-teal text-[18px]">currency_exchange</span>
                   </div>
-                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Markup Cambiario (Blinka)</span>
+                  <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Monedas Normalizadas (COP, MXN...)</span>
                 </div>
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">

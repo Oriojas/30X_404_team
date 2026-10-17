@@ -19,7 +19,7 @@
 
 * 🤖 **Ingesta Multicanal:** Recepción inmediata de documentos contables (imágenes y PDFs) a través de un bot de Telegram o de la subida de archivos en el dashboard. Los canales solo ingresan facturas; las aprobaciones se hacen en el dashboard.
 * 👁️ **Visión Multimodal (Gemini 3.8 Flash):** Extracción estructurada y normalización de montos, proveedores, fechas e ítems.
-* 💱 **FX Engine ($0.00 FX Markup):** Conversión automática a USD en tiempo real para monedas locales (COP, MXN, EUR, BRL) sin sobrecostos cambiarios, apalancando las ventajas de las cuentas Blinka.
+* 💱 **FX Engine Multidivisa:** Normalización y conversión a USD para monedas locales (COP, MXN, EUR, BRL, ARS) con tasas de referencia oficiales, unificando la evaluación de reglas y auditoría contable sin fricción.
 * 🛡️ **Tubería Determinista en 4 Capas:**
   1. *Cumplimiento & SARLAFT:* Bloqueo de proveedores en listas restrictivas o sin verificación fiscal.
   2. *Integridad Contable:* Detección infalible de facturas duplicadas en ventana de 30 días.

@@ -16,7 +16,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-xs text-brand-muted max-w-sm leading-relaxed">
-              Infraestructura financiera autónoma de agentes de pago con aprobación gobernada, motor FX a $0 Markup y auditoría explicable en tiempo real.
+              Infraestructura financiera autónoma de agentes de pago con aprobación gobernada, normalización multidivisa y auditoría explicable en tiempo real.
             </p>
           </div>
 

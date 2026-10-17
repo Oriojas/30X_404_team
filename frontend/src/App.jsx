@@ -84,7 +84,7 @@ const INITIAL_INVOICES = [
     processed_at: minutesAgo(120),
     channel_source: 'TELEGRAM',
     evaluations: {},
-    audit_explanation: 'Monto en divisa local ($52,000 MXN) convertido a tasa de referencia (19.50 MXN/USD) con $0.00 FX Markup Blinka totaliza $2,666.67 USD, superando el umbral autónomo de $2,000 USD. Escalado al aprobador financiero.'
+    audit_explanation: 'Monto en divisa local ($52,000 MXN) normalizado a tasa de referencia (19.50 MXN/USD) totaliza $2,666.67 USD, superando el umbral autónomo de $2,000 USD. Escalado al aprobador financiero.'
   },
   {
     id: 6,
@@ -99,7 +99,7 @@ const INITIAL_INVOICES = [
     processed_at: minutesAgo(180),
     channel_source: 'TELEGRAM',
     evaluations: {},
-    audit_explanation: 'Monto de $1,500,000 COP convertido a tasa 4,200 COP/USD equivale a $357.14 USD ($0 Markup Blinka). Dentro del umbral autónomo ($2,000 USD) y validado en SARLAFT.'
+    audit_explanation: 'Monto de $1,500,000 COP normalizado a tasa 4,200 COP/USD equivale a $357.14 USD. Dentro del umbral autónomo ($2,000 USD) y validado en SARLAFT.'
   }
 ]
 

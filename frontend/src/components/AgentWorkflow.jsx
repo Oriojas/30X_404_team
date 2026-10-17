@@ -33,7 +33,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
       type: 'dispatch_decision',
       status: 'AUTO_APPROVED',
       ref: '#BLK-9842',
-      text: 'Pago aprobado y programado. Conversión a USD con $0.00 FX Markup y justificación registrada en el Audit Log.'
+      text: 'Pago aprobado y programado. Normalización a USD según tasa de referencia y justificación registrada en el Audit Log.'
     }
   ])
 
@@ -337,7 +337,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
                   3. Decisión Explicable &amp; Audit Log
                 </h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Emite la decisión (aprobar, frenar o escalar a un humano que decide en el dashboard), convierte a USD con <strong>$0.00 FX Markup</strong> garantizado por Blinka y registra la justificación en lenguaje natural. No mueve dinero real.
+                  Emite la decisión (aprobar, frenar o escalar a un humano que decide en el dashboard), normaliza a USD con tasas de referencia oficiales y registra la justificación en lenguaje natural. No mueve dinero real.
                 </p>
               </div>
               <div className="pt-2.5 border-t border-brand-border/60">
