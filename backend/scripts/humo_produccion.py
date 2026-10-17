@@ -3,8 +3,10 @@ Prueba de humo contra un backend desplegado (Fase 4, F4.5).
 Verifica /api/health, recorre TC-01..TC-06 por POST /api/invoices y, con --origen, el preflight de CORS.
 
 Cada caso usa un Idempotency-Key fijo (humo-tc-01 … humo-tc-06): repetir el humo devuelve las mismas
-facturas (200) en vez de crear duplicados que INTEG-01 rechazaría.
-Requiere una base con el seed de demostración (DB_SEED_DEMO=true) y las reglas por defecto.
+facturas (200) en vez de crear duplicados que INTEG-01 rechazaría. Esas respuestas son la repetición de
+la primera corrida, no una evaluación nueva: el script lo advierte. Para validar el pipeline del deploy
+actual hace falta una base recién sembrada (DB_SEED_DEMO=true y las reglas por defecto).
+Las facturas creadas quedan en la base y se ven en el dashboard.
 
 Uso (desde backend/):
     python -m scripts.humo_produccion https://<backend>.up.railway.app
@@ -16,32 +18,16 @@ import sys
 
 import httpx
 
-# Mismos payloads que tests/test_postgres_integration.py.
-CASOS = [
-    ("TC-01", "AUTO_APPROVED", None, {
-        "invoice_number": "AWS-2026-10", "vendor_name": "Amazon Web Services LATAM",
-        "vendor_tax_id": "US-91-1646860", "original_amount": 450}),
-    ("TC-02", "REJECTED", "INTEG-01", {
-        "invoice_number": "DS-1042", "vendor_name": "DevStudio LatAm S.A.S.",
-        "vendor_tax_id": "900.584.112-4", "original_amount": 5040000, "original_currency": "COP"}),
-    ("TC-03", "SCALED_TO_HUMAN", "HITL-02", {
-        "invoice_number": "DC-001", "vendor_name": "Diseño Creativo Bogotá S.A.S.", "original_amount": 800}),
-    ("TC-04", "SCALED_TO_HUMAN", "HITL-01", {
-        "invoice_number": "NA-090", "vendor_name": "Nube Andina Consultores S.A.S.",
-        "vendor_tax_id": "901.223.450-1", "original_amount": 3500}),
-    ("TC-05", "SCALED_TO_HUMAN", "FIN-01", {
-        "invoice_number": "LEM-3400", "vendor_name": "Logística Express MX S.A. de C.V.",
-        "vendor_tax_id": "LEM850101AB1", "original_amount": 195000, "original_currency": "MXN"}),
-    ("TC-06", "REJECTED", "COMP-01", {
-        "invoice_number": "GTP-01", "vendor_name": "Global Trade Partners Ltd",
-        "vendor_tax_id": "PA-155-7788", "bank_account": "PA-BANCO-PACIFICO-998877", "original_amount": 900}),
-]
+from scripts.casos_demo import CASOS
 
 
 def revisar_health(client: httpx.Client) -> tuple[bool, str]:
     response = client.get("/api/health")
-    body = response.json() if response.status_code == 200 else {}
-    ok = body.get("status") == "ok" and body.get("database") == "connected"
+    try:
+        body = response.json() if response.status_code == 200 else {}
+    except ValueError:
+        body = {}
+    ok = isinstance(body, dict) and body.get("status") == "ok" and body.get("database") == "connected"
     return ok, f"HTTP {response.status_code} {body}"
 
 
@@ -50,9 +36,13 @@ def revisar_caso(client: httpx.Client, caso: str, estado: str, regla: str | None
     response = client.post("/api/invoices", json=payload, headers={"Idempotency-Key": key})
     if response.status_code not in (200, 201):
         return False, f"HTTP {response.status_code} {response.text[:120]}"
-    invoice = response.json()
-    obtenido = invoice["decision_status"]
-    ok = obtenido == estado and (regla is None or regla in invoice["audit_explanation"])
+    try:
+        invoice = response.json()
+        obtenido = invoice["decision_status"]
+        explicacion = invoice.get("audit_explanation") or ""
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return False, f"respuesta inesperada (HTTP {response.status_code}) {response.text[:120]}"
+    ok = obtenido == estado and (regla is None or regla in explicacion)
     return ok, f"{obtenido} (HTTP {response.status_code})"
 
 
@@ -91,6 +81,10 @@ def main() -> None:
         print(f"{'✅' if ok else '❌'} {nombre:7} esperado: {esperado:32} obtenido: {obtenido}")
     fallos = sum(not ok for _, _, ok, _ in resultados)
     print(f"\n{len(resultados) - fallos}/{len(resultados)} en verde")
+    repetidos = sum("(HTTP 200)" in obtenido for nombre, _, _, obtenido in resultados if nombre.startswith("TC-"))
+    if repetidos:
+        print(f"⚠️  {repetidos} caso(s) respondieron 200: son la factura guardada de una corrida anterior "
+              "(misma Idempotency-Key), no una evaluación del deploy actual.")
     sys.exit(1 if fallos else 0)
 
 

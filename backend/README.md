@@ -189,7 +189,7 @@ El script nunca imprime el token. Si `TELEGRAM_WEBHOOK_SECRET` cambia, hay que v
 
 ### Prueba de humo
 
-Verifica `/api/health`, TC-01..TC-06, `/api/rules` y el CORS del frontend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados:
+Verifica `/api/health`, TC-01..TC-06, `/api/rules` y el CORS del frontend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
 
 ```bash
 cd backend

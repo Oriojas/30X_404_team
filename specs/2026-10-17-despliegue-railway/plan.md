@@ -27,7 +27,7 @@
 > Hecho: `9f2bd6d`; webhook registrado en producción.
 
 3.1. Agregar `telegram_webhook_url: str | None = None` a `Settings` en `backend/app/config.py`.
-3.2. Crear `backend/scripts/registrar_webhook.py`: valida que existan token, URL (`https://…/api/webhook/telegram`) y secreto; llama `setWebhook` con `url`, `secret_token`, `allowed_updates=["message"]` y `drop_pending_updates=true`; imprime `getWebhookInfo` (url, pendientes, último error) sin mostrar el token (D6).
+3.2. Crear `backend/scripts/registrar_webhook.py`: valida que existan token, URL (`https://…/api/webhook/telegram`) y secreto; llama `setWebhook` con `url`, `secret_token`, `allowed_updates=["message"]` y `drop_pending_updates=false` (re-registrar no descarta facturas en cola); imprime `getWebhookInfo` (url, pendientes, último error) sin mostrar el token (D6).
 3.3. Opción `--info` para solo consultar el estado y `--borrar` para `deleteWebhook` (útil al volver a local).
 3.4. Prueba unitaria con `httpx.MockTransport`: arma la llamada correcta y falla con mensaje claro si falta una variable.
 

@@ -32,8 +32,11 @@ def _require(settings: Settings, *names: str) -> None:
 
 def _call(client: httpx.Client, token: str, method: str, payload: dict | None = None) -> dict:
     response = client.post(f"{TELEGRAM_API}/bot{token}/{method}", json=payload or {})
-    data = response.json()
-    if not data.get("ok"):
+    try:
+        data = response.json()
+    except ValueError:
+        raise RuntimeError(f"{method} falló: respuesta no JSON (HTTP {response.status_code})") from None
+    if not isinstance(data, dict) or not data.get("ok"):
         raise RuntimeError(f"{method} falló: {data.get('description', response.status_code)}")
     return data["result"]
 
@@ -47,7 +50,8 @@ def registrar(client: httpx.Client, settings: Settings) -> dict:
         "url": url,
         "secret_token": settings.telegram_webhook_secret,
         "allowed_updates": ["message"],
-        "drop_pending_updates": True,
+        # False: re-registrar (p. ej. al rotar el secreto) no descarta facturas que Telegram tenga en cola
+        "drop_pending_updates": False,
     })
     return info(client, settings)
 
