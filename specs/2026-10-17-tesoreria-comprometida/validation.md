@@ -7,7 +7,7 @@
 
 ### Código y pruebas (CI)
 
-- [ ] `pytest` en `backend/` verde en el CI de F5.7, con las pruebas nuevas de la Fase 6. *(Pendiente del PR. En local, tras la revisión de código: 88 pasadas y 7 omitidas sin `TEST_DATABASE_URL`.)*
+- [x] `pytest` en `backend/` verde en el CI de F5.7, con las pruebas nuevas de la Fase 6. *(CI del PR en verde. En local, tras la revisión de código: 88 pasadas y 7 omitidas sin `TEST_DATABASE_URL`.)*
 - [x] Cinco facturas de $1,900 (proveedor con historial, dentro de tarifa y umbral) con $8,500 de saldo y $1,000 de colchón: las tres primeras `AUTO_APPROVED` (disponible $2,800) y la cuarta y la quinta escalan por FIN-03 ($2,800 − $1,900 queda bajo el colchón); lo comprometido nunca supera el saldo. *(`test_cinco_facturas_que_caben_solas_pero_no_juntas`, con Nube Andina: la tarifa de $1,000 de AWS dispararía INTEG-02.)*
 - [x] El historial del seed anterior a la foto no compromete nada: TC-01 sale `AUTO_APPROVED`. *(integración: `committed_usd = 0` tras el seed)*
 - [x] La explicación de FIN-01 y FIN-03 cita saldo de la foto, comprometido y disponible. *(`test_fin01_...` y `test_fin03_...` en `test_rules_pipeline.py`)*
