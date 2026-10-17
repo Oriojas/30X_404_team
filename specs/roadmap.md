@@ -75,7 +75,7 @@ Hallazgo de la validación de la Fase 4: el hero y la tarjeta de colchón mostra
 
 - [x] **T1 — Endpoint:** `GET /api/treasury` con saldo, presupuesto mensual y gasto aprobado del mes.
 - [x] **T2 — Cliente:** `DEFAULT_RULES` con el colchón real del backend (`1000`) y la tesorería cargada al abrir el dashboard.
-- [x] **T3 — Hero y tarjeta de colchón:** caja, colchón, umbral y holgura reales; la holgura sigue a la reserva mientras se edita. *(Hecho el 17-oct-2026 en local con PostgreSQL y seed; falta comprobarlo en producción tras el merge.)*
+- [x] **T3 — Hero y tarjeta de colchón:** caja, colchón, umbral y holgura reales; la holgura sigue a la reserva mientras se edita. *(Hecho el 17-oct-2026: validado en local y en producción tras el merge de #14; ver [validación](2026-10-17-tesoreria-real/validation.md).)*
 
 **Listo cuando:** el dashboard público muestra la misma caja y el mismo colchón con los que decide el agente.
 
