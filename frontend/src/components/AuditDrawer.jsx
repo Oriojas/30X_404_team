@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import StatusBadge from './StatusBadge'
 import Notice from './Notice'
 import { invoiceRef, statusInfo } from '../status'
-import { DECIDED_BY } from '../api'
+import { DECIDED_BY, parseApiDate } from '../api'
 
 // Capas de la tubería, en el orden de evaluación del backend (rules_pipeline.LAYERS)
 const LAYERS = [
@@ -42,8 +42,8 @@ function layerRows(invoice) {
 }
 
 function formatDateTime(iso) {
-  const date = new Date(iso)
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString()
+  const date = parseApiDate(iso)
+  return !date || Number.isNaN(date.getTime()) ? iso : date.toLocaleString()
 }
 
 // fx_rate_applied: unidades de moneda local por 1 USD (tasas de referencia del backend)

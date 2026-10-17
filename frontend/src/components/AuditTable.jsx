@@ -3,10 +3,11 @@ import DashboardMetrics from './DashboardMetrics'
 import StatusBadge from './StatusBadge'
 import Notice from './Notice'
 import { STATUS, STATUS_ORDER, countByStatus, invoiceRef, isRejectedStatus } from '../status'
+import { parseApiDate } from '../api'
 
 // Hora relativa a partir de processed_at (ISO del backend)
 function timeAgo(iso) {
-  const date = iso ? new Date(iso) : null
+  const date = parseApiDate(iso)
   if (!date || Number.isNaN(date.getTime())) return 'Reciente'
   const minutes = Math.round((Date.now() - date.getTime()) / 60000)
   if (minutes < 1) return 'Hace un momento'

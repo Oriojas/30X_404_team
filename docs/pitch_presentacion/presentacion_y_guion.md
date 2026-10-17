@@ -101,27 +101,34 @@
 
 Para asegurar que la grabación del video y la revisión de los jurados sea impecable:
 
+> [!WARNING]
+> **Repetir una toma crea un duplicado.** INTEG-01 rechaza otra factura del mismo proveedor con el mismo número **o** el mismo monto en USD dentro de 30 días. Si hay que regrabar una prueba en producción, cambia el monto (y el número) de la factura; si no, la segunda toma sale `REJECTED`.
+
 > [!IMPORTANT]
 > **Precondición de datos (seed):** la regla `HITL-02` escala a todo proveedor sin historial de pagos, y el agente busca al proveedor por NIT o por su razón social exacta. Las pruebas usan los proveedores del seed (`backend/app/adapters/outbound/db/seed.sql`), que ya tienen historial: la factura debe traer el mismo NIT o el mismo nombre que el seed. Con otro nombre y sin NIT (por ejemplo "AWS Cloud Services"), la Prueba 1 terminará en `SCALED_TO_HUMAN` por `HITL-02` y no en `AUTO_APPROVED`.
 
-1. **Prueba 1 — Happy Path (COP/USD) · TC-01:**
+> [!NOTE]
+> **Pruebas en vivo frente a la Test Suite.** Cada prueba es una factura **nueva** del mismo tipo de caso que el TC indicado (misma regla y mismo resultado), con otro proveedor, monto o moneda. Las facturas exactas de TC-01 a TC-07 (`backend/scripts/casos_demo.py`) ya están en el Audit Log público por la prueba de humo: reenviarlas daría `REJECTED` por `INTEG-01`. Si el jurado compara, las filas TC-0X del Audit Log son la suite automática y las del video son pruebas en vivo con la misma regla.
+
+1. **Prueba 1 — Happy Path (COP/USD) · mismo tipo que TC-01:**
    * *Factura:* Proveedor "Amazon Web Services LATAM" (NIT `US-91-1646860`, con historial), Monto: $1,200,000 COP (~$285.71 USD a tasa de referencia 4,200 COP/USD).
    * *Resultado esperado:* `AUTO_APPROVED` 🟢 (convertido a USD, sin coincidencias en listas restrictivas, saldo suficiente y dentro del límite de $2,000 USD).
-2. **Prueba 2 — Intento de Duplicado · TC-02:**
+2. **Prueba 2 — Intento de Duplicado · mismo tipo que TC-02:**
    * *Factura:* Reenviar exactamente la misma factura de Amazon Web Services LATAM.
    * *Resultado esperado:* `REJECTED` 🔴 (`INTEG-01`: "Factura rechazada por detección de cobro duplicado" dentro de la ventana de 30 días).
-3. **Prueba 3 — Exceso de Límite (EUR/USD) · TC-04:**
+3. **Prueba 3 — Exceso de Límite (EUR/USD) · mismo tipo que TC-04:**
    * *Factura:* Proveedor "Nube Andina Consultores S.A.S." (NIT `901.223.450-1`, con historial y tarifa pactada de $5,000 USD), Monto: €3,200 EUR (~$3,478 USD a tasa de referencia 0.92 EUR/USD).
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`HITL-01`: "El monto excede el límite autónomo de $2,000 USD. Requiere aprobación manual"). Como Nube Andina tiene historial y la tarifa pactada cubre el monto, `HITL-01` es la única regla disparada.
-4. **Prueba 4 (opcional, respaldo o corte extendido) — Lista Restrictiva · TC-06:**
+4. **Prueba 4 (opcional, respaldo o corte extendido) — Lista Restrictiva · mismo tipo que TC-06:**
    * *Factura:* Beneficiario simulado presente en la lista OFAC de prueba.
    * *Resultado esperado:* `REJECTED` 🔴 (`COMP-01`). Útil para demostrar la Capa 1 frente al jurado, ya que el guion cubre en vivo las capas 2 y 4.
-5. **Prueba 5 (opcional) — Saldo Insuficiente · TC-05:**
+5. **Prueba 5 (opcional) — Saldo Insuficiente · mismo tipo que TC-05:**
    * *Factura:* $10,000 USD con saldo Blinka de $4,000 USD.
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`FIN-01`).
-6. **Prueba 6 (opcional) — No cuadra con lo acordado · TC-07:**
-   * *Factura:* "Amazon Web Services LATAM" (con historial) por $1,500 USD, cuando la tarifa pactada en contrato es de $1,000 USD.
+6. **Prueba 6 (opcional) — No cuadra con lo acordado · mismo tipo que TC-07:**
+   * *Factura:* "Amazon Web Services LATAM" (NIT `US-91-1646860`, con historial) por $1,450 USD, cuando la tarifa pactada en contrato es de $1,000 USD.
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`INTEG-02`: "El valor cobrado supera la tarifa acordada en el contrato"). Está bajo el umbral autónomo y hay saldo: la única razón para escalar es que el monto no cuadra con lo acordado.
+   * *Ojo:* no usar $1,500, que es el monto de TC-07 en `casos_demo.py`. La prueba de humo ya creó esa factura en producción (id 20), y INTEG-01 trata como duplicado otra factura del mismo proveedor con el mismo monto en USD dentro de 30 días: el video mostraría `REJECTED` en vez de `SCALED_TO_HUMAN`. Cualquier monto entre $1,000 y $2,000 que no se haya usado sirve.
 
 ---
 
@@ -129,15 +136,24 @@ Para asegurar que la grabación del video y la revisión de los jurados sea impe
 
 El criterio de **Viabilidad Técnica (20%)** exige que el código respalde exactamente lo que se muestra en el video. Antes de grabar, verificar:
 
-- [ ] El webhook de Telegram recibe fotos/PDF y responde. Ya está implementado (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`); falta probarlo con el bot real registrado con `setWebhook`.
+- [x] El webhook de Telegram recibe fotos/PDF y responde (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`), registrado con `setWebhook` en producción (F4.3) y probado con una factura real (F5.1).
 - [x] `adapters/outbound/ocr/gemini_ocr.py` llama realmente a Gemini (`google-genai`) y devuelve el JSON estructurado (Fase 1 del roadmap).
 - [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-07 probados contra PostgreSQL.
 - [x] `/api/invoices` y `/api/rules` leen y escriben en PostgreSQL.
-- [ ] El Dashboard muestra datos reales de la API (hoy usa datos *mock* como respaldo): Fase 3 del roadmap.
-- [ ] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`). El backend ya está listo; falta el frontend (Fase 3).
-- [ ] En Railway, el backend corre con `DB_AUTO_MIGRATE=true` (crea las tablas al arrancar) y `DB_SEED_DEMO=true` (proveedores con historial, listas restrictivas y saldo de $8,500 USD).
+- [x] El Dashboard muestra datos reales de la API (Fase 3); los datos *mock* solo aparecen, con un banner, si la API no responde.
+- [x] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`); el chat de origen recibe el aviso (F5.1).
+- [x] En Railway, el backend corre con `DB_AUTO_MIGRATE=true` (crea las tablas al arrancar) y `DB_SEED_DEMO=true` (proveedores con historial, listas restrictivas y saldo de $8,500 USD).
 - [ ] Las tasas del FX Engine usadas en la demo coinciden con las cifras narradas (hoy son tasas de referencia fijas).
-- [x] Textos de la landing sin respaldo en el código (SOC2, ISO 27001, AES-256, SLA, "dispersión bancaria", SPEI/ACH, latencias y KPIs inventados) ya fueron corregidos. Los datos del dashboard siguen siendo de demostración hasta conectar `/api/invoices`; no presentarlos como métricas reales en el video.
+- [x] Textos de la landing sin respaldo en el código (SOC2, ISO 27001, AES-256, SLA, "dispersión bancaria", SPEI/ACH, latencias y KPIs inventados) ya fueron corregidos. El Audit Log y las métricas del dashboard vienen de `/api/invoices`; incluyen las facturas de las pruebas de humo, así que se presentan como datos de la demo, no como métricas de clientes.
+
+---
+
+## 📊 PARTE 5: Datos de Producción para el Pitch (Fase 5, F5.6 · 17-oct-2026)
+
+- **Arranque del backend:** el contenedor pasa de "Starting Container" a "Application startup complete" en **0.7 s**, y el primer `GET /api/health` responde `200` a los **0.9 s** (logs de Railway). Un `railway redeploy` completo, hasta que el despliegue nuevo queda activo, tardó **25 s**. Railway mantiene la versión anterior sirviendo hasta que la nueva está sana, así que el jurado no ve la demo caída. Tras el redeploy, `/api/health` respondió `database: connected` en 0.6 s.
+- **Capturas del dashboard público** (`https://30x404team-production.up.railway.app`):
+  - [Hero con la tesorería real](dashboard_produccion_hero.jpg): $8,500.00 USD, colchón de $1,000 USD y liquidez del 88 %.
+  - [Audit Log](dashboard_produccion_audit_log.jpg): 22 facturas, 55 % de autonomía, 7 pendientes HITL y 3 decisiones humanas; arriba, NA-4521 aprobada por una persona (Telegram) y su reenvío por la web rechazado por `INTEG-01`.
 
 ---
 

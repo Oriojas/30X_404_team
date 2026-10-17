@@ -49,6 +49,14 @@ export function formatUsd(amount, decimals = 0) {
   return `$${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
 }
 
+// El backend guarda las fechas en UTC y las envía con "Z". Una fecha sin zona (backend anterior)
+// también es UTC: se le agrega "Z" para que el navegador no la tome como hora local.
+export function parseApiDate(iso) {
+  if (!iso) return null
+  const withZone = /(Z|[+-]\d{2}:?\d{2})$/.test(iso) || !iso.includes('T') ? iso : `${iso}Z`
+  return new Date(withZone)
+}
+
 // crypto.randomUUID solo existe en contextos seguros (HTTPS o localhost); en HTTP por la red local
 // (vite con host: true) se arma un UUID v4 con getRandomValues, que sí está disponible.
 export function newIdempotencyKey() {
