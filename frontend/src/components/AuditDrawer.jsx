@@ -1,11 +1,49 @@
 import React from 'react'
 
+// Capas de la tubería, en el orden de evaluación del backend (rules_pipeline.LAYERS)
+const LAYERS = [
+  { key: 'compliance_check', label: '1. Compliance / SARLAFT' },
+  { key: 'integrity_check', label: '2. Integridad & Duplicados' },
+  { key: 'solvency_check', label: '3. Solvencia Financiera' },
+  { key: 'hitl_check', label: '4. Gobierno HITL' }
+]
+
+const LAYER_STATUS = {
+  PASSED: { text: 'APROBADA', dot: 'bg-emerald-500', tone: 'text-emerald-700' },
+  ESCALATED: { text: 'ALERTA', dot: 'bg-amber-500', tone: 'text-amber-700' },
+  REJECTED: { text: 'RECHAZO', dot: 'bg-red-500', tone: 'text-red-700' },
+  SKIPPED: { text: 'OMITIDA', dot: 'bg-slate-300', tone: 'text-brand-muted' },
+  NOT_EVALUATED: { text: 'NO EVALUADA', dot: 'bg-slate-200', tone: 'text-brand-muted' }
+}
+
+// Las alertas de evaluations no traen severidad: en una factura REJECTED por la tubería,
+// la capa que la frenó es la última que se disparó (las siguientes quedan NOT_EVALUATED).
+function layerRows(invoice) {
+  const evaluations = invoice.evaluations || {}
+  const rows = LAYERS.filter(({ key }) => evaluations[key]).map(({ key, label }) => ({
+    key,
+    label,
+    ...evaluations[key],
+    alerts: evaluations[key].alerts || []
+  }))
+  const triggered = rows.filter((row) => row.status === 'TRIGGERED')
+  const stopper = invoice.decision_status === 'REJECTED' ? triggered[triggered.length - 1] : null
+  return rows.map((row) => ({
+    ...row,
+    view:
+      row.status === 'TRIGGERED'
+        ? LAYER_STATUS[row === stopper ? 'REJECTED' : 'ESCALATED']
+        : LAYER_STATUS[row.status] || LAYER_STATUS.NOT_EVALUATED
+  }))
+}
+
 export default function AuditDrawer({ invoice, onClose, onApproveHuman, onRejectHuman }) {
   if (!invoice) return null
 
   const isScaled = invoice.decision_status === 'SCALED_TO_HUMAN'
   const isApproved = invoice.decision_status === 'AUTO_APPROVED'
   const isRejected = invoice.decision_status === 'REJECTED'
+  const layers = layerRows(invoice)
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
@@ -133,57 +171,42 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
             </div>
           </div>
 
-          {/* Matriz de 4 Capas: Desglose de Evaluación */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-brand-steel uppercase tracking-wider flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-brand-teal text-[16px]">checklist</span>
-              Auditoría de Matriz en 4 Capas
-            </h4>
+          {/* Matriz de 4 Capas: evaluación real de la tubería, capa por capa */}
+          {layers.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-brand-steel uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-brand-teal text-[16px]">checklist</span>
+                Evaluación por Capa
+              </h4>
 
-            <div className="space-y-2 font-mono text-xs">
-              {/* Capa 1: SARLAFT */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${isRejected && invoice.audit_explanation.includes('SARLAFT') ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">1. Listas Restrictivas (SARLAFT/OFAC)</span>
-                </div>
-                <span className="font-bold text-[11px]">
-                  {isRejected && invoice.audit_explanation.includes('SARLAFT') ? 'FALLA / ALERTA' : 'APROBADO'}
-                </span>
-              </div>
+              <div className="space-y-2 text-xs">
+                {layers.map((layer) => (
+                  <div key={layer.key} className="p-3 rounded-xl bg-white border border-brand-border shadow-xs space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${layer.view.dot}`} />
+                        <span className="text-brand-steel text-xs">{layer.label}</span>
+                      </div>
+                      <span className={`font-mono font-bold text-[11px] ${layer.view.tone}`}>{layer.view.text}</span>
+                    </div>
 
-              {/* Capa 2: Duplicados */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${isRejected && invoice.audit_explanation.includes('duplicada') ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">2. Integridad & Duplicados (30 días)</span>
-                </div>
-                <span className="font-bold text-[11px]">
-                  {isRejected && invoice.audit_explanation.includes('duplicada') ? 'DUPLICADO DETECTADO' : 'ÚNICO 100%'}
-                </span>
-              </div>
+                    {layer.reason && <p className="pl-4 text-[11px] text-brand-muted">{layer.reason}</p>}
 
-              {/* Capa 3: Solvencia y Saldo */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-brand-steel font-sans text-xs">3. Solvencia & Saldo Blinka</span>
-                </div>
-                <span className="font-bold text-[11px] text-emerald-700">DISPONIBLE ($48,250 USD)</span>
-              </div>
-
-              {/* Capa 4: Gobierno HITL - Umbral de Autonomía */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${invoice.usd_amount > 2000 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">4. Gobierno HITL ($2,000 USD)</span>
-                </div>
-                <span className="font-bold text-[11px]">
-                  {invoice.usd_amount > 2000 ? 'EXCEDE ($2,000)' : 'DENTRO DE LÍMITE'}
-                </span>
+                    {layer.alerts.length > 0 && (
+                      <ul className="pl-4 space-y-1.5">
+                        {layer.alerts.map((alert, idx) => (
+                          <li key={`${alert.reason_code}-${idx}`} className="text-[11px] text-brand-navy leading-relaxed">
+                            <span className="font-mono font-bold mr-1.5">{alert.reason_code}</span>
+                            {alert.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Drawer Footer con Acciones Human-in-the-Loop */}
