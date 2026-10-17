@@ -2,7 +2,7 @@
 
 Interfaz web moderna y reactiva desarrollada con **React 18**, **Vite** y **Tailwind CSS**, inspirada en los lineamientos visuales oficiales de **Blinka** (azul marino corporativo `#04243C`, cian de acento `#2B9CAE` y azul marino profundo `#1D3557`).
 
-Permite al equipo financiero visualizar métricas en tiempo real, auditar la trazabilidad de cada decisión autónoma y ajustar parámetros de gobernanza en 1 clic.
+Permite al equipo financiero subir facturas, auditar la trazabilidad de cada decisión capa por capa, aprobar o rechazar los escalamientos (la aprobación humana ocurre solo aquí) y ajustar las reglas de gobernanza.
 
 ---
 
@@ -10,12 +10,17 @@ Permite al equipo financiero visualizar métricas en tiempo real, auditar la tra
 
 ```text
 frontend/src/
+├── api.js                     # Cliente REST: único punto que llama a la API (fetch, errores, Idempotency-Key)
+├── status.js                  # Mapa único de estados (etiquetas, colores) y métrica de autonomía
 ├── components/
-│   ├── Navbar.jsx             # Barra superior con insignia de salud y conexión Railway
-│   ├── DashboardMetrics.jsx   # 4 KPIs principales (Total, Auto-Aprobadas, Escaladas HITL, Rechazadas)
-│   ├── AuditTable.jsx         # Tabla del Audit Log con badges de estado y explicabilidad en lenguaje natural
-│   └── RuleControls.jsx       # Panel interactivo de ajuste de umbrales y políticas de pago
-├── App.jsx                    # Contenedor central con estado reactivo y llamadas REST a FastAPI
+│   ├── Navbar.jsx             # Barra superior
+│   ├── RuleControls.jsx       # Reglas de gobernanza: carga y guarda en /api/rules, errores 422 por campo
+│   ├── AuditTable.jsx         # Audit Log: métricas, subida, filtros por estado, botón Actualizar y modo demostración
+│   ├── DashboardMetrics.jsx   # KPIs: total, autonomía, pendientes HITL y decisiones humanas
+│   ├── InvoiceUpload.jsx      # Subida de facturas con Idempotency-Key y reintentos
+│   ├── AuditDrawer.jsx        # Inspector de decisión: evaluación capa por capa y decisión humana
+│   └── StatusBadge.jsx        # Badge de estado compartido
+├── App.jsx                    # Estado central: facturas, reglas, modo demostración
 ├── index.css                  # Directivas de Tailwind CSS y tipografía Inter
 └── main.jsx                   # Punto de entrada de React en el DOM
 ```
@@ -27,7 +32,7 @@ frontend/src/
 > [!IMPORTANT]
 > Siguiendo las reglas del monorepo, **la configuración se define exclusivamente en el archivo `.env` del directorio raíz**. No se utilizan archivos `.env` locales en `frontend/`.
 
-* `VITE_API_BASE_URL`: URL base del backend FastAPI (ej: `http://localhost:8000` en local o la URL generada en Railway).
+* `VITE_API_BASE_URL`: URL base del backend FastAPI (ej: `http://localhost:8000` en local o la URL generada en Railway). Vite la lee del `.env` de la raíz (`envDir: '..'` en [vite.config.js](vite.config.js)). El backend debe incluir el origen del frontend en `ALLOWED_ORIGINS`.
 
 Consulta la plantilla completa en [.env.example](../.env.example).
 
@@ -56,6 +61,18 @@ Genera los archivos estáticos optimizados en `frontend/dist/`.
 
 ---
 
+## 🔌 Integración con la API
+
+* **Audit Log:** se carga de `GET /api/invoices` al abrir la página y con el botón **Actualizar** (sin actualización automática). Si la API responde, se muestran siempre los datos reales, aunque la lista esté vacía.
+* **Modo demostración:** si la API no responde (o falta `VITE_API_BASE_URL`), se muestran datos ficticios con un aviso visible y se deshabilitan la subida, la decisión humana y el guardado de reglas.
+* **Evaluación capa por capa:** el Drawer muestra `evaluations` en el orden de la tubería (Compliance, Integridad, Solvencia, Gobierno HITL) con su estado, las alertas (código + explicación) y la razón de las capas omitidas.
+* **Decisión humana:** solo en el dashboard. `POST /api/invoices/{id}/decision` con `decided_by` fijo (`CFO Demo`, sin autenticación en el MVP) y una nota opcional. Un `409` (otra persona ya decidió) muestra el mensaje y recarga el estado vigente.
+* **Subida de facturas:** JPG, PNG, WEBP o PDF de hasta 10 MB (validado también en el navegador). Cada archivo elegido genera una `Idempotency-Key` (`crypto.randomUUID()`) que se reutiliza en los reintentos: `201` y `200` muestran la factura igual, y un `409` (aún en proceso) se reintenta hasta 3 veces cada 2 s.
+* **Reglas:** `POST /api/rules`; el panel solo cambia con la respuesta de la API y muestra los errores `422` junto a cada campo.
+* **Autonomía:** `(AUTO_APPROVED + REJECTED) / total`; las decisiones `HUMAN_*` no cuentan como autónomas.
+
+---
+
 ## 🐳 Despliegue con Docker y Nginx (Railway)
 
 El archivo [Dockerfile](Dockerfile) utiliza un esquema *multi-stage build*:
@@ -80,7 +97,9 @@ docker run -p 80:80 -e PORT=80 blinka-frontend
 * **Estados de Auditoría:**
   - `AUTO_APPROVED`: Verde Esmeralda (`bg-emerald-100 text-emerald-800`)
   - `SCALED_TO_HUMAN`: Ámbar Cálido (`bg-amber-100 text-amber-800`)
-  - `REJECTED`: Rosa / Rojo Coral (`bg-rose-100 text-rose-800`)
+  - `REJECTED`: Rojo Coral (`bg-red-50 text-red-800`)
+  - `HUMAN_APPROVED` / `HUMAN_REJECTED`: mismos tonos que aprobado / rechazado, con ícono de persona
+  - Definidos una sola vez en [src/status.js](src/status.js)
 
 ---
 
