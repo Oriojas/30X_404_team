@@ -1,5 +1,5 @@
 """
-Casos de demostración TC-01..TC-06 sobre el seed (DB_SEED_DEMO=true) y las reglas por defecto.
+Casos de demostración TC-01..TC-07 sobre el seed (DB_SEED_DEMO=true) y las reglas por defecto.
 Fuente única para tests/test_postgres_integration.py y scripts/humo_produccion.py.
 Cada caso: (id, decision_status esperado, regla que debe aparecer en audit_explanation o None, payload).
 """
@@ -22,4 +22,8 @@ CASOS = [
     ("TC-06", "REJECTED", "COMP-01", {
         "invoice_number": "GTP-01", "vendor_name": "Global Trade Partners Ltd",
         "vendor_tax_id": "PA-155-7788", "bank_account": "PA-BANCO-PACIFICO-998877", "original_amount": 900}),
+    # No cuadra con lo acordado: proveedor frecuente, bajo el umbral autónomo, pero sobre su tarifa pactada ($1,000)
+    ("TC-07", "SCALED_TO_HUMAN", "INTEG-02", {
+        "invoice_number": "AWS-2026-10-EXTRA", "vendor_name": "Amazon Web Services LATAM",
+        "vendor_tax_id": "US-91-1646860", "original_amount": 1500}),
 ]

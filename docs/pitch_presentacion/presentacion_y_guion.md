@@ -102,23 +102,26 @@
 Para asegurar que la grabación del video y la revisión de los jurados sea impecable:
 
 > [!IMPORTANT]
-> **Precondición de datos (seed):** la regla `HITL-02` escala a todo proveedor sin historial de pagos. Para que las Pruebas 1 y 2 funcionen como se narra, **el proveedor "AWS Cloud Services" debe existir precargado con historial de pagos previos** y la cuenta Blinka debe tener saldo suficiente. De lo contrario la Prueba 1 terminará en `SCALED_TO_HUMAN` y no en `AUTO_APPROVED`.
+> **Precondición de datos (seed):** la regla `HITL-02` escala a todo proveedor sin historial de pagos, y el agente busca al proveedor por NIT o por su razón social exacta. Las pruebas usan los proveedores del seed (`backend/app/adapters/outbound/db/seed.sql`), que ya tienen historial: la factura debe traer el mismo NIT o el mismo nombre que el seed. Con otro nombre y sin NIT (por ejemplo "AWS Cloud Services"), la Prueba 1 terminará en `SCALED_TO_HUMAN` por `HITL-02` y no en `AUTO_APPROVED`.
 
 1. **Prueba 1 — Happy Path (COP/USD) · TC-01:**
-   * *Factura:* Proveedor "AWS Cloud Services" (con historial), Monto: $1,200,000 COP (~$285.71 USD a tasa de referencia 4,200 COP/USD).
+   * *Factura:* Proveedor "Amazon Web Services LATAM" (NIT `US-91-1646860`, con historial), Monto: $1,200,000 COP (~$285.71 USD a tasa de referencia 4,200 COP/USD).
    * *Resultado esperado:* `AUTO_APPROVED` 🟢 (convertido a USD, sin coincidencias en listas restrictivas, saldo suficiente y dentro del límite de $2,000 USD).
 2. **Prueba 2 — Intento de Duplicado · TC-02:**
-   * *Factura:* Reenviar exactamente la misma factura de AWS Cloud Services.
+   * *Factura:* Reenviar exactamente la misma factura de Amazon Web Services LATAM.
    * *Resultado esperado:* `REJECTED` 🔴 (`INTEG-01`: "Factura rechazada por detección de cobro duplicado" dentro de la ventana de 30 días).
 3. **Prueba 3 — Exceso de Límite (EUR/USD) · TC-04:**
-   * *Factura:* Proveedor "Oracle Enterprise", Monto: €3,200 EUR (~$3,478 USD a tasa de referencia 0.92 EUR/USD).
-   * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`HITL-01`: "El monto excede el límite autónomo de $2,000 USD. Requiere aprobación manual"). Si "Oracle Enterprise" no tiene historial, también se dispara `HITL-02` (proveedor nuevo); es coherente, pero el mensaje mostrado en el video debe ser consistente con lo narrado.
+   * *Factura:* Proveedor "Nube Andina Consultores S.A.S." (NIT `901.223.450-1`, con historial y tarifa pactada de $5,000 USD), Monto: €3,200 EUR (~$3,478 USD a tasa de referencia 0.92 EUR/USD).
+   * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`HITL-01`: "El monto excede el límite autónomo de $2,000 USD. Requiere aprobación manual"). Como Nube Andina tiene historial y la tarifa pactada cubre el monto, `HITL-01` es la única regla disparada.
 4. **Prueba 4 (opcional, respaldo o corte extendido) — Lista Restrictiva · TC-06:**
    * *Factura:* Beneficiario simulado presente en la lista OFAC de prueba.
    * *Resultado esperado:* `REJECTED` 🔴 (`COMP-01`). Útil para demostrar la Capa 1 frente al jurado, ya que el guion cubre en vivo las capas 2 y 4.
 5. **Prueba 5 (opcional) — Saldo Insuficiente · TC-05:**
    * *Factura:* $10,000 USD con saldo Blinka de $4,000 USD.
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`FIN-01`).
+6. **Prueba 6 (opcional) — No cuadra con lo acordado · TC-07:**
+   * *Factura:* "Amazon Web Services LATAM" (con historial) por $1,500 USD, cuando la tarifa pactada en contrato es de $1,000 USD.
+   * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`INTEG-02`: "El valor cobrado supera la tarifa acordada en el contrato"). Está bajo el umbral autónomo y hay saldo: la única razón para escalar es que el monto no cuadra con lo acordado.
 
 ---
 
@@ -128,7 +131,7 @@ El criterio de **Viabilidad Técnica (20%)** exige que el código respalde exact
 
 - [ ] El webhook de Telegram recibe fotos/PDF y responde. Ya está implementado (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`); falta probarlo con el bot real registrado con `setWebhook`.
 - [x] `adapters/outbound/ocr/gemini_ocr.py` llama realmente a Gemini (`google-genai`) y devuelve el JSON estructurado (Fase 1 del roadmap).
-- [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-06 probados contra PostgreSQL.
+- [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-07 probados contra PostgreSQL.
 - [x] `/api/invoices` y `/api/rules` leen y escriben en PostgreSQL.
 - [ ] El Dashboard muestra datos reales de la API (hoy usa datos *mock* como respaldo): Fase 3 del roadmap.
 - [ ] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`). El backend ya está listo; falta el frontend (Fase 3).

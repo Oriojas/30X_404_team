@@ -1,4 +1,4 @@
-"""Pruebas de la tubería de 4 capas: Test Suite TC-01..TC-06 de reglas_pago_agente_v3 y reglas adicionales."""
+"""Pruebas de la tubería de 4 capas: Test Suite TC-01..TC-07 de reglas_pago_agente_v3 y reglas adicionales."""
 
 from app.core.domain.models import CompanyRules, DecisionStatus, ExtractedInvoice, TreasuryStatus, Vendor
 from app.core.domain.rules_pipeline import EvaluationContext, RulesPipeline
@@ -67,6 +67,13 @@ def test_tc06_sanctioned_account_is_rejected_at_layer_one():
     assert decision.status == DecisionStatus.REJECTED
     assert codes(decision) == ["COMP-01"]
     assert decision.evaluations["integrity_check"]["status"] == "NOT_EVALUATED"
+
+
+def test_tc07_amount_over_agreed_rate_is_scaled_only_by_integ02():
+    decision = evaluate(1500)
+    assert decision.status == DecisionStatus.SCALED_TO_HUMAN
+    assert codes(decision) == ["INTEG-02"]
+    assert "$1,000.00 USD" in decision.explanation
 
 
 def test_foreign_currency_explanation_includes_fx_details():

@@ -1,8 +1,8 @@
 """
 Prueba de humo contra un backend desplegado (Fase 4, F4.5).
-Verifica /api/health, recorre TC-01..TC-06 por POST /api/invoices y, con --origen, el preflight de CORS.
+Verifica /api/health, recorre TC-01..TC-07 por POST /api/invoices y, con --origen, el preflight de CORS.
 
-Cada caso usa un Idempotency-Key fijo (humo-tc-01 … humo-tc-06): repetir el humo devuelve las mismas
+Cada caso usa un Idempotency-Key fijo (humo-tc-01 … humo-tc-07): repetir el humo devuelve las mismas
 facturas (200) en vez de crear duplicados que INTEG-01 rechazaría. Esas respuestas son la repetición de
 la primera corrida, no una evaluación nueva: el script lo advierte. Para validar el pipeline del deploy
 actual hace falta una base recién sembrada (DB_SEED_DEMO=true y las reglas por defecto).
