@@ -32,7 +32,7 @@
 - **El Core solo depende de la librería estándar.** Pydantic, FastAPI, asyncpg y los SDK viven en los adaptadores.
 - **Persistencia:** asyncpg con SQL explícito (sin ORM). `schema.sql` y `seed.sql` deben ser idempotentes. La migración se controla con `DB_AUTO_MIGRATE` y los datos ficticios con `DB_SEED_DEMO`.
 - **Subida de archivos:** `python-multipart`; se aceptan JPG, PNG, WEBP y PDF de hasta 10 MB.
-- **Ingesta idempotente (desde la Fase 2 del roadmap):** todo adaptador de entrada entrega a `ProcessInvoiceUseCase` un `external_id` propio del canal (`update_id` en Telegram, header `Idempotency-Key` en web y API, `Message-ID` en email). El puerto genérico `IngestionLog` garantiza que cada `(canal, external_id)` se procese una sola vez. Además, el SHA-256 del archivo refuerza INTEG-01 entre canales.
+- **Ingesta idempotente:** todo adaptador de entrada entrega a `ProcessInvoiceUseCase` un `external_id` propio del canal (`update_id` en Telegram, header `Idempotency-Key` en web y API, `Message-ID` en email). El puerto genérico `IngestionLog` garantiza que cada `(canal, external_id)` se procese una sola vez. Una repetición devuelve la factura original (`200`; `409` si aún se procesa) y Telegram siempre recibe `200`. Además, el SHA-256 del archivo refuerza INTEG-01 entre canales: un archivo idéntico a una factura vigente no pasa por el OCR.
 
 ## OCR con Gemini
 
