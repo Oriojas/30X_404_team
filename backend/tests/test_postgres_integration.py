@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from scripts.casos_demo import CASOS
+
 from .fakes import FakeGenAIClient
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -56,29 +58,13 @@ def test_demo_suite_against_seeded_database(client):
     assert client.get("/api/health").json()["database"] == "connected"
     assert len(client.get("/api/invoices").json()) == 5
 
-    tc01 = post_invoice(client, invoice_number="AWS-2026-10", vendor_name="Amazon Web Services LATAM",
-                        vendor_tax_id="US-91-1646860", original_amount=450)
-    assert tc01["decision_status"] == "AUTO_APPROVED", tc01["audit_explanation"]
-
-    tc02 = post_invoice(client, invoice_number="DS-1042", vendor_name="DevStudio LatAm S.A.S.",
-                        vendor_tax_id="900.584.112-4", original_amount=5040000, original_currency="COP")
-    assert tc02["decision_status"] == "REJECTED" and "INTEG-01" in tc02["audit_explanation"]
-
-    tc03 = post_invoice(client, invoice_number="DC-001", vendor_name="Diseño Creativo Bogotá S.A.S.",
-                        original_amount=800)
-    assert tc03["decision_status"] == "SCALED_TO_HUMAN" and "HITL-02" in tc03["audit_explanation"]
-
-    tc04 = post_invoice(client, invoice_number="NA-090", vendor_name="Nube Andina Consultores S.A.S.",
-                        vendor_tax_id="901.223.450-1", original_amount=3500)
-    assert tc04["decision_status"] == "SCALED_TO_HUMAN" and "HITL-01" in tc04["audit_explanation"]
-
-    tc05 = post_invoice(client, invoice_number="LEM-3400", vendor_name="Logística Express MX S.A. de C.V.",
-                        vendor_tax_id="LEM850101AB1", original_amount=195000, original_currency="MXN")
-    assert tc05["decision_status"] == "SCALED_TO_HUMAN" and "FIN-01" in tc05["audit_explanation"]
-
-    tc06 = post_invoice(client, invoice_number="GTP-01", vendor_name="Global Trade Partners Ltd",
-                        vendor_tax_id="PA-155-7788", bank_account="PA-BANCO-PACIFICO-998877", original_amount=900)
-    assert tc06["decision_status"] == "REJECTED" and "COMP-01" in tc06["audit_explanation"]
+    resultados = {}
+    for caso, estado, regla, payload in CASOS:
+        invoice = post_invoice(client, **payload)
+        assert invoice["decision_status"] == estado, (caso, invoice["audit_explanation"])
+        assert regla is None or regla in invoice["audit_explanation"], (caso, invoice["audit_explanation"])
+        resultados[caso] = invoice
+    tc04 = resultados["TC-04"]
 
     gbp = post_invoice(client, invoice_number="AWS-GBP-1", vendor_name="Amazon Web Services LATAM",
                        vendor_tax_id="US-91-1646860", original_amount=1000, original_currency="GBP")
