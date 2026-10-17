@@ -1,4 +1,6 @@
 import React from 'react'
+import StatusBadge from './StatusBadge'
+import { statusInfo } from '../status'
 
 // Capas de la tubería, en el orden de evaluación del backend (rules_pipeline.LAYERS)
 const LAYERS = [
@@ -37,12 +39,24 @@ function layerRows(invoice) {
   }))
 }
 
+function formatDateTime(iso) {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString()
+}
+
+// fx_rate_applied: unidades de moneda local por 1 USD (tasas de referencia del backend)
+function fxRateText(invoice) {
+  const currency = invoice.original_currency
+  if (currency === 'USD') return '1.0000'
+  const rate = invoice.fx_rate_applied
+  if (!rate || !invoice.usd_amount) return `Sin tasa de referencia para ${currency}`
+  return `1 USD = ${rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${currency}`
+}
+
 export default function AuditDrawer({ invoice, onClose, onApproveHuman, onRejectHuman }) {
   if (!invoice) return null
 
   const isScaled = invoice.decision_status === 'SCALED_TO_HUMAN'
-  const isApproved = invoice.decision_status === 'AUTO_APPROVED'
-  const isRejected = invoice.decision_status === 'REJECTED'
   const layers = layerRows(invoice)
 
   return (
@@ -64,7 +78,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-bold text-cyan-300">
-                  {invoice.invoice_number ? `#BLK-${invoice.invoice_number}` : `#BLK-${invoice.id}`}
+                  #{invoice.invoice_number || invoice.id}
                 </span>
                 <span className="text-slate-400 text-xs">•</span>
                 <span className="text-xs text-slate-300 font-sans">Inspector de Decisión</span>
@@ -90,24 +104,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
           <div className="p-4 rounded-xl border bg-white shadow-sm space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-brand-muted font-medium">Estado Algorítmico</span>
-              {isApproved && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
-                  AUTO_APPROVED
-                </span>
-              )}
-              {isScaled && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
-                  SCALED_TO_HUMAN
-                </span>
-              )}
-              {isRejected && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 font-mono text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#EF4444]"></span>
-                  REJECTED
-                </span>
-              )}
+              <StatusBadge status={invoice.decision_status} size="lg" />
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2 font-mono text-xs">
@@ -125,6 +122,21 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
               </div>
             </div>
           </div>
+
+          {/* Decisión humana: quién, cuándo y nota */}
+          {statusInfo(invoice.decision_status).human && (
+            <div className="p-4 rounded-xl bg-white border border-brand-border shadow-sm space-y-1.5 text-xs">
+              <span className="text-[11px] font-bold text-brand-steel uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-brand-teal text-[16px]">person</span>
+                Decisión Humana
+              </span>
+              <p className="text-brand-navy">
+                <span className="font-semibold">{invoice.decided_by || 'Sin registrar'}</span>
+                {invoice.decided_at && <span className="text-brand-muted"> · {formatDateTime(invoice.decided_at)}</span>}
+              </p>
+              {invoice.human_note && <p className="text-brand-steel leading-relaxed">“{invoice.human_note}”</p>}
+            </div>
+          )}
 
           {/* Rastro de Explicabilidad Caja Blanca */}
           <div className="space-y-2">
@@ -157,7 +169,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
               <div className="flex justify-between">
                 <span>Tasa de Referencia:</span>
                 <span className="text-white">
-                  {invoice.original_currency === 'COP' ? '1 USD = 4,200.00 COP' : invoice.original_currency === 'MXN' ? '1 USD = 19.50 MXN' : '1.0000'}
+                  {fxRateText(invoice)}
                 </span>
               </div>
               <div className="flex justify-between">

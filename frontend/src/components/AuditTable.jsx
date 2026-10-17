@@ -1,4 +1,7 @@
 import React, { useState } from 'react'
+import DashboardMetrics from './DashboardMetrics'
+import StatusBadge from './StatusBadge'
+import { STATUS, STATUS_ORDER, countByStatus, isRejectedStatus } from '../status'
 
 // Hora relativa a partir de processed_at (ISO del backend)
 function timeAgo(iso) {
@@ -16,12 +19,8 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const counts = {
-    ALL: invoices.length,
-    AUTO_APPROVED: invoices.filter((i) => i.decision_status === 'AUTO_APPROVED').length,
-    SCALED_TO_HUMAN: invoices.filter((i) => i.decision_status === 'SCALED_TO_HUMAN').length,
-    REJECTED: invoices.filter((i) => i.decision_status === 'REJECTED').length
-  }
+  const counts = { ALL: invoices.length, ...countByStatus(invoices) }
+  const filters = [['ALL', 'Todos'], ...STATUS_ORDER.map((key) => [key, STATUS[key].label])]
 
   const filteredInvoices = invoices.filter((inv) => {
     // Filter by tab
@@ -85,52 +84,24 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
 
             {/* Filter Tabs */}
             <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-brand-border text-xs font-medium self-start sm:self-auto overflow-x-auto max-w-full">
-              <button
-                onClick={() => setActiveFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'ALL'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Todos ({counts.ALL})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter('AUTO_APPROVED')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'AUTO_APPROVED'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Auto-Aprobados ({counts.AUTO_APPROVED})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter('SCALED_TO_HUMAN')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'SCALED_TO_HUMAN'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Escalados ({counts.SCALED_TO_HUMAN})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter('REJECTED')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'REJECTED'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Rechazados ({counts.REJECTED})
-              </button>
+              {filters.map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(key)}
+                  className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${
+                    activeFilter === key
+                      ? 'bg-white text-brand-navy font-semibold shadow-xs'
+                      : 'text-brand-muted hover:text-brand-navy'
+                  }`}
+                >
+                  {label} ({counts[key]})
+                </button>
+              ))}
             </div>
           </div>
         </div>
+
+        <DashboardMetrics invoices={invoices} />
 
         {/* Demo mode banner */}
         {demoMode && (
@@ -170,9 +141,8 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
                   </tr>
                 ) : (
                   filteredInvoices.map((inv, idx) => {
-                    const isAuto = inv.decision_status === 'AUTO_APPROVED'
                     const isScaled = inv.decision_status === 'SCALED_TO_HUMAN'
-                    const isRejected = inv.decision_status === 'REJECTED'
+                    const isRejected = isRejectedStatus(inv.decision_status)
 
                     return (
                       <tr
@@ -213,24 +183,7 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
 
                         {/* Estado */}
                         <td className="py-4 px-6 align-top text-center">
-                          {isAuto && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[11px] font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
-                              AUTO_APPROVED
-                            </span>
-                          )}
-                          {isScaled && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono text-[11px] font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
-                              SCALED_TO_HUMAN
-                            </span>
-                          )}
-                          {isRejected && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-50 text-red-800 border border-red-200 font-mono text-[11px] font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]"></span>
-                              REJECTED
-                            </span>
-                          )}
+                          <StatusBadge status={inv.decision_status} />
                         </td>
 
                         {/* Justificación de Explicabilidad */}
