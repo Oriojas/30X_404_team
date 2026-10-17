@@ -4,10 +4,10 @@ Traducen JSON <-> entidades del dominio; el Core nunca importa este módulo.
 """
 
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from app.core.domain.models import CompanyRules, ExtractedInvoice, HumanDecision, ProcessedInvoice, TreasuryStatus
 
@@ -56,6 +56,16 @@ class InvoiceResponse(BaseModel):
     decided_by: Optional[str] = None
     decided_at: Optional[datetime] = None
     human_note: Optional[str] = None
+
+    @field_serializer("processed_at", "decided_at")
+    def _as_utc(self, value: Optional[datetime]) -> Optional[str]:
+        # La base guarda TIMESTAMP sin zona, siempre en UTC: se marca con "Z" para que el navegador
+        # lo convierta a su hora local en vez de tomarlo como hora local.
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
     @classmethod
     def from_domain(cls, invoice: ProcessedInvoice) -> "InvoiceResponse":

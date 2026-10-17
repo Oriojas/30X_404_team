@@ -28,6 +28,12 @@
 - [x] Los ítems pendientes de [ingesta-idempotente/validation.md](../2026-10-17-ingesta-idempotente/validation.md) y [frontend-api-real/validation.md](../2026-10-17-frontend-api-real/validation.md) quedan marcados, cada uno con su evidencia.
 - [x] Ningún secreto aparece en el repo, en el workflow ni en la evidencia registrada.
 
+### Fechas en UTC (F5.8)
+
+- [x] `GET /api/invoices` serializa `processed_at` y `decided_at` en UTC con `Z`; `tests/test_schemas_fechas.py` en verde. *(73 pasadas, 6 omitidas)*
+- [x] `AuditTable.jsx` y `AuditDrawer.jsx` leen las fechas con `parseApiDate`; `npm run build` sin errores.
+- [ ] Tras el deploy, en el dashboard público una factura recién creada muestra "Hace un momento" o "Hace N min", no "Hace 7 horas" (navegador en GMT+7).
+
 ### Datos para el pitch
 
 - [x] Arranque en frío medido según D6 (segundos desde el redeploy hasta `database: connected`, con fecha) y anotado en [presentacion_y_guion.md](../../docs/pitch_presentacion/presentacion_y_guion.md). *(17-oct-2026: redeploy activo en 25 s; el contenedor arranca en 0.7 s y el primer healthcheck responde a los 0.9 s)*
@@ -40,7 +46,7 @@
 
 ## Hallazgos
 
-- **Fechas del Audit Log desfasadas por zona horaria:** la API devuelve `processed_at` y `decided_at` sin zona (`2026-10-17T12:41:01`, en UTC), y `AuditTable.jsx` y `AuditDrawer.jsx` los leen con `new Date(iso)` como hora local. En un navegador en GMT+7 una factura recién creada aparece como "Hace 7 horas"; en Colombia (GMT-5) quedaría 5 horas en el futuro. No afecta las decisiones, pero se ve en la demo. Se corrige aparte.
+- **Fechas del Audit Log desfasadas por zona horaria:** la API devuelve `processed_at` y `decided_at` sin zona (`2026-10-17T12:41:01`, en UTC), y `AuditTable.jsx` y `AuditDrawer.jsx` los leen con `new Date(iso)` como hora local. En un navegador en GMT+7 una factura recién creada aparece como "Hace 7 horas"; en Colombia (GMT-5) quedaría 5 horas en el futuro. No afecta las decisiones, pero se ve en la demo. Se corrige en F5.8 (D9).
 
 ## No bloqueantes
 

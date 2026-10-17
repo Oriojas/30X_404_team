@@ -33,7 +33,14 @@
 4.2. Captura del dashboard público en producción (hero con la tesorería real y el Audit Log con TC-01 a TC-07) con el navegador integrado.
 4.3. Anotar ambos datos en [presentacion_y_guion.md](../../docs/pitch_presentacion/presentacion_y_guion.md) y guardar la captura en `docs/pitch_presentacion/`.
 
-## 5. Cierre
+## 5. Fechas en UTC (F5.8, hallazgo de producción)
 
-5.1. Tras el merge: `humo_produccion.py` contra producción con TC-07 (ya desplegado).
-5.2. Marcar F5.1 a F5.7 en [roadmap.md](../roadmap.md) con la referencia a esta validación.
+5.1. `backend/app/adapters/inbound/api/schemas.py`: `field_serializer` de `processed_at` y `decided_at` en `InvoiceResponse` que emite UTC con `Z` (D9).
+5.2. `backend/tests/test_schemas_fechas.py`: una fecha sin zona sale con `Z`, una con zona se convierte a UTC y la ausente sigue nula.
+5.3. `frontend/src/api.js`: `parseApiDate`; `AuditTable.jsx` (hora relativa) y `AuditDrawer.jsx` (fecha de la decisión) la usan en vez de `new Date(iso)`.
+5.4. `pytest`, `npm run build` y, tras el deploy, el dashboard público muestra "Hace un momento" o "Hace N min" en una factura recién creada.
+
+## 6. Cierre
+
+6.1. Tras el merge: `humo_produccion.py` contra producción con TC-07 (ya desplegado).
+6.2. Marcar F5.1 a F5.8 en [roadmap.md](../roadmap.md) con la referencia a esta validación.

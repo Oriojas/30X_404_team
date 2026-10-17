@@ -25,6 +25,7 @@ Además, el reto enumera casos trampa que la demo debe mostrar. La Test Suite (T
 - F5.5: TC-07 en `casos_demo.py` (y por lo tanto en `humo_produccion.py` y `test_postgres_integration.py`), en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y en los textos de `backend/README.md` que enumeran la suite.
 - F5.6: tiempo de arranque en frío del backend y captura del dashboard en producción, guardados para el pitch.
 - F5.7: workflow de GitHub Actions con `pytest` y `npm run build` en cada PR.
+- F5.8: fechas del Audit Log en UTC (hallazgo de la validación en producción, ver D9).
 
 **No entra:**
 - TC-08 (presupuesto insuficiente): necesita editar el presupuesto (F7.6).
@@ -44,6 +45,7 @@ Además, el reto enumera casos trampa que la demo debe mostrar. La Test Suite (T
 | D6 | **Arranque en frío = tiempo desde `railway redeploy` del backend hasta el primer `GET /api/health` con `database: connected`**, más la latencia de esa primera respuesta. Se mide una vez y se anota con fecha. | Es el dato que importa en el pitch (cuánto tarda la demo en estar lista) y no requiere herramientas nuevas. |
 | D7 | **CI mínimo:** un solo workflow `.github/workflows/ci.yml` con dos jobs en paralelo, en `pull_request` y en `push` a `master`. Backend: Python 3.12, `pip install -r backend/requirements.txt`, `pytest` desde `backend/` (la integración se omite sola sin `TEST_DATABASE_URL`). Frontend: Node 20, `npm ci` y `npm run build` en `frontend/`. Caché de pip y npm con las acciones oficiales `setup-python` y `setup-node`. | Las mismas versiones que los Dockerfiles; sin secretos ni servicios. |
 | D8 | **Sin dependencias nuevas** en el backend ni en el frontend. El CI no se agrega a [tech-stack.md](../tech-stack.md) como tecnología nueva, pero sí se menciona en la fila de pruebas. | Pragmatismo de hackathon; la constitución exige registrar cambios de stack. |
+| D9 | **Fechas: se guardan en UTC y se muestran en la zona del navegador.** La base ya guarda `processed_at` y `decided_at` en UTC (`datetime.utcnow()` en el Core, `timezone('UTC', now())` en el seed), en columnas `TIMESTAMP` sin zona. El adaptador REST (`InvoiceResponse`) las serializa con `Z` (`2026-10-17T12:41:01Z`); una fecha que llegue con otra zona se convierte a UTC. El frontend las lee con `parseApiDate` (`api.js`), que agrega la `Z` si falta, y las muestra con `toLocaleString()` y la hora relativa en la zona horaria de quien abre la web. No se migra a `TIMESTAMPTZ`. | Corrige el "Hace 7 horas" sin tocar el Core ni el esquema de producción el día antes del congelamiento. |
 
 ## Contrato de TC-07
 
