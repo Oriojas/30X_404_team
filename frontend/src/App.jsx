@@ -9,7 +9,7 @@ import InvoiceUpload from './components/InvoiceUpload'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
 import TopographyBackground from './components/TopographyBackground'
-import { listInvoices, getRules, decideInvoice } from './api'
+import { listInvoices, getRules, decideInvoice, saveRules } from './api'
 
 // Datos de demostración (misma forma que InvoiceResponse): solo se muestran si la API no responde.
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
@@ -148,16 +148,11 @@ export default function App() {
       })
   }, [loadInvoices])
 
-  const handleSaveRules = (newRules) => {
-    setRules(newRules)
-    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
-    if (apiBase) {
-      fetch(`${apiBase}/api/rules`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRules)
-      }).catch(console.error)
-    }
+  // Las reglas locales solo cambian con la respuesta de la API; un error (p. ej. 422) sube al panel
+  const handleSaveRules = async (newRules) => {
+    const saved = await saveRules(newRules)
+    setRules((prev) => ({ ...prev, ...saved }))
+    return saved
   }
 
   // Reemplaza (o agrega al inicio) una factura devuelta por la API
@@ -198,7 +193,11 @@ export default function App() {
         <AgentWorkflow onSelectInvoiceForInspection={(inv) => setSelectedInvoice(inv)} />
 
         {/* Section 3: Governance & Business Rules */}
-        <RuleControls currentRules={rules} onSave={handleSaveRules} />
+        <RuleControls
+          currentRules={rules}
+          readOnly={apiAvailable === false}
+          onSave={handleSaveRules}
+        />
 
         {/* Section 4: Live Audit Table */}
         <AuditTable

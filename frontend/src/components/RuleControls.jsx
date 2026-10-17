@@ -1,4 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+
+function FieldError({ message }) {
+  if (!message) return null
+  return <p className="text-[11px] text-red-600 font-sans">{message}</p>
+}
 
 export default function RuleControls({
   currentRules = {
@@ -7,16 +12,30 @@ export default function RuleControls({
     duplicate_check_days: 30,
     min_treasury_buffer_usd: 10000
   },
+  readOnly = false,
   onSave
 }) {
   const [maxUsd, setMaxUsd] = useState(currentRules.max_autonomous_usd || 2000)
   const [sarlaft, setSarlaft] = useState(currentRules.sarlaft_check_enabled ?? true)
-  const [dupDays, setDupDays] = useState(currentRules.duplicate_check_days || 30)
-  const [bufferUsd] = useState(currentRules.min_treasury_buffer_usd || 10000)
+  const [dupDays, setDupDays] = useState(currentRules.duplicate_check_days ?? 30)
+  const [bufferUsd, setBufferUsd] = useState(currentRules.min_treasury_buffer_usd ?? 10000)
+  const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [generalError, setGeneralError] = useState(null)
 
-  const handleApplyChanges = (e) => {
+  // Los campos reflejan las reglas vigentes cuando llegan de la API o tras guardarlas
+  const rulesKey = JSON.stringify(currentRules)
+  useEffect(() => {
+    setMaxUsd(currentRules.max_autonomous_usd ?? 2000)
+    setSarlaft(currentRules.sarlaft_check_enabled ?? true)
+    setDupDays(currentRules.duplicate_check_days ?? 30)
+    setBufferUsd(currentRules.min_treasury_buffer_usd ?? 10000)
+  }, [rulesKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleApplyChanges = async (e) => {
     if (e) e.preventDefault()
+    if (!onSave || readOnly || saving) return
     const updated = {
       max_autonomous_usd: Number(maxUsd),
       sarlaft_check_enabled: sarlaft,
@@ -24,10 +43,19 @@ export default function RuleControls({
       min_treasury_buffer_usd: Number(bufferUsd)
     }
 
-    if (onSave) {
-      onSave(updated)
+    setSaving(true)
+    setFieldErrors({})
+    setGeneralError(null)
+    try {
+      await onSave(updated)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2500)
+    } catch (err) {
+      const byField = err.fieldErrors || {}
+      setFieldErrors(byField)
+      if (Object.keys(byField).length === 0) setGeneralError(err.message || 'No se pudieron guardar las reglas.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -85,13 +113,28 @@ export default function RuleControls({
 
             <button
               onClick={handleApplyChanges}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white text-xs font-semibold transition-all shadow-sm active:scale-95"
+              disabled={readOnly || saving}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white text-xs font-semibold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               <span className="material-symbols-outlined text-[16px] text-brand-teal">save</span>
-              <span>{saveSuccess ? '¡Políticas Guardadas!' : 'Guardar Políticas'}</span>
+              <span>{saving ? 'Guardando...' : 'Guardar Políticas'}</span>
             </button>
           </div>
         </div>
+
+        {saveSuccess && (
+          <p className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+            Reglas guardadas. Las próximas facturas se evalúan con estos valores.
+          </p>
+        )}
+        {generalError && (
+          <p className="px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">{generalError}</p>
+        )}
+        {readOnly && (
+          <p className="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+            Modo demostración: guardar reglas se habilita cuando la API responde.
+          </p>
+        )}
 
         {/* 4-Card Responsive Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
@@ -133,6 +176,7 @@ export default function RuleControls({
                 <span>$500 Min</span>
                 <span>$10,000 USD Max</span>
               </div>
+              <FieldError message={fieldErrors.max_autonomous_usd} />
             </div>
           </div>
 
@@ -204,16 +248,16 @@ export default function RuleControls({
             <div className="p-3.5 rounded-lg bg-slate-50 border border-brand-border/80 space-y-2 font-mono text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-brand-muted font-sans text-[11px]">Ventana de Memoria:</span>
-                <select
-                  value={dupDays}
-                  onChange={(e) => setDupDays(Number(e.target.value))}
-                  className="bg-white border border-brand-border rounded px-2 py-0.5 text-xs text-brand-navy font-mono"
-                >
-                  <option value={15}>15 días</option>
-                  <option value={30}>30 días</option>
-                  <option value={60}>60 días</option>
-                  <option value={90}>90 días</option>
-                </select>
+                <span className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={dupDays}
+                    onChange={(e) => setDupDays(e.target.value)}
+                    aria-label="Ventana de duplicados en días"
+                    className={`w-16 bg-white border rounded px-2 py-0.5 text-xs text-brand-navy font-mono text-right ${fieldErrors.duplicate_check_days ? 'border-red-400' : 'border-brand-border'}`}
+                  />
+                  <span className="text-brand-muted">días</span>
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -224,6 +268,7 @@ export default function RuleControls({
                 <span className="text-brand-muted font-sans text-[11px]">Acción:</span>
                 <span className="text-emerald-700 font-semibold">Rechazo automático</span>
               </div>
+              <FieldError message={fieldErrors.duplicate_check_days} />
             </div>
           </div>
 
@@ -248,7 +293,17 @@ export default function RuleControls({
             <div className="p-3.5 rounded-lg bg-slate-50 border border-brand-border/80 space-y-2">
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="text-brand-muted font-sans text-[11px]">Reserva Protegida:</span>
-                <span className="font-bold text-brand-navy">${Number(bufferUsd).toLocaleString()} USD</span>
+                <span className="flex items-center gap-1 font-bold text-brand-navy">
+                  $
+                  <input
+                    type="number"
+                    value={bufferUsd}
+                    onChange={(e) => setBufferUsd(e.target.value)}
+                    aria-label="Reserva mínima de tesorería en USD"
+                    className={`w-24 bg-white border rounded px-2 py-0.5 text-xs text-brand-navy font-mono text-right ${fieldErrors.min_treasury_buffer_usd ? 'border-red-400' : 'border-brand-border'}`}
+                  />
+                  USD
+                </span>
               </div>
 
               <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
@@ -259,6 +314,7 @@ export default function RuleControls({
                 <span>Caja: $48,250 USD</span>
                 <span className="text-emerald-700 font-semibold">Holgura 79% OK</span>
               </div>
+              <FieldError message={fieldErrors.min_treasury_buffer_usd} />
             </div>
           </div>
         </div>
