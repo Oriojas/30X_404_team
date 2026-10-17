@@ -1,12 +1,15 @@
 """
 Prueba de humo contra un backend desplegado (Fase 4, F4.5).
 Verifica /api/health, toma una foto del saldo (PATCH /api/treasury con el saldo del seed), recorre
-TC-01..TC-07 por POST /api/invoices y, con --origen, el preflight de CORS.
+TC-01..TC-08 por POST /api/invoices y, con --origen, el preflight de CORS.
+
+TC-08 baja el presupuesto del período por un momento (PATCH /api/treasury con monthly_budget_usd, que no mueve
+la foto) y lo restaura al final, también si el caso falla.
 
 La foto del saldo cambia la tesorería del backend: lo aprobado antes (corridas anteriores, Telegram) deja
 de comprometer el saldo, para que TC-01 no escale por FIN-01/FIN-03 (Fase 6).
 
-Cada caso usa un Idempotency-Key fijo (humo-tc-01 … humo-tc-07): repetir el humo devuelve las mismas
+Cada caso usa un Idempotency-Key fijo (humo-tc-01 … humo-tc-08): repetir el humo devuelve las mismas
 facturas (200) en vez de crear duplicados que INTEG-01 rechazaría. Esas respuestas son la repetición de
 la primera corrida, no una evaluación nueva: el script lo advierte. Para validar el pipeline del deploy
 actual hace falta una base recién sembrada (DB_SEED_DEMO=true y las reglas por defecto).
@@ -22,7 +25,7 @@ import sys
 
 import httpx
 
-from scripts.casos_demo import CASOS, SALDO_DEMO_USD
+from scripts.casos_demo import CASOS, SALDO_DEMO_USD, TC_08, presupuesto_para_tc08
 
 ESTADOS_HUMANOS = {"HUMAN_APPROVED", "HUMAN_REJECTED"}
 
@@ -67,6 +70,26 @@ def revisar_caso(client: httpx.Client, caso: str, estado: str, regla: str | None
     return ok, f"{obtenido} (HTTP {response.status_code})"
 
 
+def revisar_tc08(client: httpx.Client) -> tuple[bool, str]:
+    """Baja el presupuesto para que TC-08 escale por FIN-02 y lo restaura siempre."""
+    response = client.get("/api/treasury")
+    if response.status_code != 200:
+        return False, f"GET /api/treasury HTTP {response.status_code}"
+    tesoreria = response.json()
+    original = tesoreria["monthly_budget_usd"]
+    bajado = client.patch("/api/treasury", json={"monthly_budget_usd": presupuesto_para_tc08(tesoreria["month_spent_usd"])})
+    if bajado.status_code != 200:
+        return False, f"no se pudo bajar el presupuesto: HTTP {bajado.status_code} {bajado.text[:80]}"
+    try:
+        caso, estado, regla, payload = TC_08
+        ok, detalle = revisar_caso(client, caso, estado, regla, payload)
+    finally:
+        restaurado = client.patch("/api/treasury", json={"monthly_budget_usd": original})
+    if restaurado.status_code != 200 or restaurado.json().get("monthly_budget_usd") != original:
+        return False, f"{detalle}; ¡no se restauró el presupuesto ({original:g})! HTTP {restaurado.status_code}"
+    return ok, f"{detalle}; presupuesto restaurado a {original:g}"
+
+
 def revisar_reglas(client: httpx.Client) -> tuple[bool, str]:
     response = client.get("/api/rules")
     return response.status_code == 200, f"HTTP {response.status_code}"
@@ -93,6 +116,7 @@ def main() -> None:
             for caso, estado, regla, payload in CASOS:
                 esperado = estado + (f" + {regla}" if regla else "")
                 resultados.append((caso, esperado, *revisar_caso(client, caso, estado, regla, payload)))
+            resultados.append((TC_08[0], f"{TC_08[1]} + {TC_08[2]}", *revisar_tc08(client)))
             resultados.append(("rules", "HTTP 200", *revisar_reglas(client)))
             if args.origen:
                 resultados.append(("cors", args.origen, *revisar_cors(client, args.origen)))

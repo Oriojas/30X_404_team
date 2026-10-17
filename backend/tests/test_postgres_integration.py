@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.casos_demo import CASOS, SALDO_DEMO_USD
+from scripts.casos_demo import CASOS, SALDO_DEMO_USD, TC_08, presupuesto_para_tc08
 
 from .fakes import FakeGenAIClient
 
@@ -73,6 +73,20 @@ def test_demo_suite_against_seeded_database(client):
         assert invoice["decision_status"] == estado, (caso, invoice["audit_explanation"])
         assert regla is None or regla in invoice["audit_explanation"], (caso, invoice["audit_explanation"])
         resultados[caso] = invoice
+
+    # TC-08, como humo_produccion.py: presupuesto un dólar por debajo de gasto del mes + monto, y restaurarlo.
+    # El PATCH con solo presupuesto no mueve la foto: lo comprometido por TC-01 sigue ahí (F7.1).
+    before_tc08 = client.get("/api/treasury").json()
+    lowered = client.patch("/api/treasury",
+                           json={"monthly_budget_usd": presupuesto_para_tc08(before_tc08["month_spent_usd"])}).json()
+    assert lowered["snapshot_at"] == before_tc08["snapshot_at"] and lowered["committed_usd"] == 450
+    caso, estado, regla, payload = TC_08
+    tc08 = post_invoice(client, **payload)
+    assert tc08["decision_status"] == estado, (caso, tc08["audit_explanation"])
+    assert regla in tc08["audit_explanation"] and "FIN-01" not in tc08["audit_explanation"]
+    assert "FIN-03" not in tc08["audit_explanation"] and "HITL" not in tc08["audit_explanation"]
+    restored = client.patch("/api/treasury", json={"monthly_budget_usd": before_tc08["monthly_budget_usd"]}).json()
+    assert restored["monthly_budget_usd"] == 25000 and restored["snapshot_at"] == before_tc08["snapshot_at"]
     tc04 = resultados["TC-04"]
 
     gbp = post_invoice(client, invoice_number="AWS-GBP-1", vendor_name="Amazon Web Services LATAM",
