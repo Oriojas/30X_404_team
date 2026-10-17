@@ -1,15 +1,27 @@
 import React, { useState } from 'react'
+import DashboardMetrics from './DashboardMetrics'
+import StatusBadge from './StatusBadge'
+import Notice from './Notice'
+import { STATUS, STATUS_ORDER, countByStatus, invoiceRef, isRejectedStatus } from '../status'
 
-export default function AuditTable({ invoices = [], onSelectInvoice }) {
+// Hora relativa a partir de processed_at (ISO del backend)
+function timeAgo(iso) {
+  const date = iso ? new Date(iso) : null
+  if (!date || Number.isNaN(date.getTime())) return 'Reciente'
+  const minutes = Math.round((Date.now() - date.getTime()) / 60000)
+  if (minutes < 1) return 'Hace un momento'
+  if (minutes < 60) return `Hace ${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`
+  return date.toLocaleDateString()
+}
+
+export default function AuditTable({ invoices = [], loading = false, demoMode = false, refreshError = null, onRefresh, onSelectInvoice, children }) {
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const counts = {
-    ALL: invoices.length,
-    AUTO_APPROVED: invoices.filter((i) => i.decision_status === 'AUTO_APPROVED').length,
-    SCALED_TO_HUMAN: invoices.filter((i) => i.decision_status === 'SCALED_TO_HUMAN').length,
-    REJECTED: invoices.filter((i) => i.decision_status === 'REJECTED').length
-  }
+  const counts = { ALL: invoices.length, ...countByStatus(invoices) }
+  const filters = [['ALL', 'Todos'], ...STATUS_ORDER.map((key) => [key, STATUS[key].label])]
 
   const filteredInvoices = invoices.filter((inv) => {
     // Filter by tab
@@ -47,6 +59,16 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* Refresh */}
+            <button
+              onClick={() => onRefresh && onRefresh()}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-border bg-white text-xs font-semibold text-brand-navy hover:bg-slate-50 disabled:opacity-60 disabled:cursor-wait shrink-0"
+            >
+              <span className={`material-symbols-outlined text-[16px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
+              {loading ? 'Actualizando...' : 'Actualizar'}
+            </button>
+
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
               <span className="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-brand-muted">
@@ -63,52 +85,40 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
 
             {/* Filter Tabs */}
             <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-brand-border text-xs font-medium self-start sm:self-auto overflow-x-auto max-w-full">
-              <button
-                onClick={() => setActiveFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'ALL'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Todos ({counts.ALL})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter('AUTO_APPROVED')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'AUTO_APPROVED'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Auto-Aprobados ({counts.AUTO_APPROVED})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter('SCALED_TO_HUMAN')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'SCALED_TO_HUMAN'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Escalados ({counts.SCALED_TO_HUMAN})
-              </button>
-
-              <button
-                onClick={() => setActiveFilter('REJECTED')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === 'REJECTED'
-                    ? 'bg-white text-brand-navy font-semibold shadow-xs'
-                    : 'text-brand-muted hover:text-brand-navy'
-                }`}
-              >
-                Rechazados ({counts.REJECTED})
-              </button>
+              {filters.map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(key)}
+                  className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${
+                    activeFilter === key
+                      ? 'bg-white text-brand-navy font-semibold shadow-xs'
+                      : 'text-brand-muted hover:text-brand-navy'
+                  }`}
+                >
+                  {label} ({counts[key]})
+                </button>
+              ))}
             </div>
           </div>
         </div>
+
+        <DashboardMetrics counts={counts} total={invoices.length} />
+
+        {/* Acciones sobre el Audit Log (subida de facturas) */}
+        {children}
+
+        {/* Demo mode banner */}
+        {demoMode && (
+          <Notice size="lg" icon="cloud_off">
+            <span className="font-semibold">Modo demostración:</span> la API no responde, así que se muestran datos
+            ficticios. Subir facturas, decidir y guardar reglas está deshabilitado hasta que vuelva la conexión.
+          </Notice>
+        )}
+        {refreshError && (
+          <Notice tone="error" size="lg" icon="sync_problem">
+            No se pudo actualizar el Audit Log: {refreshError} Se muestran los últimos datos cargados.
+          </Notice>
+        )}
 
         {/* Table Container Card */}
         <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
@@ -128,14 +138,17 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
                 {filteredInvoices.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="py-12 text-center text-brand-muted">
-                      No se encontraron facturas que coincidan con los filtros seleccionados.
+                      {loading && invoices.length === 0
+                        ? 'Cargando facturas...'
+                        : invoices.length === 0
+                        ? 'Aún no hay facturas en el Audit Log. Envía una por Telegram o súbela desde el dashboard.'
+                        : 'No se encontraron facturas que coincidan con los filtros seleccionados.'}
                     </td>
                   </tr>
                 ) : (
                   filteredInvoices.map((inv, idx) => {
-                    const isAuto = inv.decision_status === 'AUTO_APPROVED'
                     const isScaled = inv.decision_status === 'SCALED_TO_HUMAN'
-                    const isRejected = inv.decision_status === 'REJECTED'
+                    const isRejected = isRejectedStatus(inv.decision_status)
 
                     return (
                       <tr
@@ -147,10 +160,10 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
                         {/* ID & Hora */}
                         <td className="py-4 px-6 align-top font-mono">
                           <span className={`font-bold ${isRejected ? 'text-red-600' : 'text-brand-navy'}`}>
-                            #{inv.invoice_number || `BLK-${inv.id}`}
+                            {invoiceRef(inv)}
                           </span>
                           <span className="block text-[11px] text-brand-muted font-sans mt-0.5">
-                            {inv.time || 'Reciente'}
+                            {timeAgo(inv.processed_at)}
                           </span>
                         </td>
 
@@ -176,24 +189,7 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
 
                         {/* Estado */}
                         <td className="py-4 px-6 align-top text-center">
-                          {isAuto && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[11px] font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
-                              AUTO_APPROVED
-                            </span>
-                          )}
-                          {isScaled && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono text-[11px] font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
-                              SCALED_TO_HUMAN
-                            </span>
-                          )}
-                          {isRejected && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-50 text-red-800 border border-red-200 font-mono text-[11px] font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]"></span>
-                              REJECTED
-                            </span>
-                          )}
+                          <StatusBadge status={inv.decision_status} />
                         </td>
 
                         {/* Justificación de Explicabilidad */}

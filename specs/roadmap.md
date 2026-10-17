@@ -50,12 +50,12 @@ Cualquier canal puede entregar la misma factura más de una vez. Se resuelve en 
 
 ## Fase 3 — Integración del frontend con la API real (frontend, Oscar)
 
-- [ ] **F3.1 — Listado real:** el Audit Log consume `GET /api/invoices` y muestra `evaluations` capa por capa.
-- [ ] **F3.2 — Estados nuevos:** badges y filtros para `HUMAN_APPROVED` y `HUMAN_REJECTED`; métrica de autonomía sin contar las decisiones humanas.
-- [ ] **F3.3 — Decisión humana:** los botones del Drawer llaman a `POST /api/invoices/{id}/decision` (con `decided_by` y una nota) y manejan el `409`.
-- [ ] **F3.4 — Subida de facturas:** botón de carga hacia `POST /api/invoices/upload`, con estado de procesamiento y resultado.
-- [ ] **F3.5 — Idempotency-Key:** generar un UUID (`crypto.randomUUID()`) por cada intento de subida, enviarlo en el header `Idempotency-Key` y reutilizarlo en los reintentos del mismo archivo. Deshabilitar el botón mientras se procesa, para evitar el doble clic. Tratar el `200` (factura ya existente) igual que el `201`.
-- [ ] **F3.6 — Reglas:** el panel de reglas persiste con `POST /api/rules` y muestra los errores de validación.
+- [x] **F3.1 — Listado real:** el Audit Log consume `GET /api/invoices` y muestra `evaluations` capa por capa.
+- [x] **F3.2 — Estados nuevos:** badges y filtros para `HUMAN_APPROVED` y `HUMAN_REJECTED`; métrica de autonomía sin contar las decisiones humanas.
+- [x] **F3.3 — Decisión humana:** los botones del Drawer llaman a `POST /api/invoices/{id}/decision` (con `decided_by` y una nota) y manejan el `409`.
+- [x] **F3.4 — Subida de facturas:** botón de carga hacia `POST /api/invoices/upload`, con estado de procesamiento y resultado.
+- [x] **F3.5 — Idempotency-Key:** generar un UUID (`crypto.randomUUID()`) por cada intento de subida, enviarlo en el header `Idempotency-Key` y reutilizarlo en los reintentos del mismo archivo. Deshabilitar el botón mientras se procesa, para evitar el doble clic. Tratar el `200` (factura ya existente) igual que el `201`.
+- [x] **F3.6 — Reglas:** el panel de reglas persiste con `POST /api/rules` y muestra los errores de validación. *(Hecho el 17-oct-2026: recorrido manual con PostgreSQL 16 y seed, TC-01 a TC-06 y aprobación de un escalamiento desde el navegador; ver [validación](2026-10-17-frontend-api-real/validation.md).)*
 
 **Listo cuando:** se puede recorrer TC-01 a TC-06 y aprobar un escalamiento solo desde el navegador.
 
@@ -64,7 +64,7 @@ Cualquier canal puede entregar la misma factura más de una vez. Se resuelve en 
 - [ ] **F4.1 — Backend:** servicio desde `backend/Dockerfile` con `DATABASE_URL`, `DB_AUTO_MIGRATE=true` y `DB_SEED_DEMO=true` (demo).
 - [ ] **F4.2 — Secretos:** `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` y `ALLOWED_ORIGINS` con la URL del frontend.
 - [ ] **F4.3 — Webhook:** registrar `setWebhook` con la URL pública y el `secret_token`.
-- [ ] **F4.4 — Frontend:** servicio desde `frontend/Dockerfile` con `VITE_API_BASE_URL` apuntando al backend.
+- [ ] **F4.4 — Frontend:** servicio desde `frontend/Dockerfile` con `VITE_API_BASE_URL` apuntando al backend. El Dockerfile aún no declara `ARG VITE_API_BASE_URL`: hay que agregarlo para que Vite la reciba en el build.
 - [ ] **F4.5 — Humo en producción:** `/api/health` conectado, Test Suite por la API, una factura por Telegram y otra por la web.
 
 **Listo cuando:** el jurado puede abrir la URL pública y probar el agente sin ayuda.

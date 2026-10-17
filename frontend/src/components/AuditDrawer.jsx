@@ -1,11 +1,83 @@
-import React from 'react'
+import React, { useState } from 'react'
+import StatusBadge from './StatusBadge'
+import Notice from './Notice'
+import { invoiceRef, statusInfo } from '../status'
+import { DECIDED_BY } from '../api'
 
-export default function AuditDrawer({ invoice, onClose, onApproveHuman, onRejectHuman }) {
+// Capas de la tubería, en el orden de evaluación del backend (rules_pipeline.LAYERS)
+const LAYERS = [
+  { key: 'compliance_check', label: '1. Compliance / SARLAFT' },
+  { key: 'integrity_check', label: '2. Integridad & Duplicados' },
+  { key: 'solvency_check', label: '3. Solvencia Financiera' },
+  { key: 'hitl_check', label: '4. Gobierno HITL' }
+]
+
+const LAYER_STATUS = {
+  PASSED: { text: 'APROBADA', dot: 'bg-emerald-500', tone: 'text-emerald-700' },
+  ESCALATED: { text: 'ALERTA', dot: 'bg-amber-500', tone: 'text-amber-700' },
+  REJECTED: { text: 'RECHAZO', dot: 'bg-red-500', tone: 'text-red-700' },
+  SKIPPED: { text: 'OMITIDA', dot: 'bg-slate-300', tone: 'text-brand-muted' },
+  NOT_EVALUATED: { text: 'NO EVALUADA', dot: 'bg-slate-200', tone: 'text-brand-muted' }
+}
+
+// Las alertas de evaluations no traen severidad: en una factura REJECTED por la tubería,
+// la capa que la frenó es la última que se disparó (las siguientes quedan NOT_EVALUATED).
+function layerRows(invoice) {
+  const evaluations = invoice.evaluations || {}
+  const rows = LAYERS.filter(({ key }) => evaluations[key]).map(({ key, label }) => ({
+    key,
+    label,
+    ...evaluations[key],
+    alerts: evaluations[key].alerts || []
+  }))
+  const triggered = rows.filter((row) => row.status === 'TRIGGERED')
+  const stopper = invoice.decision_status === 'REJECTED' ? triggered[triggered.length - 1] : null
+  return rows.map((row) => ({
+    ...row,
+    view:
+      row.status === 'TRIGGERED'
+        ? LAYER_STATUS[row === stopper ? 'REJECTED' : 'ESCALATED']
+        : LAYER_STATUS[row.status] || LAYER_STATUS.NOT_EVALUATED
+  }))
+}
+
+function formatDateTime(iso) {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString()
+}
+
+// fx_rate_applied: unidades de moneda local por 1 USD (tasas de referencia del backend)
+function fxRateText(invoice) {
+  const currency = invoice.original_currency
+  if (currency === 'USD') return '1.0000'
+  const rate = invoice.fx_rate_applied
+  if (!rate || !invoice.usd_amount) return `Sin tasa de referencia para ${currency}`
+  return `1 USD = ${rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${currency}`
+}
+
+const NOTE_MAX = 1000
+
+export default function AuditDrawer({ invoice, readOnly = false, onClose, onDecide }) {
+  const [note, setNote] = useState('')
+  const [submitting, setSubmitting] = useState(null) // 'APPROVE' | 'REJECT' | null
+  const [error, setError] = useState(null)
+
   if (!invoice) return null
 
+  const decide = async (decision) => {
+    setSubmitting(decision)
+    setError(null)
+    try {
+      await onDecide(invoice.id, decision, note)
+    } catch (err) {
+      setError(err.message || 'No se pudo registrar la decisión.')
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
   const isScaled = invoice.decision_status === 'SCALED_TO_HUMAN'
-  const isApproved = invoice.decision_status === 'AUTO_APPROVED'
-  const isRejected = invoice.decision_status === 'REJECTED'
+  const layers = layerRows(invoice)
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
@@ -26,7 +98,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-bold text-cyan-300">
-                  {invoice.invoice_number ? `#BLK-${invoice.invoice_number}` : `#BLK-${invoice.id}`}
+                  {invoiceRef(invoice)}
                 </span>
                 <span className="text-slate-400 text-xs">•</span>
                 <span className="text-xs text-slate-300 font-sans">Inspector de Decisión</span>
@@ -52,24 +124,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
           <div className="p-4 rounded-xl border bg-white shadow-sm space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-brand-muted font-medium">Estado Algorítmico</span>
-              {isApproved && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
-                  AUTO_APPROVED
-                </span>
-              )}
-              {isScaled && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
-                  SCALED_TO_HUMAN
-                </span>
-              )}
-              {isRejected && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-800 border border-red-200 font-mono text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-[#EF4444]"></span>
-                  REJECTED
-                </span>
-              )}
+              <StatusBadge status={invoice.decision_status} size="lg" />
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2 font-mono text-xs">
@@ -87,6 +142,21 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
               </div>
             </div>
           </div>
+
+          {/* Decisión humana: quién, cuándo y nota */}
+          {statusInfo(invoice.decision_status).human && (
+            <div className="p-4 rounded-xl bg-white border border-brand-border shadow-sm space-y-1.5 text-xs">
+              <span className="text-[11px] font-bold text-brand-steel uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-brand-teal text-[16px]">person</span>
+                Decisión Humana
+              </span>
+              <p className="text-brand-navy">
+                <span className="font-semibold">{invoice.decided_by || 'Sin registrar'}</span>
+                {invoice.decided_at && <span className="text-brand-muted"> · {formatDateTime(invoice.decided_at)}</span>}
+              </p>
+              {invoice.human_note && <p className="text-brand-steel leading-relaxed">“{invoice.human_note}”</p>}
+            </div>
+          )}
 
           {/* Rastro de Explicabilidad Caja Blanca */}
           <div className="space-y-2">
@@ -119,7 +189,7 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
               <div className="flex justify-between">
                 <span>Tasa de Referencia:</span>
                 <span className="text-white">
-                  {invoice.original_currency === 'COP' ? '1 USD = 4,200.00 COP' : invoice.original_currency === 'MXN' ? '1 USD = 19.50 MXN' : '1.0000'}
+                  {fxRateText(invoice)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -133,75 +203,88 @@ export default function AuditDrawer({ invoice, onClose, onApproveHuman, onReject
             </div>
           </div>
 
-          {/* Matriz de 4 Capas: Desglose de Evaluación */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-brand-steel uppercase tracking-wider flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-brand-teal text-[16px]">checklist</span>
-              Auditoría de Matriz en 4 Capas
-            </h4>
+          {/* Matriz de 4 Capas: evaluación real de la tubería, capa por capa */}
+          {layers.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-brand-steel uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-brand-teal text-[16px]">checklist</span>
+                Evaluación por Capa
+              </h4>
 
-            <div className="space-y-2 font-mono text-xs">
-              {/* Capa 1: SARLAFT */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${isRejected && invoice.audit_explanation.includes('SARLAFT') ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">1. Listas Restrictivas (SARLAFT/OFAC)</span>
-                </div>
-                <span className="font-bold text-[11px]">
-                  {isRejected && invoice.audit_explanation.includes('SARLAFT') ? 'FALLA / ALERTA' : 'APROBADO'}
-                </span>
-              </div>
+              <div className="space-y-2 text-xs">
+                {layers.map((layer) => (
+                  <div key={layer.key} className="p-3 rounded-xl bg-white border border-brand-border shadow-xs space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${layer.view.dot}`} />
+                        <span className="text-brand-steel text-xs">{layer.label}</span>
+                      </div>
+                      <span className={`font-mono font-bold text-[11px] ${layer.view.tone}`}>{layer.view.text}</span>
+                    </div>
 
-              {/* Capa 2: Duplicados */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${isRejected && invoice.audit_explanation.includes('duplicada') ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">2. Integridad & Duplicados (30 días)</span>
-                </div>
-                <span className="font-bold text-[11px]">
-                  {isRejected && invoice.audit_explanation.includes('duplicada') ? 'DUPLICADO DETECTADO' : 'ÚNICO 100%'}
-                </span>
-              </div>
+                    {layer.reason && <p className="pl-4 text-[11px] text-brand-muted">{layer.reason}</p>}
 
-              {/* Capa 3: Solvencia y Saldo */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-brand-steel font-sans text-xs">3. Solvencia & Saldo Blinka</span>
-                </div>
-                <span className="font-bold text-[11px] text-emerald-700">DISPONIBLE ($48,250 USD)</span>
-              </div>
-
-              {/* Capa 4: Gobierno HITL - Umbral de Autonomía */}
-              <div className="p-3 rounded-xl bg-white border border-brand-border flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${invoice.usd_amount > 2000 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  <span className="text-brand-steel font-sans text-xs">4. Gobierno HITL ($2,000 USD)</span>
-                </div>
-                <span className="font-bold text-[11px]">
-                  {invoice.usd_amount > 2000 ? 'EXCEDE ($2,000)' : 'DENTRO DE LÍMITE'}
-                </span>
+                    {layer.alerts.length > 0 && (
+                      <ul className="pl-4 space-y-1.5">
+                        {layer.alerts.map((alert, idx) => (
+                          <li key={`${alert.reason_code}-${idx}`} className="text-[11px] text-brand-navy leading-relaxed">
+                            <span className="font-mono font-bold mr-1.5">{alert.reason_code}</span>
+                            {alert.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Drawer Footer con Acciones Human-in-the-Loop */}
-        <div className="p-4 sm:p-5 bg-white border-t border-brand-border flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 bg-white border-t border-brand-border space-y-3">
+          {error && (
+            <Notice tone="error">{error}</Notice>
+          )}
+
           {isScaled ? (
             <>
-              <button
-                onClick={() => onRejectHuman && onRejectHuman(invoice.id)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs transition-colors shadow-xs"
-              >
-                Rechazar Pago
-              </button>
-              <button
-                onClick={() => onApproveHuman && onApproveHuman(invoice.id)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white font-semibold text-xs transition-all shadow-sm active:scale-95"
-              >
-                Aprobar Pago
-              </button>
+              {readOnly ? (
+                <Notice>Modo demostración: la decisión humana se habilita cuando la API responde.</Notice>
+              ) : (
+                <div className="space-y-1">
+                  <label htmlFor="human-note" className="text-[11px] text-brand-muted flex justify-between">
+                    <span>Nota para el Audit Log (opcional) · decide como <span className="font-semibold">{DECIDED_BY}</span></span>
+                    <span>{note.length}/{NOTE_MAX}</span>
+                  </label>
+                  <textarea
+                    id="human-note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
+                    disabled={submitting !== null}
+                    rows={2}
+                    placeholder="Ej.: Validado con el proveedor por teléfono."
+                    className="w-full px-3 py-2 rounded-xl border border-brand-border bg-slate-50 text-xs text-brand-navy outline-none focus:border-brand-teal resize-none"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => decide('REJECT')}
+                  disabled={readOnly || submitting !== null}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting === 'REJECT' ? 'Rechazando...' : 'Rechazar Pago'}
+                </button>
+                <button
+                  onClick={() => decide('APPROVE')}
+                  disabled={readOnly || submitting !== null}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-steel text-white font-semibold text-xs transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                >
+                  {submitting === 'APPROVE' ? 'Aprobando...' : 'Aprobar Pago'}
+                </button>
+              </div>
             </>
           ) : (
             <button
