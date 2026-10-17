@@ -1,4 +1,7 @@
 # Especificación de Arquitectura v4: Blinka PayAgent (Paybot)
+
+> [!WARNING]
+> **Documento histórico.** La arquitectura vigente, con diagramas C4 y el estado real de la implementación, está en [arquitectura_solucion_v5.md](arquitectura_solucion_v5.md).
 **Proyecto:** Agentes Autónomos para Pagos Corporativos | **Hackathon 30X**
 **Despliegue:** Railway All-in-One PaaS | **Repositorio:** `Oriojas/30X_404_team`
 
