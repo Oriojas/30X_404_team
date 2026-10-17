@@ -6,7 +6,7 @@
 
 ## Criterios bloqueantes
 
-> Avance al 17-oct-2026: la rama ya está en `master` (#12), el frontend público consume el backend real y el recorrido web (subida, aprobación y reglas) pasó en producción. Falta el reenvío por Telegram.
+> Avance al 17-oct-2026: la rama ya está en `master` (#12), el frontend público consume el backend real y el recorrido web (subida, aprobación y reglas) y el reenvío por Telegram pasaron en producción. Todos los criterios bloqueantes se cumplen.
 
 ### Código y build (local)
 
@@ -52,7 +52,7 @@
 - [x] **Web:** subir una factura real (imagen o PDF) desde el dashboard produce un dictamen con datos extraídos por Gemini (no una extracción vacía con confianza 0). *(`factura_devstudio.png`: Gemini leyó `DS-2026-1107`, 4.200.000 COP → 1.000 USD, `AUTO_APPROVED`; id 13, canal `WEB`)*
 - [x] **Telegram, aviso:** enviar una factura real al bot devuelve el aviso del dictamen en el chat. *(Factura `#00042-1`: Gemini leyó 205,00 con confianza 0,8 y moneda ambigua `XXX`, y se escaló por INTEG-04, INTEG-03, HITL-02 y HITL-03, como manda la tolerancia cero. Quedó con id 12 en `GET /api/invoices`.)*
 - [x] **Telegram, dashboard:** tras **Actualizar**, esa factura aparece en el Audit Log del dashboard público. *(`#00042-1` visible como `SCALED_TO_HUMAN`)*
-- [ ] **Telegram, reintento:** reenviar el mismo archivo no crea otra factura procesada (INTEG-01 por hash) y no llega un aviso duplicado del mismo update.
+- [x] **Telegram, reintento:** reenviar el mismo archivo no crea otra factura procesada (INTEG-01 por hash) y no llega un aviso duplicado del mismo update. *(Dos reenvíos como archivo quedaron `REJECTED` por INTEG-01 frente a la #14, sin volver a llamar al OCR (ids 18 y 19); un aviso por update. Por la API, el mismo JPEG dos veces da #16 `SCALED_TO_HUMAN` y #17 `REJECTED` (INTEG-01). Limitación conocida: reenviado como **foto**, Telegram puede recomprimir la imagen, el hash cambia y el OCR vuelve a correr (ids 14 y 15). Como el OCR no lee el proveedor, INTEG-01 por número + proveedor tampoco lo frena.)*
 - [x] **Aprobación:** abrir un `SCALED_TO_HUMAN` en el Drawer, aprobarlo con una nota y ver `HUMAN_APPROVED` con `decided_by` y fecha; recargar la página y el estado persiste. *(`NA-090`, id 9: `CFO Demo`, 2026-10-17 10:45 UTC, con nota; persiste tras recargar. El humo acepta `HUMAN_*` en los casos que escalan)*
 - [x] **Reglas:** cambiar un umbral, guardar, recargar y ver el valor persistido. *(ventana de duplicados 30 → 45 días, persistió tras recargar y se restauró a 30)*
 
@@ -60,7 +60,7 @@
 
 - [x] `backend/README.md` y `frontend/README.md` describen el despliegue (orden, `railway config plan`/`apply`, secretos, variables, scripts) de forma que otra persona del equipo pueda repetirlo.
 - [x] `.env.example` documenta `TELEGRAM_WEBHOOK_URL` y el formato de `ALLOWED_ORIGINS` para producción.
-- [ ] F4.1 a F4.5 marcadas en [roadmap.md](../roadmap.md) con fecha; Railway "En uso" en [tech-stack.md](../tech-stack.md).
+- [x] F4.1 a F4.5 marcadas en [roadmap.md](../roadmap.md) con fecha; Railway "En uso" en [tech-stack.md](../tech-stack.md).
 
 ## No bloqueantes
 
