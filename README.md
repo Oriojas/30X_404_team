@@ -37,7 +37,7 @@ El repositorio está organizado como un **Monorepo Hexagonal** centralizado. Par
 * 🎨 **[Frontend (React, Vite & Tailwind CSS)](frontend/README.md):** Dashboard del equipo financiero, métricas de gobernanza, controles de umbral en tiempo real y tabla de auditoría.
 * 🧭 **[Constitución del Proyecto](specs/):** [Misión](specs/mission.md), [Stack Tecnológico](specs/tech-stack.md) y [Roadmap](specs/roadmap.md) por fases pequeñas.
 * 📋 **[Plan de Trabajo Oficial](plan_de_trabajo.md):** Fases de ejecución, cronograma, entregables y asignación de responsabilidades.
-* 📐 **[Arquitectura de Solución v4](docs/arquitectura/arquitectura_solucion_v4.md):** Diagramas Mermaid del flujo end-to-end y modelo de datos de PostgreSQL.
+* 📐 **[Arquitectura de Solución v5](docs/arquitectura/arquitectura_solucion_v5.md):** Diagramas C4 (contexto, contenedores, componentes), flujos end-to-end, modelo de datos y despliegue.
 * 📖 **[Reglas de Negocio del Agente](docs/reglas-negocio/reglas_pago_agente_v3.md):** Definición detallada de las 4 capas de validación y casos de uso.
 
 ---
