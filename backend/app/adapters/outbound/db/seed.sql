@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- BLINKA PAYAGENT - DATOS SEED DE DEMOSTRACIÓN
--- Preparados para disparar la Test Suite TC-01 a TC-06 (docs/reglas-negocio/reglas_pago_agente_v3.md).
+-- Preparados para disparar la Test Suite TC-01 a TC-07 (docs/reglas-negocio/reglas_pago_agente_v3.md).
 -- Idempotente: no duplica filas si se ejecuta varias veces.
 -- ==============================================================================
 
@@ -16,7 +16,7 @@ ON CONFLICT (company_id) DO NOTHING;
 
 -- Proveedores verificados
 INSERT INTO vendors (tax_id, legal_name, bank_account, is_pep, contract_amount_usd) VALUES
-    ('US-91-1646860',  'Amazon Web Services LATAM',          'US-CHASE-000123456',          FALSE, 1000.00),   -- TC-01
+    ('US-91-1646860',  'Amazon Web Services LATAM',          'US-CHASE-000123456',          FALSE, 1000.00),   -- TC-01 y TC-07 (TC-07 cobra $1,500: la tarifa debe quedar bajo ese monto)
     ('900.584.112-4',  'DevStudio LatAm S.A.S.',             'CO-BANCOLOMBIA-11122233344',  FALSE, 1500.00),   -- TC-02
     ('901.223.450-1',  'Nube Andina Consultores S.A.S.',     'CO-DAVIVIENDA-55566677788',   FALSE, 5000.00),   -- TC-04
     ('LEM850101AB1',   'Logística Express MX S.A. de C.V.',  'MX-BBVA-012180001234567890',  FALSE, 15000.00),  -- TC-05

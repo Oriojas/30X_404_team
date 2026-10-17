@@ -119,6 +119,9 @@ Para asegurar que la grabación del video y la revisión de los jurados sea impe
 5. **Prueba 5 (opcional) — Saldo Insuficiente · TC-05:**
    * *Factura:* $10,000 USD con saldo Blinka de $4,000 USD.
    * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`FIN-01`).
+6. **Prueba 6 (opcional) — No cuadra con lo acordado · TC-07:**
+   * *Factura:* "Amazon Web Services LATAM" (con historial) por $1,500 USD, cuando la tarifa pactada en contrato es de $1,000 USD.
+   * *Resultado esperado:* `SCALED_TO_HUMAN` 🟠 (`INTEG-02`: "El valor cobrado supera la tarifa acordada en el contrato"). Está bajo el umbral autónomo y hay saldo: la única razón para escalar es que el monto no cuadra con lo acordado.
 
 ---
 
@@ -128,7 +131,7 @@ El criterio de **Viabilidad Técnica (20%)** exige que el código respalde exact
 
 - [ ] El webhook de Telegram recibe fotos/PDF y responde. Ya está implementado (`adapters/inbound/telegram/webhook.py`, con `TELEGRAM_WEBHOOK_SECRET`); falta probarlo con el bot real registrado con `setWebhook`.
 - [x] `adapters/outbound/ocr/gemini_ocr.py` llama realmente a Gemini (`google-genai`) y devuelve el JSON estructurado (Fase 1 del roadmap).
-- [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-06 probados contra PostgreSQL.
+- [x] `core/domain/rules_pipeline.py` evalúa las 4 capas y devuelve la regla disparada (`INTEG-01`, `HITL-01`, etc.); TC-01 a TC-07 probados contra PostgreSQL.
 - [x] `/api/invoices` y `/api/rules` leen y escriben en PostgreSQL.
 - [ ] El Dashboard muestra datos reales de la API (hoy usa datos *mock* como respaldo): Fase 3 del roadmap.
 - [ ] Los botones de aprobar/rechazar del dashboard llaman a `POST /api/invoices/{id}/decision` y actualizan el Audit Log (`HUMAN_APPROVED` / `HUMAN_REJECTED`). El backend ya está listo; falta el frontend (Fase 3).

@@ -11,7 +11,7 @@
 - [x] `tests/test_postgres_integration.py` contra PostgreSQL 16 con seed en Docker: TC-01 a TC-07 dan lo esperado (TC-07 `SCALED_TO_HUMAN` con `INTEG-02` en `audit_explanation`). *(6 pasadas, 17-oct-2026)*
 - [x] La prueba de arquitectura sigue en verde y el Core no cambió.
 - [x] `npm run build` en `frontend/` sin errores.
-- [x] TC-07 aparece en `casos_demo.py`, en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y en `backend/README.md`; ningún texto dice "TC-01..TC-06" donde ya corren siete casos.
+- [x] TC-07 aparece en `casos_demo.py`, en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md), en `backend/README.md`, en `seed.sql` (la fila de AWS marca que TC-07 depende de su tarifa), en [mission.md](../mission.md) y en el guion del pitch; ningún texto vigente dice "TC-01 a TC-06" donde ya corren siete casos. Las fases cerradas de [roadmap.md](../roadmap.md) (F0.3, F3.6) conservan su texto histórico.
 
 ### CI
 
