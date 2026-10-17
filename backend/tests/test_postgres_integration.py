@@ -4,9 +4,15 @@ Se ejecuta solo si TEST_DATABASE_URL apunta a una base desechable:
     TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/blinka_test pytest
 """
 
+import json
 import os
+from pathlib import Path
 
 import pytest
+
+from .fakes import FakeGenAIClient
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not TEST_DATABASE_URL, reason="TEST_DATABASE_URL no configurado")
@@ -28,6 +34,7 @@ def client(monkeypatch):
     monkeypatch.setenv("DB_AUTO_MIGRATE", "true")
     monkeypatch.setenv("DB_SEED_DEMO", "true")
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "")
+    monkeypatch.setenv("GEMINI_API_KEY", "")  # nunca llamar a la API real desde pytest
 
     from app.config import get_settings
     from app.container import Container
@@ -92,3 +99,44 @@ def test_demo_suite_against_seeded_database(client):
     assert upload.status_code == 201 and upload.json()["decision_status"] == "SCALED_TO_HUMAN"
     assert upload.json()["channel_source"] == "WEB"
     assert client.post("/api/invoices/upload", files={"file": ("f.txt", b"x", "text/plain")}).status_code == 415
+
+
+def gemini_reads(invoice_number, vendor_name, tax_id, bank_account, amount, currency, due_date):
+    """Respuesta simulada de Gemini con lo que se lee en el fixture (ver tests/fixtures/README.md)."""
+    return json.dumps({"invoice_number": invoice_number, "vendor_name": vendor_name, "vendor_tax_id": tax_id,
+                       "bank_account": bank_account, "amount": amount, "currency": currency,
+                       "due_date": due_date, "confidence": 0.98})
+
+
+def test_upload_de_fixtures_produce_la_decision_esperada_con_el_seed(client):
+    """F1.7: subida real por la API + PostgreSQL con seed; solo el cliente de Gemini es simulado."""
+    from app.adapters.outbound.ocr.gemini_ocr import GeminiOCRAdapter
+
+    cases = [
+        ("factura_devstudio.png", "image/png",
+         gemini_reads("DS-2026-1107", "DevStudio LatAm S.A.S.", "900.584.112-4", "CO-BANCOLOMBIA-11122233344",
+                      4200000.0, "COP", "2026-11-30"),
+         "AUTO_APPROVED", None),
+        ("factura_nube_andina.pdf", "application/pdf",
+         gemini_reads("NA-4521", "Nube Andina Consultores S.A.S.", "901.223.450-1", "CO-DAVIVIENDA-55566677788",
+                      12600000.0, "COP", "2026-12-05"),
+         "SCALED_TO_HUMAN", "HITL-01"),
+        ("factura_global_trade.png", "image/png",
+         gemini_reads("GTP-0091", "Global Trade Partners Ltd", "PA-155-7788", "PA-BANCO-PACIFICO-998877",
+                      900.0, "USD", "2026-11-20"),
+         "REJECTED", "COMP-01"),
+    ]
+    process_invoice = client.app.state.container.process_invoice
+    for fixture, mime_type, gemini_json, expected_status, expected_code in cases:
+        process_invoice.ocr = GeminiOCRAdapter("test-key", "gemini-test", client=FakeGenAIClient(text=gemini_json))
+        with open(FIXTURES / fixture, "rb") as file:
+            response = client.post("/api/invoices/upload", files={"file": (fixture, file, mime_type)})
+        assert response.status_code == 201, response.text
+        body = response.json()
+        assert body["decision_status"] == expected_status, (fixture, body["audit_explanation"])
+        if expected_code:
+            assert expected_code in body["audit_explanation"]
+        assert body["channel_source"] == "WEB"
+
+    stored = {inv["invoice_number"]: inv["decision_status"] for inv in client.get("/api/invoices").json()}
+    assert stored["DS-2026-1107"] == "AUTO_APPROVED" and stored["GTP-0091"] == "REJECTED"

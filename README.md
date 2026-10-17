@@ -8,7 +8,7 @@
 [![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite)](https://vitejs.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com)
-[![Google Gemini](https://img.shields.io/badge/Gemini_1.5_Flash-4285F4?style=flat&logo=google)](https://ai.google.dev)
+[![Google Gemini](https://img.shields.io/badge/Gemini_3.8_Flash-4285F4?style=flat&logo=google)](https://ai.google.dev)
 [![Railway](https://img.shields.io/badge/Railway-All--in--One-0B0D0E?style=flat&logo=railway)](https://railway.app)
 
 ---
@@ -18,7 +18,7 @@
 **Blinka PayAgent** automatiza el ciclo de vida de recepción, validación, conversión cambiaria y auditoría de facturas y cuentas de cobro para empresas globales con operaciones en Latinoamérica:
 
 * 🤖 **Ingesta Multicanal:** Recepción inmediata de documentos contables (imágenes y PDFs) a través de un bot de Telegram o de la subida de archivos en el dashboard. Los canales solo ingresan facturas; las aprobaciones se hacen en el dashboard.
-* 👁️ **Visión Multimodal (Gemini 1.5 Flash):** Extracción estructurada y normalización de montos, proveedores, fechas e ítems.
+* 👁️ **Visión Multimodal (Gemini 3.8 Flash):** Extracción estructurada y normalización de montos, proveedores, fechas e ítems.
 * 💱 **FX Engine ($0.00 FX Markup):** Conversión automática a USD en tiempo real para monedas locales (COP, MXN, EUR, BRL) sin sobrecostos cambiarios, apalancando las ventajas de las cuentas Blinka.
 * 🛡️ **Tubería Determinista en 4 Capas:**
   1. *Cumplimiento & SARLAFT:* Bloqueo de proveedores en listas restrictivas o sin verificación fiscal.
