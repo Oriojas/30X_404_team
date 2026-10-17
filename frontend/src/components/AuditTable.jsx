@@ -1,6 +1,18 @@
 import React, { useState } from 'react'
 
-export default function AuditTable({ invoices = [], onSelectInvoice }) {
+// Hora relativa a partir de processed_at (ISO del backend)
+function timeAgo(iso) {
+  const date = iso ? new Date(iso) : null
+  if (!date || Number.isNaN(date.getTime())) return 'Reciente'
+  const minutes = Math.round((Date.now() - date.getTime()) / 60000)
+  if (minutes < 1) return 'Hace un momento'
+  if (minutes < 60) return `Hace ${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`
+  return date.toLocaleDateString()
+}
+
+export default function AuditTable({ invoices = [], loading = false, demoMode = false, onRefresh, onSelectInvoice }) {
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -47,6 +59,16 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* Refresh */}
+            <button
+              onClick={() => onRefresh && onRefresh()}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-border bg-white text-xs font-semibold text-brand-navy hover:bg-slate-50 disabled:opacity-60 disabled:cursor-wait shrink-0"
+            >
+              <span className={`material-symbols-outlined text-[16px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
+              {loading ? 'Actualizando...' : 'Actualizar'}
+            </button>
+
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
               <span className="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-brand-muted">
@@ -110,6 +132,17 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
           </div>
         </div>
 
+        {/* Demo mode banner */}
+        {demoMode && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs">
+            <span className="material-symbols-outlined text-[18px] text-amber-600">cloud_off</span>
+            <p>
+              <span className="font-semibold">Modo demostración:</span> la API no responde, así que se muestran datos
+              ficticios. Subir facturas, decidir y guardar reglas está deshabilitado hasta que vuelva la conexión.
+            </p>
+          </div>
+        )}
+
         {/* Table Container Card */}
         <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
@@ -128,7 +161,11 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
                 {filteredInvoices.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="py-12 text-center text-brand-muted">
-                      No se encontraron facturas que coincidan con los filtros seleccionados.
+                      {loading && invoices.length === 0
+                        ? 'Cargando facturas...'
+                        : invoices.length === 0
+                        ? 'Aún no hay facturas en el Audit Log. Envía una por Telegram o súbela desde el dashboard.'
+                        : 'No se encontraron facturas que coincidan con los filtros seleccionados.'}
                     </td>
                   </tr>
                 ) : (
@@ -150,7 +187,7 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
                             #{inv.invoice_number || `BLK-${inv.id}`}
                           </span>
                           <span className="block text-[11px] text-brand-muted font-sans mt-0.5">
-                            {inv.time || 'Reciente'}
+                            {timeAgo(inv.processed_at)}
                           </span>
                         </td>
 
