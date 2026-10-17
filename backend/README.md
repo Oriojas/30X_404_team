@@ -123,16 +123,81 @@ TEST_DATABASE_URL=postgresql://blinka:blinka@localhost:54329/blinka_test pytest
 
 ---
 
-## 🐳 Despliegue con Docker (Railway)
+## 🐳 Docker
 
-El archivo [Dockerfile](Dockerfile) empaqueta la aplicación con Python 3.12-slim:
+El archivo [Dockerfile](Dockerfile) empaqueta la aplicación con Python 3.12-slim. [.dockerignore](.dockerignore) deja fuera `tests/` y `scripts/`.
 
 ```bash
 docker build -t blinka-backend backend
 docker run -p 8000:8000 --env-file .env blinka-backend
 ```
 
-En Railway, la variable `$PORT` es asignada en runtime y el contenedor arranca automáticamente con `uvicorn`.
+El contenedor escucha en `$PORT`, que Railway asigna al arrancar.
+
+---
+
+## ☁️ Despliegue en Railway
+
+La infraestructura está declarada como código en [.railway/railway.ts](../.railway/railway.ts). Railway deprecó `railway.json` y `railway.toml` (Config as Code), y desde el 28-ago-2026 no se pueden activar en servicios nuevos.
+
+| Servicio | Origen | Healthcheck | Variables |
+| :--- | :--- | :--- | :--- |
+| `Postgres` | Plantilla de Railway | — | La plantilla genera `DATABASE_URL`. |
+| `backend` | `/backend`, rama `master`, `Dockerfile` | `/api/health`, 120 s | `DATABASE_URL` toma la referencia de `Postgres`. `DB_AUTO_MIGRATE` y `DB_SEED_DEMO` valen `true`. `ENVIRONMENT=production`. `ALLOWED_ORIGINS` apunta al dominio del frontend y `TELEGRAM_WEBHOOK_URL` al dominio propio + `/api/webhook/telegram`. Secretos con `preserve()`. |
+| `30X_404_team` (frontend) | `/frontend`, rama `master`, `Dockerfile` | `/`, 60 s | `VITE_API_BASE_URL` apunta al dominio del `backend`. |
+
+Los dominios se resuelven con referencias de Railway (`${{backend.RAILWAY_PUBLIC_DOMAIN}}`), así que no hay URLs escritas a mano. Los dos servicios se vuelven a desplegar solos con cada push a `master`. Hoy el backend está en `https://backend-production-ea088.up.railway.app` y el dashboard en `https://30x404team-production.up.railway.app`.
+
+### Primer despliegue o cambios de infraestructura
+
+Desde la raíz del repo:
+
+```bash
+brew install railway        # Railway CLI (probado con 5.70.0)
+npm install                 # SDK `railway` fijado en el package.json de la raíz
+railway login
+railway link                # proyecto 30x404team, entorno production
+railway config plan         # muestra cambios sin aplicarlos; revisa que no destruya nada
+railway config apply
+railway domain --service backend   # solo la primera vez: genera el dominio público
+```
+
+Un `apply` de proyecto completo **borra lo que no esté en el archivo**: todo servicio nuevo se agrega primero a `railway.ts`. Después de aplicar, `railway config plan` debe responder "already up to date".
+
+### Secretos
+
+Nunca van al repo ni a `railway.ts`, donde figuran como `preserve()`. Se cargan una vez y se mantienen entre `apply`:
+
+```bash
+railway variables --service backend --set "GEMINI_API_KEY=..."
+railway variables --service backend --set "TELEGRAM_BOT_TOKEN=..."
+railway variables --service backend --set "TELEGRAM_WEBHOOK_SECRET=$(openssl rand -hex 32)"
+```
+
+### Webhook de Telegram
+
+Con las variables de producción, sin copiarlas al `.env` local:
+
+```bash
+cd backend
+railway run --service backend -- python -m scripts.registrar_webhook          # setWebhook + getWebhookInfo
+railway run --service backend -- python -m scripts.registrar_webhook --info   # solo consultar
+railway run --service backend -- python -m scripts.registrar_webhook --borrar # volver a probar en local
+```
+
+El script nunca imprime el token. Si `TELEGRAM_WEBHOOK_SECRET` cambia, hay que volver a registrar el webhook.
+
+### Prueba de humo
+
+Verifica `/api/health`, TC-01..TC-06, `/api/rules` y el CORS del frontend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados:
+
+```bash
+cd backend
+python -m scripts.humo_produccion https://backend-production-ea088.up.railway.app \
+  --origen https://30x404team-production.up.railway.app
+```
+
+Sale con código `1` si algún caso falla. Supone el seed de demostración y las reglas por defecto: si alguien cambió los umbrales desde el dashboard, TC-04 y TC-05 pueden variar.
 
 ---
 
