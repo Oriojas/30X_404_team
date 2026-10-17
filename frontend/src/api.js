@@ -6,6 +6,25 @@ export const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 // Sin autenticación en el MVP: todas las decisiones humanas se registran con este aprobador.
 export const DECIDED_BY = 'CFO Demo'
 
+// Reglas por defecto mientras no llegan las de la API (o en modo demostración)
+export const DEFAULT_RULES = {
+  max_autonomous_usd: 2000,
+  sarlaft_check_enabled: true,
+  duplicate_check_days: 30,
+  min_treasury_buffer_usd: 10000
+}
+
+// crypto.randomUUID solo existe en contextos seguros (HTTPS o localhost); en HTTP por la red local
+// (vite con host: true) se arma un UUID v4 con getRandomValues, que sí está disponible.
+export function newIdempotencyKey() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export const UPLOAD_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 export const UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 

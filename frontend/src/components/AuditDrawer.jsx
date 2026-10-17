@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import StatusBadge from './StatusBadge'
-import { statusInfo } from '../status'
+import Notice from './Notice'
+import { invoiceRef, statusInfo } from '../status'
 import { DECIDED_BY } from '../api'
 
 // Capas de la tubería, en el orden de evaluación del backend (rules_pipeline.LAYERS)
@@ -97,7 +98,7 @@ export default function AuditDrawer({ invoice, readOnly = false, onClose, onDeci
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-bold text-cyan-300">
-                  #{invoice.invoice_number || invoice.id}
+                  {invoiceRef(invoice)}
                 </span>
                 <span className="text-slate-400 text-xs">•</span>
                 <span className="text-xs text-slate-300 font-sans">Inspector de Decisión</span>
@@ -243,15 +244,13 @@ export default function AuditDrawer({ invoice, readOnly = false, onClose, onDeci
         {/* Drawer Footer con Acciones Human-in-the-Loop */}
         <div className="p-4 sm:p-5 bg-white border-t border-brand-border space-y-3">
           {error && (
-            <p className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">{error}</p>
+            <Notice tone="error">{error}</Notice>
           )}
 
           {isScaled ? (
             <>
               {readOnly ? (
-                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  Modo demostración: la decisión humana se habilita cuando la API responde.
-                </p>
+                <Notice>Modo demostración: la decisión humana se habilita cuando la API responde.</Notice>
               ) : (
                 <div className="space-y-1">
                   <label htmlFor="human-note" className="text-[11px] text-brand-muted flex justify-between">

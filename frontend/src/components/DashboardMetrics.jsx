@@ -1,16 +1,16 @@
 import React from 'react'
-import { autonomyRate, countByStatus } from '../status'
+import { autonomyRate } from '../status'
 
-export default function DashboardMetrics({ invoices = [] }) {
-  const counts = countByStatus(invoices)
-  const autonomy = autonomyRate(invoices)
+// counts: conteo por estado ya calculado en el Audit Log
+export default function DashboardMetrics({ counts, total }) {
+  const autonomy = autonomyRate(counts, total)
   const humanDecisions = counts.HUMAN_APPROVED + counts.HUMAN_REJECTED
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div className="bg-white p-4 rounded-xl border border-brand-border shadow-sm">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-muted">Total Facturas</span>
-        <div className="text-2xl font-bold text-brand-navy mt-1">{invoices.length}</div>
+        <div className="text-2xl font-bold text-brand-navy mt-1">{total}</div>
         <span className="text-[11px] text-brand-muted mt-1 block">Telegram, web y API</span>
       </div>
 

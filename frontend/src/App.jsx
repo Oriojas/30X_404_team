@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Navbar from './components/Navbar'
 import HeroSection from './components/HeroSection'
 import AgentWorkflow from './components/AgentWorkflow'
@@ -9,7 +9,7 @@ import InvoiceUpload from './components/InvoiceUpload'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
 import TopographyBackground from './components/TopographyBackground'
-import { listInvoices, getRules, decideInvoice, saveRules } from './api'
+import { listInvoices, getRules, decideInvoice, saveRules, DEFAULT_RULES } from './api'
 
 // Datos de demostración (misma forma que InvoiceResponse): solo se muestran si la API no responde.
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
@@ -108,15 +108,13 @@ export default function App() {
   const [loadingInvoices, setLoadingInvoices] = useState(true)
   // null mientras carga la primera vez; false = modo demostración
   const [apiAvailable, setApiAvailable] = useState(null)
+  // Un refresco fallido después de cargar datos reales no los reemplaza por los de demostración
+  const hasRealData = useRef(false)
+  const [refreshError, setRefreshError] = useState(null)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false)
 
-  const [rules, setRules] = useState({
-    max_autonomous_usd: 2000,
-    sarlaft_check_enabled: true,
-    duplicate_check_days: 30,
-    min_treasury_buffer_usd: 10000
-  })
+  const [rules, setRules] = useState(DEFAULT_RULES)
 
   // Con la API disponible se muestran siempre los datos reales, aunque la lista esté vacía
   const loadInvoices = useCallback(async () => {
@@ -127,9 +125,15 @@ export default function App() {
       // El Drawer abierto refleja el estado vigente (p. ej. tras un 409)
       setSelectedInvoice((prev) => (prev ? data.find((inv) => inv.id === prev.id) || prev : prev))
       setApiAvailable(true)
-    } catch {
-      setInvoices(INITIAL_INVOICES)
-      setApiAvailable(false)
+      setRefreshError(null)
+      hasRealData.current = true
+    } catch (err) {
+      if (hasRealData.current) {
+        setRefreshError(err.message)
+      } else {
+        setInvoices(INITIAL_INVOICES)
+        setApiAvailable(false)
+      }
     } finally {
       setLoadingInvoices(false)
     }
@@ -204,6 +208,7 @@ export default function App() {
           invoices={invoices}
           loading={loadingInvoices}
           demoMode={apiAvailable === false}
+          refreshError={refreshError}
           onRefresh={loadInvoices}
           onSelectInvoice={(inv) => setSelectedInvoice(inv)}
         >

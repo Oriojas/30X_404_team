@@ -51,8 +51,12 @@ export function countByStatus(invoices) {
 }
 
 // Misión: autonomía = (AUTO_APPROVED + REJECTED) / total. Las decisiones HUMAN_* no cuentan.
-export function autonomyRate(invoices) {
-  if (invoices.length === 0) return null
-  const counts = countByStatus(invoices)
-  return (counts.AUTO_APPROVED + counts.REJECTED) / invoices.length
+export function autonomyRate(counts, total) {
+  if (total === 0) return null
+  return (counts.AUTO_APPROVED + counts.REJECTED) / total
+}
+
+// Referencia visible de una factura (tabla, Drawer y subida)
+export function invoiceRef(invoice) {
+  return `#${invoice.invoice_number || invoice.id}`
 }

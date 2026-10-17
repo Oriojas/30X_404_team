@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react'
 import StatusBadge from './StatusBadge'
-import { uploadInvoice, UPLOAD_ACCEPTED_TYPES, UPLOAD_MAX_BYTES } from '../api'
+import Notice from './Notice'
+import { invoiceRef } from '../status'
+import { newIdempotencyKey, uploadInvoice, UPLOAD_ACCEPTED_TYPES, UPLOAD_MAX_BYTES } from '../api'
 
 // 409 = la primera entrega con esta clave aún se procesa: se reintenta con la misma clave
 const AUTO_RETRIES_ON_409 = 3
@@ -37,7 +39,7 @@ export default function InvoiceUpload({ readOnly = false, onUploaded, onOpenInvo
       setPhase('error')
       return
     }
-    setSelection({ file, key: crypto.randomUUID() })
+    setSelection({ file, key: newIdempotencyKey() })
     setError(null)
     setPhase('idle')
   }
@@ -108,7 +110,7 @@ export default function InvoiceUpload({ readOnly = false, onUploaded, onOpenInvo
       </div>
 
       {readOnly && (
-        <p className="text-[11px] text-amber-800">Modo demostración: la subida se habilita cuando la API responde.</p>
+        <Notice>Modo demostración: la subida se habilita cuando la API responde.</Notice>
       )}
 
       {processing && (
@@ -116,14 +118,14 @@ export default function InvoiceUpload({ readOnly = false, onUploaded, onOpenInvo
       )}
 
       {phase === 'error' && error && (
-        <p className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">{error}</p>
+        <Notice tone="error">{error}</Notice>
       )}
 
       {phase === 'done' && invoice && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-brand-border text-xs">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={invoice.decision_status} />
-            <span className="font-mono font-bold text-brand-navy">#{invoice.invoice_number || invoice.id}</span>
+            <span className="font-mono font-bold text-brand-navy">{invoiceRef(invoice)}</span>
             <span className="text-brand-steel">{invoice.vendor_name || 'Proveedor sin leer'}</span>
             <span className="font-mono text-brand-navy">${(invoice.usd_amount ?? 0).toFixed(2)} USD</span>
             {result.duplicate && <span className="text-[11px] text-brand-muted">(ya se había procesado con esta solicitud)</span>}

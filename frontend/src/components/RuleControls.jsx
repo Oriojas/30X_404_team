@@ -1,24 +1,19 @@
 import React, { useEffect, useState } from 'react'
+import Notice from './Notice'
 
 function FieldError({ message }) {
   if (!message) return null
   return <p className="text-[11px] text-red-600 font-sans">{message}</p>
 }
 
-export default function RuleControls({
-  currentRules = {
-    max_autonomous_usd: 2000,
-    sarlaft_check_enabled: true,
-    duplicate_check_days: 30,
-    min_treasury_buffer_usd: 10000
-  },
-  readOnly = false,
-  onSave
-}) {
-  const [maxUsd, setMaxUsd] = useState(currentRules.max_autonomous_usd || 2000)
-  const [sarlaft, setSarlaft] = useState(currentRules.sarlaft_check_enabled ?? true)
-  const [dupDays, setDupDays] = useState(currentRules.duplicate_check_days ?? 30)
-  const [bufferUsd, setBufferUsd] = useState(currentRules.min_treasury_buffer_usd ?? 10000)
+// Campos con su propio mensaje de error en el panel; cualquier otro error del 422 va al aviso general
+const RULE_FIELDS = ['max_autonomous_usd', 'duplicate_check_days', 'min_treasury_buffer_usd']
+
+export default function RuleControls({ currentRules, readOnly = false, onSave }) {
+  const [maxUsd, setMaxUsd] = useState(currentRules.max_autonomous_usd)
+  const [sarlaft, setSarlaft] = useState(currentRules.sarlaft_check_enabled)
+  const [dupDays, setDupDays] = useState(currentRules.duplicate_check_days)
+  const [bufferUsd, setBufferUsd] = useState(currentRules.min_treasury_buffer_usd)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -27,10 +22,10 @@ export default function RuleControls({
   // Los campos reflejan las reglas vigentes cuando llegan de la API o tras guardarlas
   const rulesKey = JSON.stringify(currentRules)
   useEffect(() => {
-    setMaxUsd(currentRules.max_autonomous_usd ?? 2000)
-    setSarlaft(currentRules.sarlaft_check_enabled ?? true)
-    setDupDays(currentRules.duplicate_check_days ?? 30)
-    setBufferUsd(currentRules.min_treasury_buffer_usd ?? 10000)
+    setMaxUsd(currentRules.max_autonomous_usd)
+    setSarlaft(currentRules.sarlaft_check_enabled)
+    setDupDays(currentRules.duplicate_check_days)
+    setBufferUsd(currentRules.min_treasury_buffer_usd)
   }, [rulesKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApplyChanges = async (e) => {
@@ -53,7 +48,8 @@ export default function RuleControls({
     } catch (err) {
       const byField = err.fieldErrors || {}
       setFieldErrors(byField)
-      if (Object.keys(byField).length === 0) setGeneralError(err.message || 'No se pudieron guardar las reglas.')
+      const allShownByField = Object.keys(byField).length > 0 && Object.keys(byField).every((f) => RULE_FIELDS.includes(f))
+      if (!allShownByField) setGeneralError(err.message || 'No se pudieron guardar las reglas.')
     } finally {
       setSaving(false)
     }
@@ -123,17 +119,13 @@ export default function RuleControls({
         </div>
 
         {saveSuccess && (
-          <p className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
-            Reglas guardadas. Las próximas facturas se evalúan con estos valores.
-          </p>
+          <Notice tone="success">Reglas guardadas. Las próximas facturas se evalúan con estos valores.</Notice>
         )}
         {generalError && (
-          <p className="px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">{generalError}</p>
+          <Notice tone="error">{generalError}</Notice>
         )}
         {readOnly && (
-          <p className="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
-            Modo demostración: guardar reglas se habilita cuando la API responde.
-          </p>
+          <Notice>Modo demostración: guardar reglas se habilita cuando la API responde.</Notice>
         )}
 
         {/* 4-Card Responsive Grid */}

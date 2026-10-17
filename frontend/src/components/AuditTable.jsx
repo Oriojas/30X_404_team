@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import DashboardMetrics from './DashboardMetrics'
 import StatusBadge from './StatusBadge'
-import { STATUS, STATUS_ORDER, countByStatus, isRejectedStatus } from '../status'
+import Notice from './Notice'
+import { STATUS, STATUS_ORDER, countByStatus, invoiceRef, isRejectedStatus } from '../status'
 
 // Hora relativa a partir de processed_at (ISO del backend)
 function timeAgo(iso) {
@@ -15,7 +16,7 @@ function timeAgo(iso) {
   return date.toLocaleDateString()
 }
 
-export default function AuditTable({ invoices = [], loading = false, demoMode = false, onRefresh, onSelectInvoice, children }) {
+export default function AuditTable({ invoices = [], loading = false, demoMode = false, refreshError = null, onRefresh, onSelectInvoice, children }) {
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -101,20 +102,22 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
           </div>
         </div>
 
-        <DashboardMetrics invoices={invoices} />
+        <DashboardMetrics counts={counts} total={invoices.length} />
 
         {/* Acciones sobre el Audit Log (subida de facturas) */}
         {children}
 
         {/* Demo mode banner */}
         {demoMode && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs">
-            <span className="material-symbols-outlined text-[18px] text-amber-600">cloud_off</span>
-            <p>
-              <span className="font-semibold">Modo demostración:</span> la API no responde, así que se muestran datos
-              ficticios. Subir facturas, decidir y guardar reglas está deshabilitado hasta que vuelva la conexión.
-            </p>
-          </div>
+          <Notice icon="cloud_off">
+            <span className="font-semibold">Modo demostración:</span> la API no responde, así que se muestran datos
+            ficticios. Subir facturas, decidir y guardar reglas está deshabilitado hasta que vuelva la conexión.
+          </Notice>
+        )}
+        {refreshError && (
+          <Notice tone="error" icon="sync_problem">
+            No se pudo actualizar el Audit Log: {refreshError} Se muestran los últimos datos cargados.
+          </Notice>
         )}
 
         {/* Table Container Card */}
@@ -157,7 +160,7 @@ export default function AuditTable({ invoices = [], loading = false, demoMode = 
                         {/* ID & Hora */}
                         <td className="py-4 px-6 align-top font-mono">
                           <span className={`font-bold ${isRejected ? 'text-red-600' : 'text-brand-navy'}`}>
-                            #{inv.invoice_number || `BLK-${inv.id}`}
+                            {invoiceRef(inv)}
                           </span>
                           <span className="block text-[11px] text-brand-muted font-sans mt-0.5">
                             {timeAgo(inv.processed_at)}
