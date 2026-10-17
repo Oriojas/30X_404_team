@@ -20,6 +20,8 @@ import httpx
 
 from scripts.casos_demo import CASOS
 
+ESTADOS_HUMANOS = {"HUMAN_APPROVED", "HUMAN_REJECTED"}
+
 
 def revisar_health(client: httpx.Client) -> tuple[bool, str]:
     response = client.get("/api/health")
@@ -42,7 +44,9 @@ def revisar_caso(client: httpx.Client, caso: str, estado: str, regla: str | None
         explicacion = invoice.get("audit_explanation") or ""
     except (ValueError, KeyError, TypeError, AttributeError):
         return False, f"respuesta inesperada (HTTP {response.status_code}) {response.text[:120]}"
-    ok = obtenido == estado and (regla is None or regla in explicacion)
+    # Una repetición devuelve el estado actual: un escalado que ya decidió un humano sigue siendo correcto.
+    aceptados = {estado} | (ESTADOS_HUMANOS if estado == "SCALED_TO_HUMAN" else set())
+    ok = obtenido in aceptados and (regla is None or regla in explicacion)
     return ok, f"{obtenido} (HTTP {response.status_code})"
 
 

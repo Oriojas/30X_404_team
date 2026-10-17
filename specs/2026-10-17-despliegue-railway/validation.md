@@ -6,7 +6,7 @@
 
 ## Criterios bloqueantes
 
-> Avance al 17-oct-2026: el backend, la base y el webhook están validados en producción. Lo que falta depende de que la rama llegue a `master`, porque el frontend se despliega solo desde ahí y hoy sigue con el bundle anterior, sin URL del backend. También falta el reenvío por Telegram.
+> Avance al 17-oct-2026: la rama ya está en `master` (#12), el frontend público consume el backend real y el recorrido web (subida, aprobación y reglas) pasó en producción. Falta el reenvío por Telegram.
 
 ### Código y build (local)
 
@@ -47,14 +47,14 @@
 
 > En un navegador o ventana privada, sin backend local corriendo.
 
-- [ ] La URL pública del frontend abre el dashboard **sin** banner de "Modo demostración" y el Audit Log muestra las facturas del seed y las del humo.
-- [ ] La consola del navegador no muestra errores de CORS ni de contenido mixto (`http` en página `https`).
-- [ ] **Web:** subir una factura real (imagen o PDF) desde el dashboard produce un dictamen con datos extraídos por Gemini (no una extracción vacía con confianza 0).
+- [x] La URL pública del frontend abre el dashboard **sin** banner de "Modo demostración" y el Audit Log muestra las facturas del seed y las del humo. *(17-oct-2026, tras el merge de #12: el bundle apunta a `https://backend-production-ea088.up.railway.app` y el Audit Log lista 12 facturas)*
+- [x] La consola del navegador no muestra errores de CORS ni de contenido mixto (`http` en página `https`). *(consola vacía; `/api/invoices` y `/api/rules` por https)*
+- [x] **Web:** subir una factura real (imagen o PDF) desde el dashboard produce un dictamen con datos extraídos por Gemini (no una extracción vacía con confianza 0). *(`factura_devstudio.png`: Gemini leyó `DS-2026-1107`, 4.200.000 COP → 1.000 USD, `AUTO_APPROVED`; id 13, canal `WEB`)*
 - [x] **Telegram, aviso:** enviar una factura real al bot devuelve el aviso del dictamen en el chat. *(Factura `#00042-1`: Gemini leyó 205,00 con confianza 0,8 y moneda ambigua `XXX`, y se escaló por INTEG-04, INTEG-03, HITL-02 y HITL-03, como manda la tolerancia cero. Quedó con id 12 en `GET /api/invoices`.)*
-- [ ] **Telegram, dashboard:** tras **Actualizar**, esa factura aparece en el Audit Log del dashboard público.
+- [x] **Telegram, dashboard:** tras **Actualizar**, esa factura aparece en el Audit Log del dashboard público. *(`#00042-1` visible como `SCALED_TO_HUMAN`)*
 - [ ] **Telegram, reintento:** reenviar el mismo archivo no crea otra factura procesada (INTEG-01 por hash) y no llega un aviso duplicado del mismo update.
-- [ ] **Aprobación:** abrir un `SCALED_TO_HUMAN` en el Drawer, aprobarlo con una nota y ver `HUMAN_APPROVED` con `decided_by` y fecha; recargar la página y el estado persiste.
-- [ ] **Reglas:** cambiar un umbral, guardar, recargar y ver el valor persistido.
+- [x] **Aprobación:** abrir un `SCALED_TO_HUMAN` en el Drawer, aprobarlo con una nota y ver `HUMAN_APPROVED` con `decided_by` y fecha; recargar la página y el estado persiste. *(`NA-090`, id 9: `CFO Demo`, 2026-10-17 10:45 UTC, con nota; persiste tras recargar. El humo acepta `HUMAN_*` en los casos que escalan)*
+- [x] **Reglas:** cambiar un umbral, guardar, recargar y ver el valor persistido. *(ventana de duplicados 30 → 45 días, persistió tras recargar y se restauró a 30)*
 
 ### Documentación
 
