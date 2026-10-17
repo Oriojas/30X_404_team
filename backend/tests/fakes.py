@@ -5,7 +5,14 @@ from dataclasses import replace
 from datetime import datetime
 from types import SimpleNamespace
 
-from app.core.domain.models import CompanyRules, DecisionStatus, ExtractedInvoice, TreasuryStatus
+from app.core.domain.models import (
+    CompanyRules,
+    DecisionStatus,
+    ExtractedInvoice,
+    IngestionRecord,
+    IngestionStatus,
+    TreasuryStatus,
+)
 
 APPROVED = {DecisionStatus.AUTO_APPROVED, DecisionStatus.HUMAN_APPROVED}
 
@@ -70,6 +77,12 @@ class InMemoryInvoices:
                    and i.decision_status not in {DecisionStatus.REJECTED, DecisionStatus.HUMAN_REJECTED}
                    for i in self.items.values())
 
+    async def find_by_file_hash(self, file_sha256, within_days):
+        matches = [i for i in self.items.values()
+                   if i.file_sha256 == file_sha256
+                   and i.decision_status not in {DecisionStatus.REJECTED, DecisionStatus.HUMAN_REJECTED}]
+        return matches[-1] if matches else None
+
     async def vendor_has_paid_history(self, vendor_tax_id, vendor_name):
         return any(i.vendor_name == vendor_name and i.decision_status in APPROVED for i in self.items.values())
 
@@ -112,3 +125,27 @@ class SpyNotifier:
 
     async def notify_decision(self, invoice):
         self.decisions.append(invoice)
+
+
+class InMemoryIngestionLog:
+    """Imita el INSERT ... ON CONFLICT: el lock hace atómico el reclamo entre corrutinas."""
+
+    def __init__(self):
+        self.records = {}
+        self._lock = asyncio.Lock()
+
+    async def claim(self, channel, external_id):
+        async with self._lock:
+            existing = self.records.get((channel, external_id))
+            if existing:
+                return replace(existing)
+            self.records[(channel, external_id)] = IngestionRecord(status=IngestionStatus.PROCESSING)
+            return None
+
+    async def complete(self, channel, external_id, invoice_id):
+        self.records[(channel, external_id)] = IngestionRecord(IngestionStatus.COMPLETED, invoice_id)
+
+    async def release(self, channel, external_id):
+        record = self.records.get((channel, external_id))
+        if record and record.status == IngestionStatus.PROCESSING:
+            del self.records[(channel, external_id)]

@@ -6,7 +6,15 @@ Interfaces que el Core necesita del mundo exterior. Cada adaptador en `adapters/
 from datetime import datetime
 from typing import List, Optional, Protocol
 
-from app.core.domain.models import CompanyRules, DecisionStatus, ExtractedInvoice, ProcessedInvoice, TreasuryStatus, Vendor
+from app.core.domain.models import (
+    CompanyRules,
+    DecisionStatus,
+    ExtractedInvoice,
+    IngestionRecord,
+    ProcessedInvoice,
+    TreasuryStatus,
+    Vendor,
+)
 
 
 class OCRPort(Protocol):
@@ -45,6 +53,10 @@ class InvoiceRepository(Protocol):
     ) -> bool:
         """INTEG-01: mismo número + proveedor, o mismo monto + proveedor, en la ventana (excluye rechazadas).
         Con usd_amount None solo compara por número."""
+        ...
+
+    async def find_by_file_hash(self, file_sha256: str, within_days: int) -> Optional[ProcessedInvoice]:
+        """INTEG-01 por archivo: la factura más reciente con el mismo SHA-256 en la ventana (excluye rechazadas)."""
         ...
 
     async def vendor_has_paid_history(self, vendor_tax_id: Optional[str], vendor_name: Optional[str]) -> bool:
@@ -92,3 +104,17 @@ class NotificationPort(Protocol):
     async def notify_received(self, invoice_channel: str, chat_id: Optional[int]) -> None: ...
 
     async def notify_decision(self, invoice: ProcessedInvoice) -> None: ...
+
+
+class IngestionLog(Protocol):
+    """Registro de entregas por canal: cada (canal, id externo) se procesa una sola vez."""
+
+    async def claim(self, channel: str, external_id: str) -> Optional[IngestionRecord]:
+        """Reclama la entrega de forma atómica. None si este llamado la ganó; si no, el registro existente."""
+        ...
+
+    async def complete(self, channel: str, external_id: str, invoice_id: int) -> None: ...
+
+    async def release(self, channel: str, external_id: str) -> None:
+        """Libera un reclamo en proceso (falla) para que el reintento sí procese."""
+        ...

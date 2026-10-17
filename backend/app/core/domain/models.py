@@ -22,6 +22,11 @@ class HumanDecision(str, Enum):
     REJECT = "REJECT"
 
 
+class IngestionStatus(str, Enum):
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+
+
 @dataclass
 class ExtractedInvoice:
     """Datos estructurados que entrega el OCR (o una carga manual vía API)."""
@@ -102,4 +107,23 @@ class ProcessedInvoice:
     decided_by: Optional[str] = None
     decided_at: Optional[datetime] = None
     human_note: Optional[str] = None
+    file_sha256: Optional[str] = None
     id: Optional[int] = None
+
+
+@dataclass
+class IngestionRecord:
+    """Entrega ya reclamada por un canal: (canal, id externo) se procesa una sola vez."""
+    status: IngestionStatus
+    invoice_id: Optional[int] = None
+
+
+@dataclass
+class IngestionResult:
+    """Resultado de una entrega. Una repetición trae la factura original o, si sigue en proceso, ninguna."""
+    invoice: Optional[ProcessedInvoice]
+    duplicate: bool = False
+
+    @property
+    def in_progress(self) -> bool:
+        return self.duplicate and self.invoice is None
