@@ -29,7 +29,7 @@ frontend/src/
 
 * `VITE_API_BASE_URL`: URL base del backend FastAPI (ej: `http://localhost:8000` en local o la URL generada en Railway).
 
-Consulta la plantilla completa en [.env.example](file:///home/oscar/Github/30X_404_team/.env.example).
+Consulta la plantilla completa en [.env.example](../.env.example).
 
 ---
 
@@ -58,11 +58,11 @@ Genera los archivos estáticos optimizados en `frontend/dist/`.
 
 ## 🐳 Despliegue con Docker y Nginx (Railway)
 
-El archivo [Dockerfile](file:///home/oscar/Github/30X_404_team/frontend/Dockerfile) utiliza un esquema *multi-stage build*:
+El archivo [Dockerfile](Dockerfile) utiliza un esquema *multi-stage build*:
 1. **Builder:** Compila el frontend con Node.js 20.
 2. **Runner:** Sirve los archivos estáticos mediante Nginx Alpine.
 
-Usa [nginx.conf.template](file:///home/oscar/Github/30X_404_team/frontend/nginx.conf.template), la cual sustituye automáticamente la variable `$PORT` inyectada por Railway al iniciar el contenedor.
+Usa [nginx.conf.template](nginx.conf.template), la cual sustituye automáticamente la variable `$PORT` inyectada por Railway al iniciar el contenedor.
 
 ```bash
 docker build -t blinka-frontend -f frontend/Dockerfile frontend/
@@ -85,6 +85,6 @@ docker run -p 80:80 -e PORT=80 blinka-frontend
 ---
 
 ## 🔗 Referencias
-* [README Principal del Proyecto](file:///home/oscar/Github/30X_404_team/README.md)
-* [Backend (FastAPI Hexagonal)](file:///home/oscar/Github/30X_404_team/backend/README.md)
-* [Especificación de Diseño](file:///home/oscar/Github/30X_404_team/docs/diseno/DESIGN.md)
+* [README Principal del Proyecto](../README.md)
+* [Backend (FastAPI Hexagonal)](../backend/README.md)
+* [Especificación de Diseño](../docs/diseno/DESIGN.md)
