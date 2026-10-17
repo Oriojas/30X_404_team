@@ -30,3 +30,10 @@ def test_errores_de_dominio_se_responden_por_su_base(monkeypatch, error, status)
 
     assert response.status_code == status
     assert response.json() == {"detail": str(error)}
+
+
+@pytest.mark.parametrize("decided_by", ["", "x" * 101])
+def test_decision_sin_autor_valido_es_422_antes_del_caso_de_uso(monkeypatch, decided_by):
+    monkeypatch.setattr(app.state, "container", SimpleNamespace(decide_invoice=RaisingDecide(AssertionError())))
+    response = TestClient(app).post("/api/invoices/7/decision", json={"decision": "APPROVE", "decided_by": decided_by})
+    assert response.status_code == 422

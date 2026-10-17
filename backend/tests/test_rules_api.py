@@ -60,3 +60,12 @@ def test_el_caso_de_uso_valida_contra_lo_guardado():
     with pytest.raises(InvalidRulesError) as error:
         asyncio.run(UpdateRulesUseCase(repo, "TEST").execute({"max_autonomous_usd": 3500}))
     assert error.value.field == "max_autonomous_usd"
+
+
+@pytest.mark.parametrize("payload", [
+    {"duplicate_check_days": 0}, {"duplicate_check_days": 366}, {"max_autonomous_usd": -1},
+    {"min_treasury_buffer_usd": -1}, {"max_autonomous_usd": "mucho"},
+])
+def test_validaciones_previas_de_reglas_siguen_en_422(rules, payload):
+    assert TestClient(app).post("/api/rules", json=payload).status_code == 422
+    assert rules.current.duplicate_check_days == 30 and rules.current.max_autonomous_usd == 2000

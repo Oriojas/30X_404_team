@@ -14,7 +14,8 @@ from app.core.domain.errors import (
 from app.core.domain.models import DecisionStatus, ExtractedInvoice, HumanDecision, ProcessedInvoice, Vendor
 from app.core.domain.rules_pipeline import RulesPipeline
 from app.core.use_cases import (
-    CreateVendorUseCase, DecideInvoiceUseCase, ProcessInvoiceUseCase, UpdateRulesUseCase, UpdateVendorUseCase,
+    CreateVendorUseCase, DecideInvoiceUseCase, ProcessInvoiceUseCase, UpdateRulesUseCase, UpdateTreasuryBalanceUseCase,
+    UpdateVendorUseCase,
 )
 
 from .fakes import (
@@ -318,3 +319,19 @@ def test_subir_la_tarifa_acordada_quita_integ02_de_la_siguiente_factura():
     asyncio.run(UpdateVendorUseCase(use_case.vendors).execute(vendor_id, {"contract_amount_usd": 400}, "CFO"))
     within = asyncio.run(use_case.from_extracted(cop_invoice("DS-21", 1_520_000), "API")).invoice  # $361.90
     assert within.decision_status == DecisionStatus.AUTO_APPROVED
+
+
+def test_bajar_el_presupuesto_hace_escalar_por_fin02_la_siguiente_factura():
+    treasury = FixedTreasury(month_spent_usd=1000)
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=InMemoryInvoices(),
+        rules=InMemoryRules(), vendors=InMemoryVendors(VENDOR), sanctions=NoSanctions(), treasury=treasury,
+        company_id="TEST",
+    )
+    first = asyncio.run(use_case.from_extracted(cop_invoice("DS-30", 1_500_000), "API")).invoice  # $357.14
+    assert first.decision_status == DecisionStatus.AUTO_APPROVED
+
+    asyncio.run(UpdateTreasuryBalanceUseCase(treasury, "TEST").execute(monthly_budget_usd=1200))
+    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-31", 1_600_000), "API")).invoice  # $380.95
+    assert second.decision_status == DecisionStatus.SCALED_TO_HUMAN
+    assert "FIN-02" in second.audit_explanation and "FIN-01" not in second.audit_explanation

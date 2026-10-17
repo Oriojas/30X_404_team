@@ -22,6 +22,8 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
   const [budgetUsd, setBudgetUsd] = useState(savedBudget ?? '')
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  // Las reglas se guardaron pero el presupuesto no (segunda llamada, D15)
+  const [partialSave, setPartialSave] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [generalError, setGeneralError] = useState(null)
   // La holgura sigue al valor que se está editando, antes de guardarlo
@@ -59,6 +61,7 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
     setSaving(true)
     setFieldErrors({})
     setGeneralError(null)
+    setPartialSave(false)
     try {
       await onSave(updated, budgetChanged ? Number(budgetUsd) : null)
       setSaveSuccess(true)
@@ -68,6 +71,7 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
       const byField = err.step === 'budget' && !Object.keys(err.fieldErrors || {}).length
         ? { monthly_budget_usd: err.message }
         : err.fieldErrors || {}
+      setPartialSave(err.step === 'budget')
       setFieldErrors(byField)
       const allShownByField = Object.keys(byField).length > 0 && Object.keys(byField).every((f) => RULE_FIELDS.includes(f))
       if (!allShownByField) setGeneralError(err.message || 'No se pudieron guardar las reglas.')
@@ -143,6 +147,9 @@ export default function RuleControls({ currentRules, treasury, readOnly = false,
 
         {saveSuccess && (
           <Notice tone="success" size="lg">Reglas guardadas. Las próximas facturas se evalúan con estos valores.</Notice>
+        )}
+        {partialSave && (
+          <Notice size="lg">Las reglas se guardaron, pero el presupuesto no: corrígelo y vuelve a guardar.</Notice>
         )}
         {generalError && (
           <Notice tone="error" size="lg">{generalError}</Notice>
