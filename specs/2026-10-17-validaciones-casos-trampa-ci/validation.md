@@ -32,7 +32,7 @@
 
 - [x] `GET /api/invoices` serializa `processed_at` y `decided_at` en UTC con `Z`; `tests/test_schemas_fechas.py` en verde. *(73 pasadas, 6 omitidas)*
 - [x] `AuditTable.jsx` y `AuditDrawer.jsx` leen las fechas con `parseApiDate`; `npm run build` sin errores.
-- [ ] Tras el deploy, en el dashboard público una factura recién creada muestra "Hace un momento" o "Hace N min", no "Hace 7 horas" (navegador en GMT+7).
+- [x] Tras el deploy, en el dashboard público una factura recién creada muestra "Hace un momento" o "Hace N min", no "Hace 7 horas" (navegador en GMT+7). *(17-oct-2026, después del merge de #18 y del deploy en Railway: `GET /api/invoices` devuelve `processed_at` `2026-10-17T12:41:01.117575Z` en la factura 22. A las 12:57 UTC, con el navegador en `Asia/Bangkok`, el Audit Log muestra NA-4521 (22) "Hace 16 min", NA-4521 (21) "Hace 20 min" y AWS-2026-10-EXTRA "Hace 22 min". El CI de `master` en `f2dae06` está en verde.)*
 
 ### Datos para el pitch
 
@@ -42,7 +42,7 @@
 ## Después del merge (producción)
 
 - [x] `humo_produccion.py` contra producción pasa con TC-07 incluido. *(10/10 el 17-oct-2026; TC-07 = factura 20, `SCALED_TO_HUMAN` por INTEG-02)*
-- [x] F5.1 a F5.7 marcadas en [roadmap.md](../roadmap.md) con la referencia a esta validación.
+- [x] F5.1 a F5.8 marcadas en [roadmap.md](../roadmap.md) con la referencia a esta validación.
 
 ## Hallazgos
 
