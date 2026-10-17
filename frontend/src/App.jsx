@@ -7,6 +7,7 @@ import AuditTable from './components/AuditTable'
 import AuditDrawer from './components/AuditDrawer'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
+import TopographyBackground from './components/TopographyBackground'
 
 const INITIAL_INVOICES = [
   {
@@ -183,12 +184,15 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-navy flex flex-col font-sans selection:bg-brand-teal/20 selection:text-brand-navy">
+    <div className="min-h-screen bg-brand-bg text-brand-navy flex flex-col font-sans selection:bg-brand-teal/20 selection:text-brand-navy relative overflow-x-hidden">
+      {/* Fondo geométrico de curvas de nivel (Topografía) */}
+      <TopographyBackground />
+
       {/* Top Fixed Navbar */}
       <Navbar onOpenDemoModal={() => setIsDemoModalOpen(true)} />
 
       {/* Main Sections */}
-      <main className="w-full pt-16 flex-1 flex flex-col">
+      <main className="w-full pt-16 flex-1 flex flex-col relative z-10">
         {/* Section 1: Hero & Treasury Node */}
         <HeroSection />
 

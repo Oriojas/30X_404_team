@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function HeroSection({ onOpenTelegramDemo }) {
   return (
-    <section className="w-full py-12 lg:py-16 border-b border-brand-border bg-gradient-to-b from-white to-brand-bg" id="producto">
+    <section className="w-full py-12 lg:py-16 border-b border-brand-border/60 bg-transparent" id="producto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column (7 cols) */}

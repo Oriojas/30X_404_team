@@ -30,7 +30,7 @@ export default function AuditTable({ invoices = [], onSelectInvoice }) {
   })
 
   return (
-    <section className="w-full py-12 lg:py-16 bg-white border-b border-brand-border" id="auditoria">
+    <section className="w-full py-12 lg:py-16 bg-transparent border-b border-brand-border/60" id="auditoria">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Header & Filter Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

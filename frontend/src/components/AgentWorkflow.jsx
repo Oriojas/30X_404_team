@@ -70,7 +70,7 @@ export default function AgentWorkflow({ onSelectInvoiceForInspection }) {
   }
 
   return (
-    <section className="w-full py-12 lg:py-16 bg-white border-b border-brand-border" id="telegram-demo">
+    <section className="w-full py-12 lg:py-16 bg-transparent border-b border-brand-border/60" id="telegram-demo">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Section Header */}
         <div className="max-w-2xl space-y-2">

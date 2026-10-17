@@ -19,7 +19,7 @@ export default function SecurityCompliance({ isModalOpen, onToggleModal }) {
 
   return (
     <>
-      <section className="w-full py-12 lg:py-16 bg-brand-bg border-b border-brand-border" id="seguridad">
+      <section className="w-full py-12 lg:py-16 bg-transparent border-b border-brand-border/60" id="seguridad">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-brand-navy rounded-2xl p-8 lg:p-12 text-white shadow-xl relative overflow-hidden flex flex-col items-center text-center space-y-6">
             {/* Ambient Background Glows */}

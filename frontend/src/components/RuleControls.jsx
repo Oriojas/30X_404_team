@@ -57,7 +57,7 @@ export default function RuleControls({
   }
 
   return (
-    <section className="w-full py-12 lg:py-16 bg-brand-bg border-b border-brand-border" id="reglas-gobernanza">
+    <section className="w-full py-12 lg:py-16 bg-transparent border-b border-brand-border/60" id="reglas-gobernanza">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
