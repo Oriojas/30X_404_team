@@ -9,7 +9,7 @@ NUBE = Vendor("901.223.450-1", "Nube Andina Consultores S.A.S.", "CO-DAVIVIENDA-
 
 
 def evaluate(amount, vendor=AWS, *, name=None, tax_id=None, bank=None, currency="USD", rate=1.0,
-             history=True, duplicate=False, sanctions=None, balance=8500, budget=25000, spent=0, committed=0,
+             duplicate=False, sanctions=None, balance=8500, budget=25000, spent=0, committed=0,
              confidence=1.0, rules=RULES):
     invoice = ExtractedInvoice(
         invoice_number="F-1", vendor_name=name or (vendor.legal_name if vendor else "Proveedor X"),
@@ -18,7 +18,7 @@ def evaluate(amount, vendor=AWS, *, name=None, tax_id=None, bank=None, currency=
     )
     context = EvaluationContext(
         usd_amount=amount, fx_rate=rate, treasury=TreasuryStatus(balance, budget, spent, committed), vendor=vendor,
-        sanctions_match=sanctions, is_duplicate=duplicate, vendor_has_history=history,
+        sanctions_match=sanctions, is_duplicate=duplicate,
     )
     return RulesPipeline().evaluate_invoice(invoice, context, rules)
 
@@ -43,7 +43,7 @@ def test_tc02_duplicate_is_rejected_and_stops_pipeline():
 
 
 def test_tc03_new_vendor_is_scaled():
-    decision = evaluate(800, vendor=None, name="Diseño Creativo Bogotá S.A.S.", history=False)
+    decision = evaluate(800, vendor=None, name="Diseño Creativo Bogotá S.A.S.")
     assert decision.status == DecisionStatus.SCALED_TO_HUMAN
     assert codes(decision) == ["HITL-02"]
 
@@ -123,7 +123,7 @@ def test_unsupported_currency_is_scaled_without_misleading_amounts():
     invoice = ExtractedInvoice(invoice_number="F-9", vendor_name=AWS.legal_name, original_amount=1000,
                                original_currency="GBP")
     context = EvaluationContext(usd_amount=0.0, fx_rate=0.0, currency_supported=False,
-                                treasury=TreasuryStatus(8500, 25000), vendor=AWS, vendor_has_history=True)
+                                treasury=TreasuryStatus(8500, 25000), vendor=AWS)
     decision = RulesPipeline().evaluate_invoice(invoice, context, RULES)
     assert decision.status == DecisionStatus.SCALED_TO_HUMAN
     assert codes(decision) == ["INTEG-04"]
@@ -178,7 +178,28 @@ def test_fin04_no_se_evalua_sin_conversion_a_usd():
     invoice = ExtractedInvoice(invoice_number="F-9", vendor_name=AWS.legal_name, original_amount=1_000_000,
                                original_currency="GBP")
     context = EvaluationContext(usd_amount=0.0, fx_rate=0.0, currency_supported=False,
-                                treasury=TreasuryStatus(8500, 25000), vendor=AWS, vendor_has_history=True)
+                                treasury=TreasuryStatus(8500, 25000), vendor=AWS)
     decision = RulesPipeline().evaluate_invoice(invoice, context, CompanyRules(company_id="TEST", max_payment_usd=1))
     assert codes(decision) == ["INTEG-04"]
     assert decision.evaluations["solvency_check"]["status"] == "SKIPPED"
+
+
+def test_hitl02_proveedor_activo_sin_historial_no_escala():
+    # F7.4: la lista permitida reemplaza al historial; el texto de aprobación ya no lo menciona
+    decision = evaluate(450, vendor=AWS)
+    assert decision.status == DecisionStatus.AUTO_APPROVED
+    assert "lista permitida" in decision.explanation and "historial" not in decision.explanation
+
+
+def test_hitl02_proveedor_no_registrado_escala_fuera_de_la_lista():
+    decision = evaluate(800, vendor=None, name="Diseño Creativo Bogotá S.A.S.")
+    assert codes(decision) == ["HITL-02"]
+    assert "fuera de la lista permitida" in decision.alerts[0].message
+
+
+def test_hitl02_proveedor_inactivo_escala_y_conserva_comp02_e_integ02():
+    inactive = Vendor(AWS.tax_id, AWS.legal_name, AWS.bank_account, contract_amount_usd=1000, active=False)
+    decision = evaluate(1500, vendor=inactive, bank="US-OTRO-BANCO-1")
+    assert set(codes(decision)) >= {"COMP-02", "INTEG-02", "HITL-02"}
+    hitl02 = next(a for a in decision.alerts if a.code == "HITL-02")
+    assert "inactivo" in hitl02.message and AWS.legal_name in hitl02.message

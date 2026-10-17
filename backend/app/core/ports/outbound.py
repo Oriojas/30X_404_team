@@ -59,10 +59,6 @@ class InvoiceRepository(Protocol):
         """INTEG-01 por archivo: la factura más reciente con el mismo SHA-256 en la ventana (excluye rechazadas)."""
         ...
 
-    async def vendor_has_paid_history(self, vendor_tax_id: Optional[str], vendor_name: Optional[str]) -> bool:
-        """HITL-02: el proveedor tiene al menos un pago aprobado previo."""
-        ...
-
 
 class RulesRepository(Protocol):
     """Lectura y actualización de reglas corporativas."""

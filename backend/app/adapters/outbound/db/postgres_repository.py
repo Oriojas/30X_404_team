@@ -157,12 +157,6 @@ class PostgresInvoiceRepository:
         )
         return _row_to_invoice(row) if row else None
 
-    async def vendor_has_paid_history(self, vendor_tax_id: Optional[str], vendor_name: Optional[str]) -> bool:
-        return await self.db.require_pool().fetchval(
-            f"SELECT EXISTS (SELECT 1 FROM invoices WHERE {VENDOR_MATCH} AND decision_status = ANY($3::text[]))",
-            vendor_tax_id, vendor_name or "", list(APPROVED),
-        )
-
 
 class PostgresIngestionLog:
     """Registro de entregas por canal: el PRIMARY KEY (channel, external_id) hace atómico el reclamo."""

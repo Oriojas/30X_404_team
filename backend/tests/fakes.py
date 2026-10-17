@@ -86,9 +86,6 @@ class InMemoryInvoices:
                    and i.decision_status not in {DecisionStatus.REJECTED, DecisionStatus.HUMAN_REJECTED}]
         return matches[-1] if matches else None
 
-    async def vendor_has_paid_history(self, vendor_tax_id, vendor_name):
-        return any(i.vendor_name == vendor_name and i.decision_status in APPROVED for i in self.items.values())
-
 
 class InMemoryRules:
     """Guarda lo que recibe en save: una regla cambiada afecta la siguiente evaluación."""

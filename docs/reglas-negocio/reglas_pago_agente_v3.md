@@ -153,8 +153,10 @@ flowchart TD
 | Código | Regla | Condición Lógica | Decisión | Razón / Explicación Registrada |
 | :--- | :--- | :--- | :--- | :--- |
 | **HITL-01** | **Monto Máximo de Aprobación Autónoma** | `Monto Factura > $2,000 USD` (Umbral configurable). | `SCALED_TO_HUMAN` | *El monto excede el límite autónomo de $2,000 USD.* |
-| **HITL-02** | **Proveedor Nuevo (Primer Pago)** | El proveedor no cuenta con historial de pagos en la plataforma. | `SCALED_TO_HUMAN` | *Proveedor nuevo. Requiere verificación inicial por un operador.* |
+| **HITL-02** | **Beneficiario fuera de la lista permitida** | El proveedor no está registrado en la lista permitida o está inactivo (`active = false`). El NIT y la razón social se comparan sin mayúsculas, tildes ni signos. | `SCALED_TO_HUMAN` | *Beneficiario fuera de la lista permitida (o inactivo). Requiere verificación inicial y alta por un aprobador.* |
 | **HITL-03** | **Ambigüedad Acumulada** | 2 o más alertas de inconsistencia de la factura (COMP-02, COMP-04, INTEG-02, INTEG-03, INTEG-04). | `SCALED_TO_HUMAN` | *Acumulación de pequeñas inconsistencias detectadas.* |
+
+> HITL-02 ya no exige historial de pagos: el alta del proveedor desde el dashboard es la verificación inicial y queda registrada con quién y cuándo. Un proveedor inactivo conserva su registro, así que COMP-02, COMP-03, COMP-04 e INTEG-02 se siguen evaluando contra su cuenta autorizada, su condición PEP, su NIT y su tarifa acordada.
 
 ### Resolución Humana de Facturas Escaladas
 
@@ -173,7 +175,7 @@ Set de datos simulados diseñado para verificar el comportamiento del agente fre
 | :--- | :--- | :--- | :--- | :--- |
 | **TC-01** | Factura mensual recurrente de AWS ($450 USD) con saldo suficiente y proveedor frecuente. | Normal | `AUTO_APPROVED` | Ninguna (Pasó 100%) |
 | **TC-02** | Factura enviada por segunda vez en la misma semana ($1,200 USD). | **Trampa (Duplicado)** | `REJECTED` | `INTEG-01` |
-| **TC-03** | Factura de proveedor nuevo no registrado previamente ($800 USD). | **Trampa (Proveedor Nuevo)** | `SCALED_TO_HUMAN` | `HITL-02` |
+| **TC-03** | Factura de un proveedor que no está en la lista permitida ($800 USD). | **Trampa (Beneficiario fuera de la lista)** | `SCALED_TO_HUMAN` | `HITL-02` |
 | **TC-04** | Factura con monto superior al pactado ($3,500 USD vs $2,000 USD de límite). | **Trampa (Monto Alto)** | `SCALED_TO_HUMAN` | `HITL-01` |
 | **TC-05** | Factura por $10,000 USD cuando el saldo en Blinka es de $4,000 USD. | **Trampa (Saldo Insuficiente)** | `SCALED_TO_HUMAN` | `FIN-01` |
 | **TC-06** | Factura con destino a cuenta bancaria en lista restrictiva OFAC. | **Trampa (Compliance)** | `REJECTED` | `COMP-01` |
