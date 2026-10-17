@@ -177,4 +177,4 @@ curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d "url=$TE
 ## 🔗 Referencias
 * [README Principal del Proyecto](../README.md)
 * [Frontend (React + Tailwind)](../frontend/README.md)
-* [Arquitectura de Solución v4](../docs/arquitectura/arquitectura_solucion_v4.md)
+* [Arquitectura de Solución v5 (C4)](../docs/arquitectura/arquitectura_solucion_v5.md)

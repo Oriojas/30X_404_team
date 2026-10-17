@@ -12,7 +12,8 @@ Este directorio centraliza la arquitectura, especificaciones funcionales, reglas
 docs/
 ├── README.md                          # Este índice de navegación
 ├── arquitectura/                      # Arquitectura de sistemas y despliegue
-│   ├── arquitectura_solucion_v4.md    # [VIGENTE] Arquitectura Hexagonal Monorepo (Puertos y Adaptadores + FX Engine)
+│   ├── arquitectura_solucion_v5.md    # [VIGENTE] Arquitectura C4 (Contexto, Contenedores, Componentes, Código) tal como está implementada
+│   ├── arquitectura_solucion_v4.md    # [Histórico] Arquitectura Hexagonal Monorepo (Puertos y Adaptadores + FX Engine)
 │   ├── arquitectura_solucion_v3.md    # [Histórico] Arquitectura Gemini All-in-One
 │   ├── arquitectura_solucion_v2.md    # [Histórico] Arquitectura híbrida (Gemini Flash + DeepSeek)
 │   └── arquitectura_solucion_v1.md    # [Histórico] Versión inicial de arquitectura
@@ -36,11 +37,8 @@ docs/
 
 Para evaluar la solución durante la Hackathon, los documentos oficiales de referencia son:
 
-1. **[Presentación Comercial y Guion (Pitch)](pitch_presentacion/presentacion_y_guion.md):**  
-   Slide deck comercial (6 slides) y guion cronometrado para el video de 3 minutos. Versión interactiva en vivo: [https://30x404team-production.up.railway.app/#/pitch/1](https://30x404team-production.up.railway.app/#/pitch/1).
-
-2. **[Arquitectura de Solución (v4)](arquitectura/arquitectura_solucion_v4.md):**  
-   Define la **Arquitectura Hexagonal (Puertos y Adaptadores)** en monorepo, adaptadores de entrada (Telegram, API REST), puertos y casos de uso del Core, adaptadores de salida (Gemini 1.5 Flash, PostgreSQL en Railway, notificaciones de Telegram) y el módulo de conversión de divisas (**FX Engine** a $0 markup).
+1. **[Arquitectura de Solución (v5)](arquitectura/arquitectura_solucion_v5.md):**  
+   Arquitectura **tal como está implementada**, con el modelo **C4**: contexto, contenedores, componentes del hexágono (puertos, casos de uso y adaptadores), flujos de una factura y de la decisión humana, modelo de datos, despliegue en Railway y decisiones de arquitectura.
 
 3. **[Plan de Trabajo Oficial](../plan_de_trabajo.md):**  
    Cronograma por fases (Viernes 16 a Domingo 18), asignación de roles entre Oscar Riojas y Luis Felipe Marín Giraldo, y suite de casos de prueba.
@@ -58,4 +56,4 @@ Para evaluar la solución durante la Hackathon, los documentos oficiales de refe
 
 ## 🕒 Histórico de Versiones
 
-Las carpetas `arquitectura/` y `reglas-negocio/` conservan las versiones anteriores (`v1` y `v2`) como registro de la evolución del diseño técnico y conceptual del proyecto durante el desarrollo.
+Las carpetas `arquitectura/` y `reglas-negocio/` conservan las versiones anteriores (`v1` a `v4` y `v1` a `v2`, respectivamente) como registro de la evolución del diseño técnico y conceptual del proyecto durante el desarrollo.
