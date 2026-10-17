@@ -6,6 +6,7 @@ Se ejecuta solo si TEST_DATABASE_URL apunta a una base desechable:
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -57,6 +58,10 @@ def post_invoice(client, **payload):
 def test_demo_suite_against_seeded_database(client):
     assert client.get("/api/health").json()["database"] == "connected"
     assert len(client.get("/api/invoices").json()) == 5
+    treasury = client.get("/api/treasury").json()
+    assert treasury["balance_usd"] == 8500 and treasury["monthly_budget_usd"] == 25000
+    # Del seed solo DS-1042 (hace 3 días, 1.200 USD) cae en el mes; las aprobadas de hace 35 a 50 días no cuentan
+    assert treasury["month_spent_usd"] == (1200.0 if datetime.utcnow().day > 3 else 0.0)
 
     resultados = {}
     for caso, estado, regla, payload in CASOS:
@@ -74,6 +79,8 @@ def test_demo_suite_against_seeded_database(client):
     decision = client.post(f"/api/invoices/{tc04['id']}/decision",
                            json={"decision": "APPROVE", "decided_by": "CFO Blinka", "note": "Contrato vigente"})
     assert decision.status_code == 200 and decision.json()["decision_status"] == "HUMAN_APPROVED"
+    # FIN-02 suma lo aprobado del mes, autónomo o humano: TC-01 (450) + TC-04 aprobada por el CFO (3.500)
+    assert client.get("/api/treasury").json()["month_spent_usd"] == treasury["month_spent_usd"] + 3950
     assert client.post(f"/api/invoices/{tc04['id']}/decision",
                        json={"decision": "REJECT", "decided_by": "CFO"}).status_code == 409
     assert client.post("/api/invoices/9999/decision", json={"decision": "REJECT", "decided_by": "CFO"}).status_code == 404

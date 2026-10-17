@@ -11,7 +11,42 @@ export const DEFAULT_RULES = {
   max_autonomous_usd: 2000,
   sarlaft_check_enabled: true,
   duplicate_check_days: 30,
-  min_treasury_buffer_usd: 10000
+  min_treasury_buffer_usd: 1000
+}
+
+// Tesorería del seed de demostración: solo en modo demostración (con la API viva nunca se finge un saldo)
+export const DEFAULT_TREASURY = {
+  balance_usd: 8500,
+  monthly_budget_usd: 25000,
+  month_spent_usd: 0
+}
+
+// Holgura sobre el colchón: qué parte del saldo queda libre por encima de la reserva (FIN-03).
+// null si falta el saldo o la reserva no es un número válido (p. ej. el campo está vacío mientras se edita).
+export function treasuryHeadroom(balanceUsd, bufferUsd) {
+  if (balanceUsd == null || bufferUsd == null || bufferUsd === '') return null
+  const balance = Number(balanceUsd)
+  const buffer = Number(bufferUsd)
+  if (!Number.isFinite(balance) || !Number.isFinite(buffer) || buffer < 0) return null
+  const ok = balance > buffer
+  const pct = ok ? Math.min(100, ((balance - buffer) / balance) * 100) : 0
+  const rounded = Math.round(pct)
+  // Por encima del colchón pero por menos de medio punto: "<1%" en vez de un "0% OK" contradictorio
+  return { pct, ok, label: ok && rounded === 0 ? '<1%' : `${rounded}%` }
+}
+
+export function headroomText(headroom) {
+  if (!headroom) return '—'
+  return `${headroom.label} ${headroom.ok ? 'OK' : 'bajo el colchón'}`
+}
+
+export function headroomColor(headroom) {
+  if (!headroom) return 'text-brand-muted'
+  return headroom.ok ? 'text-emerald-700' : 'text-red-600'
+}
+
+export function formatUsd(amount, decimals = 0) {
+  return `$${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
 }
 
 // crypto.randomUUID solo existe en contextos seguros (HTTPS o localhost); en HTTP por la red local
@@ -113,6 +148,11 @@ export async function decideInvoice(invoiceId, decision, note) {
 
 export async function getRules() {
   const { data } = await request('/api/rules')
+  return data
+}
+
+export async function getTreasury() {
+  const { data } = await request('/api/treasury')
   return data
 }
 

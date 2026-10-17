@@ -1,6 +1,9 @@
 import React from 'react'
+import { formatUsd, headroomColor, headroomText, treasuryHeadroom } from '../api'
 
-export default function HeroSection({ onOpenTelegramDemo }) {
+export default function HeroSection({ treasury, rules }) {
+  const headroom = treasuryHeadroom(treasury?.balance_usd, rules.min_treasury_buffer_usd)
+
   return (
     <section className="w-full py-12 lg:py-16 border-b border-brand-border/60 bg-transparent" id="producto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,7 +73,7 @@ export default function HeroSection({ onOpenTelegramDemo }) {
 
                 <div className="flex flex-col border-l border-brand-border pl-3 sm:pl-4">
                   <div className="flex items-center gap-1">
-                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">$2,000</span>
+                    <span className="font-display font-bold text-xl sm:text-2xl text-brand-navy">{formatUsd(rules.max_autonomous_usd)}</span>
                     <span className="material-symbols-outlined text-brand-teal text-[18px]">bolt</span>
                   </div>
                   <span className="text-[11px] sm:text-xs text-brand-muted font-medium mt-0.5">Umbral Autónomo (configurable)</span>
@@ -107,18 +110,20 @@ export default function HeroSection({ onOpenTelegramDemo }) {
               <div className="bg-slate-50 p-3.5 rounded-xl border border-brand-border/80 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-brand-muted font-medium">Tesorería Operativa Disponible</span>
-                  <span className="font-mono text-sm font-bold text-brand-navy">$48,250.00 USD</span>
+                  <span className="font-mono text-sm font-bold text-brand-navy">{treasury ? `${formatUsd(treasury.balance_usd, 2)} USD` : '—'}</span>
                 </div>
 
                 {/* Liquidity Progress Bar */}
                 <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden flex">
-                  <div className="bg-brand-teal h-full transition-all duration-500" style={{ width: '79.2%' }}></div>
-                  <div className="bg-slate-300 h-full" style={{ width: '20.8%' }}></div>
+                  <div className="bg-brand-teal h-full transition-all duration-500" style={{ width: `${headroom?.pct ?? 0}%` }}></div>
+                  <div className="bg-slate-300 h-full flex-1"></div>
                 </div>
 
                 <div className="flex items-center justify-between font-mono text-[10px] text-brand-muted">
-                  <span>Colchón protegido: $10,000 USD</span>
-                  <span className="text-emerald-700 font-semibold">Liquidez 79% OK</span>
+                  <span>Colchón protegido: {formatUsd(rules.min_treasury_buffer_usd)} USD</span>
+                  <span className={`font-semibold ${headroomColor(headroom)}`}>
+                    Liquidez {headroomText(headroom)}
+                  </span>
                 </div>
               </div>
 

@@ -23,6 +23,7 @@ from app.core.domain.rules_pipeline import RulesPipeline
 from app.core.use_cases import (
     DecideInvoiceUseCase,
     GetRulesUseCase,
+    GetTreasuryUseCase,
     ListInvoicesUseCase,
     ProcessInvoiceUseCase,
     UpdateRulesUseCase,
@@ -48,6 +49,7 @@ class Container:
         notifier = ChannelNotificationRouter({"TELEGRAM": self.telegram})
         invoice_repo = PostgresInvoiceRepository(self.db)
         rules_repo = PostgresRulesRepository(self.db, default_rules)
+        treasury_repo = PostgresTreasuryRepository(self.db, default_treasury)
 
         # Casos de uso
         self.process_invoice = ProcessInvoiceUseCase(
@@ -58,7 +60,7 @@ class Container:
             rules=rules_repo,
             vendors=PostgresVendorRepository(self.db),
             sanctions=PostgresSanctionsRepository(self.db),
-            treasury=PostgresTreasuryRepository(self.db, default_treasury),
+            treasury=treasury_repo,
             company_id=company_id,
             notifier=notifier,
             ingestion=PostgresIngestionLog(self.db),
@@ -67,6 +69,7 @@ class Container:
         self.list_invoices = ListInvoicesUseCase(invoice_repo)
         self.get_rules = GetRulesUseCase(rules_repo, company_id)
         self.update_rules = UpdateRulesUseCase(rules_repo, company_id)
+        self.get_treasury = GetTreasuryUseCase(treasury_repo, company_id)
 
     def status(self) -> dict:
         return {

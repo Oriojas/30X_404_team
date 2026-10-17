@@ -69,6 +69,16 @@ Cualquier canal puede entregar la misma factura más de una vez. Se resuelve en 
 
 **Listo cuando:** el jurado puede abrir la URL pública y probar el agente sin ayuda.
 
+## Fase 4.1 — Tesorería real en el dashboard
+
+Hallazgo de la validación de la Fase 4: el hero y la tarjeta de colchón mostraban valores del diseño de prueba ($48,250 de caja, $10,000 de colchón), no los que usa el agente. Ver [requisitos](2026-10-17-tesoreria-real/requirements.md).
+
+- [x] **T1 — Endpoint:** `GET /api/treasury` con saldo, presupuesto mensual y gasto aprobado del mes.
+- [x] **T2 — Cliente:** `DEFAULT_RULES` con el colchón real del backend (`1000`) y la tesorería cargada al abrir el dashboard.
+- [x] **T3 — Hero y tarjeta de colchón:** caja, colchón, umbral y holgura reales; la holgura sigue a la reserva mientras se edita. *(Hecho el 17-oct-2026 en local con PostgreSQL y seed; falta comprobarlo en producción tras el merge.)*
+
+**Listo cuando:** el dashboard público muestra la misma caja y el mismo colchón con los que decide el agente.
+
 ## Fase 5 — Cierre y entrega
 
 - [ ] **F5.1 — Limpieza:** quitar dependencias sin uso (`python-telegram-bot`) y pasar `pytest` a desarrollo.

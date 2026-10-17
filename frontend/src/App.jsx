@@ -9,7 +9,7 @@ import InvoiceUpload from './components/InvoiceUpload'
 import SecurityCompliance from './components/SecurityCompliance'
 import Footer from './components/Footer'
 import TopographyBackground from './components/TopographyBackground'
-import { listInvoices, getRules, decideInvoice, saveRules, DEFAULT_RULES } from './api'
+import { listInvoices, getRules, getTreasury, decideInvoice, saveRules, DEFAULT_RULES, DEFAULT_TREASURY } from './api'
 
 // Datos de demostración (misma forma que InvoiceResponse): solo se muestran si la API no responde.
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString()
@@ -115,6 +115,9 @@ export default function App() {
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false)
 
   const [rules, setRules] = useState(DEFAULT_RULES)
+  // null hasta que responde GET /api/treasury; si falla con la API viva se muestra "—", no el saldo del seed
+  const [treasury, setTreasury] = useState(null)
+  const shownTreasury = treasury ?? (apiAvailable === false ? DEFAULT_TREASURY : null)
 
   // Con la API disponible se muestran siempre los datos reales, aunque la lista esté vacía
   const loadInvoices = useCallback(async () => {
@@ -149,6 +152,13 @@ export default function App() {
       })
       .catch(() => {
         // Fallback a reglas predeterminadas
+      })
+    getTreasury()
+      .then((data) => {
+        if (data && typeof data === 'object') setTreasury(data)
+      })
+      .catch(() => {
+        // Sin tesorería: el hero y la tarjeta muestran "—" (o el seed en modo demostración)
       })
   }, [loadInvoices])
 
@@ -191,7 +201,7 @@ export default function App() {
       {/* Main Sections */}
       <main className="w-full pt-16 flex-1 flex flex-col relative z-10">
         {/* Section 1: Hero & Treasury Node */}
-        <HeroSection />
+        <HeroSection treasury={shownTreasury} rules={rules} />
 
         {/* Section 2: Telegram Workflow & 3-Step Cognitive Process */}
         <AgentWorkflow onSelectInvoiceForInspection={(inv) => setSelectedInvoice(inv)} />
@@ -199,6 +209,7 @@ export default function App() {
         {/* Section 3: Governance & Business Rules */}
         <RuleControls
           currentRules={rules}
+          treasury={shownTreasury}
           readOnly={apiAvailable === false}
           onSave={handleSaveRules}
         />

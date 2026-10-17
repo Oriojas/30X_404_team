@@ -31,6 +31,7 @@ INSERT INTO sanctions_list (list_source, entity_name, tax_id, bank_account) VALU
 ON CONFLICT (list_source, entity_name) DO NOTHING;
 
 -- Historial de pagos (solo si la tabla está vacía): da antigüedad a los proveedores (HITL-02)
+-- processed_at es TIMESTAMP sin zona y la app lo escribe en UTC: el seed también, sea cual sea la zona de la base.
 -- y deja una factura reciente de DevStudio para el caso de duplicado (TC-02).
 INSERT INTO invoices (invoice_number, vendor_name, vendor_tax_id, original_amount, original_currency,
                       fx_rate_applied, usd_amount, channel_source, decision_status, audit_explanation,
@@ -38,19 +39,19 @@ INSERT INTO invoices (invoice_number, vendor_name, vendor_tax_id, original_amoun
 SELECT * FROM (VALUES
     ('AWS-2026-08', 'Amazon Web Services LATAM', 'US-91-1646860', 450.00, 'USD', 1.0, 450.00, 'TELEGRAM',
      'AUTO_APPROVED', 'Pago aprobado automáticamente: proveedor verificado, monto dentro del límite autónomo y saldo suficiente.',
-     'US-CHASE-000123456', 0.990, NOW() - INTERVAL '45 days'),
+     'US-CHASE-000123456', 0.990, timezone('UTC', now()) - INTERVAL '45 days'),
     ('DS-1041', 'DevStudio LatAm S.A.S.', '900.584.112-4', 5040000.00, 'COP', 4200.0, 1200.00, 'TELEGRAM',
      'AUTO_APPROVED', 'Pago aprobado automáticamente: $1,200.00 USD ($5,040,000 COP a tasa 4,200 COP/USD) dentro del límite autónomo.',
-     'CO-BANCOLOMBIA-11122233344', 0.970, NOW() - INTERVAL '40 days'),
+     'CO-BANCOLOMBIA-11122233344', 0.970, timezone('UTC', now()) - INTERVAL '40 days'),
     ('DS-1042', 'DevStudio LatAm S.A.S.', '900.584.112-4', 5040000.00, 'COP', 4200.0, 1200.00, 'TELEGRAM',
      'AUTO_APPROVED', 'Pago aprobado automáticamente: $1,200.00 USD ($5,040,000 COP a tasa 4,200 COP/USD) dentro del límite autónomo.',
-     'CO-BANCOLOMBIA-11122233344', 0.980, NOW() - INTERVAL '3 days'),
+     'CO-BANCOLOMBIA-11122233344', 0.980, timezone('UTC', now()) - INTERVAL '3 days'),
     ('NA-077', 'Nube Andina Consultores S.A.S.', '901.223.450-1', 1800.00, 'USD', 1.0, 1800.00, 'API',
      'AUTO_APPROVED', 'Pago aprobado automáticamente: proveedor verificado y monto dentro del límite autónomo.',
-     'CO-DAVIVIENDA-55566677788', 1.000, NOW() - INTERVAL '50 days'),
+     'CO-DAVIVIENDA-55566677788', 1.000, timezone('UTC', now()) - INTERVAL '50 days'),
     ('LEM-3301', 'Logística Express MX S.A. de C.V.', 'LEM850101AB1', 117000.00, 'MXN', 19.5, 6000.00, 'TELEGRAM',
      'HUMAN_APPROVED', 'Escalado por superar el límite autónomo de $2,000.00 USD. Aprobado por el CFO desde el dashboard.',
-     'MX-BBVA-012180001234567890', 0.950, NOW() - INTERVAL '35 days')
+     'MX-BBVA-012180001234567890', 0.950, timezone('UTC', now()) - INTERVAL '35 days')
 ) AS seed(invoice_number, vendor_name, vendor_tax_id, original_amount, original_currency, fx_rate_applied,
           usd_amount, channel_source, decision_status, audit_explanation, bank_account, ocr_confidence_score, processed_at)
 WHERE NOT EXISTS (SELECT 1 FROM invoices);

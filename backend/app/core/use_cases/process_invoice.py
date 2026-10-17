@@ -10,7 +10,6 @@ Idempotencia en dos niveles:
 
 import asyncio
 import hashlib
-from datetime import datetime
 from typing import Awaitable, Callable, Optional, Tuple
 
 from app.core.domain.audit_logger import AuditLogger
@@ -195,14 +194,11 @@ class ProcessInvoiceUseCase:
         self, invoice: ExtractedInvoice, usd_amount: Optional[float], fx_rate: Optional[float], duplicate_days: int
     ) -> EvaluationContext:
         """Reúne vía puertos los hechos externos que necesita la tubería (consultas independientes en paralelo)."""
-        month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        vendor, sanctions_match, treasury, month_spent = await asyncio.gather(
+        vendor, sanctions_match, treasury = await asyncio.gather(
             self.vendors.find(invoice.vendor_tax_id, invoice.vendor_name),
             self.sanctions.find_match(invoice.vendor_name, invoice.vendor_tax_id, invoice.bank_account),
             self.treasury.get(self.company_id),
-            self.invoices.sum_approved_usd_since(month_start),
         )
-        treasury.month_spent_usd = month_spent
 
         # Las consultas de historial usan la identidad del registro si el proveedor existe
         tax_id = vendor.tax_id if vendor else invoice.vendor_tax_id

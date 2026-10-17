@@ -162,13 +162,6 @@ class PostgresInvoiceRepository:
             vendor_tax_id, vendor_name or "", list(APPROVED),
         )
 
-    async def sum_approved_usd_since(self, since: datetime) -> float:
-        total = await self.db.require_pool().fetchval(
-            "SELECT COALESCE(SUM(usd_amount), 0) FROM invoices WHERE processed_at >= $1 AND decision_status = ANY($2::text[])",
-            since, list(APPROVED),
-        )
-        return float(total)
-
 
 class PostgresIngestionLog:
     """Registro de entregas por canal: el PRIMARY KEY (channel, external_id) hace atómico el reclamo."""
@@ -299,9 +292,20 @@ class PostgresTreasuryRepository:
         self.defaults = defaults
 
     async def get(self, company_id: str) -> TreasuryStatus:
+        # processed_at se guarda en UTC sin zona: el mes en curso se corta en UTC.
+        # invoices no tiene company_id (MVP de una empresa): el acumulado es de toda la tabla.
         row = await self.db.require_pool().fetchrow(
-            "SELECT balance_usd, monthly_budget_usd FROM treasury_accounts WHERE company_id = $1", company_id
+            """
+            SELECT t.balance_usd, t.monthly_budget_usd,
+                   (SELECT COALESCE(SUM(usd_amount), 0) FROM invoices
+                     WHERE processed_at >= date_trunc('month', timezone('UTC', now()))
+                       AND decision_status = ANY($2::text[])) AS month_spent_usd
+            FROM (SELECT 1) AS one
+            LEFT JOIN treasury_accounts t ON t.company_id = $1
+            """,
+            company_id, list(APPROVED),
         )
-        if row is None:
-            return TreasuryStatus(self.defaults.balance_usd, self.defaults.monthly_budget_usd)
-        return TreasuryStatus(float(row["balance_usd"]), float(row["monthly_budget_usd"]))
+        month_spent = float(row["month_spent_usd"])
+        if row["balance_usd"] is None:
+            return TreasuryStatus(self.defaults.balance_usd, self.defaults.monthly_budget_usd, month_spent)
+        return TreasuryStatus(float(row["balance_usd"]), float(row["monthly_budget_usd"]), month_spent)

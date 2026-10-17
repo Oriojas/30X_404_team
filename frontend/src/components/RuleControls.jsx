@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Notice from './Notice'
+import { formatUsd, headroomColor, headroomText, treasuryHeadroom } from '../api'
 
 function FieldError({ message }) {
   if (!message) return null
@@ -9,7 +10,7 @@ function FieldError({ message }) {
 // Campos con su propio mensaje de error en el panel; cualquier otro error del 422 va al aviso general
 const RULE_FIELDS = ['max_autonomous_usd', 'duplicate_check_days', 'min_treasury_buffer_usd']
 
-export default function RuleControls({ currentRules, readOnly = false, onSave }) {
+export default function RuleControls({ currentRules, treasury, readOnly = false, onSave }) {
   const [maxUsd, setMaxUsd] = useState(currentRules.max_autonomous_usd)
   const [sarlaft, setSarlaft] = useState(currentRules.sarlaft_check_enabled)
   const [dupDays, setDupDays] = useState(currentRules.duplicate_check_days)
@@ -18,6 +19,8 @@ export default function RuleControls({ currentRules, readOnly = false, onSave })
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [generalError, setGeneralError] = useState(null)
+  // La holgura sigue al valor que se está editando, antes de guardarlo
+  const headroom = treasuryHeadroom(treasury?.balance_usd, bufferUsd)
 
   // Los campos reflejan las reglas vigentes cuando llegan de la API o tras guardarlas
   const rulesKey = JSON.stringify(currentRules)
@@ -299,12 +302,14 @@ export default function RuleControls({ currentRules, readOnly = false, onSave })
               </div>
 
               <div className="relative w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                <div className="bg-brand-teal h-full rounded-full" style={{ width: '79%' }}></div>
+                <div className="bg-brand-teal h-full rounded-full transition-all duration-500" style={{ width: `${headroom?.pct ?? 0}%` }}></div>
               </div>
 
               <div className="flex items-center justify-between font-mono text-[10px] text-brand-steel">
-                <span>Caja: $48,250 USD</span>
-                <span className="text-emerald-700 font-semibold">Holgura 79% OK</span>
+                <span>Caja: {treasury ? `${formatUsd(treasury.balance_usd)} USD` : '—'}</span>
+                <span className={`font-semibold ${headroomColor(headroom)}`}>
+                  Holgura {headroomText(headroom)}
+                </span>
               </div>
               <FieldError message={fieldErrors.min_treasury_buffer_usd} />
             </div>
