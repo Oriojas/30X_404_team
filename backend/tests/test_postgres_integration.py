@@ -57,6 +57,8 @@ def post_invoice(client, **payload):
 def test_demo_suite_against_seeded_database(client):
     assert client.get("/api/health").json()["database"] == "connected"
     assert len(client.get("/api/invoices").json()) == 5
+    treasury = client.get("/api/treasury").json()
+    assert treasury["balance_usd"] == 8500 and treasury["monthly_budget_usd"] == 25000
 
     resultados = {}
     for caso, estado, regla, payload in CASOS:

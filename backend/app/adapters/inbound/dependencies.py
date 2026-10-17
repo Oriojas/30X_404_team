@@ -11,6 +11,7 @@ from fastapi import Request
 from app.core.use_cases import (
     DecideInvoiceUseCase,
     GetRulesUseCase,
+    GetTreasuryUseCase,
     ListInvoicesUseCase,
     ProcessInvoiceUseCase,
     UpdateRulesUseCase,
@@ -31,6 +32,10 @@ def get_list_invoices(request: Request) -> ListInvoicesUseCase:
 
 def get_get_rules(request: Request) -> GetRulesUseCase:
     return request.app.state.container.get_rules
+
+
+def get_get_treasury(request: Request) -> GetTreasuryUseCase:
+    return request.app.state.container.get_treasury
 
 
 def get_update_rules(request: Request) -> UpdateRulesUseCase:

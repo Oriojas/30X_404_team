@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.adapters.inbound.api.routers import health, invoices, rules
+from app.adapters.inbound.api.routers import health, invoices, rules, treasury
 from app.adapters.inbound.telegram import webhook as telegram_webhook
 from app.adapters.outbound.db.postgres_repository import DatabaseUnavailableError
 from app.config import get_settings
@@ -62,6 +62,7 @@ async def database_unavailable(_: Request, exc: DatabaseUnavailableError):
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(rules.router)
+app.include_router(treasury.router)
 app.include_router(telegram_webhook.router)
 
 

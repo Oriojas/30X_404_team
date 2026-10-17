@@ -85,6 +85,13 @@ class CompanyRulesResponse(BaseModel):
         return cls(**data)
 
 
+class TreasuryResponse(BaseModel):
+    """Liquidez de la cuenta Blinka expuesta al Dashboard."""
+    balance_usd: float
+    monthly_budget_usd: float
+    month_spent_usd: float
+
+
 class CompanyRulesUpdate(BaseModel):
     """Actualización de umbrales desde el Dashboard web."""
     max_autonomous_usd: Optional[float] = Field(default=None, ge=0)

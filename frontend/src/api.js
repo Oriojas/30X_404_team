@@ -11,7 +11,26 @@ export const DEFAULT_RULES = {
   max_autonomous_usd: 2000,
   sarlaft_check_enabled: true,
   duplicate_check_days: 30,
-  min_treasury_buffer_usd: 10000
+  min_treasury_buffer_usd: 1000
+}
+
+// Tesorería del seed de demostración, usada mientras no llega GET /api/treasury (o en modo demostración)
+export const DEFAULT_TREASURY = {
+  balance_usd: 8500,
+  monthly_budget_usd: 25000,
+  month_spent_usd: 0
+}
+
+// Holgura sobre el colchón: qué parte del saldo queda libre por encima de la reserva (FIN-03)
+export function treasuryHeadroom(balanceUsd, bufferUsd) {
+  const balance = Number(balanceUsd) || 0
+  const buffer = Number(bufferUsd) || 0
+  const pct = balance > 0 ? Math.max(0, Math.min(100, ((balance - buffer) / balance) * 100)) : 0
+  return { pct: Math.round(pct), ok: balance > buffer }
+}
+
+export function formatUsd(amount, decimals = 0) {
+  return `$${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
 }
 
 // crypto.randomUUID solo existe en contextos seguros (HTTPS o localhost); en HTTP por la red local
@@ -113,6 +132,11 @@ export async function decideInvoice(invoiceId, decision, note) {
 
 export async function getRules() {
   const { data } = await request('/api/rules')
+  return data
+}
+
+export async function getTreasury() {
+  const { data } = await request('/api/treasury')
   return data
 }
 
