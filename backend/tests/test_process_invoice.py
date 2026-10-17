@@ -7,7 +7,7 @@ import asyncio
 
 import pytest
 
-from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError
+from app.core.domain.errors import InvalidDecisionStateError, InvoiceNotFoundError, UnconvertedAmountApprovalError
 from app.core.domain.models import DecisionStatus, ExtractedInvoice, HumanDecision, Vendor
 from app.core.domain.rules_pipeline import RulesPipeline
 from app.core.use_cases import DecideInvoiceUseCase, ProcessInvoiceUseCase
@@ -29,6 +29,10 @@ def build(extracted):
     return use_case, invoices, notifier
 
 
+def decider(invoices, notifier=None, treasury=None):
+    return DecideInvoiceUseCase(invoices, treasury or FixedTreasury(), InMemoryRules(), "TEST", notifier)
+
+
 def cop_invoice(number="DS-1", amount=1_500_000):
     return ExtractedInvoice(invoice_number=number, vendor_name=VENDOR.legal_name,
                             original_amount=amount, original_currency="COP")
@@ -43,7 +47,7 @@ def test_new_vendor_is_scaled_then_known_vendor_is_approved_and_duplicate_reject
     assert notifier.received == [("TELEGRAM", 42)]
     assert notifier.decisions[-1].source_chat_id == 42
 
-    decide = DecideInvoiceUseCase(invoices, notifier)
+    decide = decider(invoices, notifier)
     approved = asyncio.run(decide.execute(first.id, HumanDecision.APPROVE, "CFO Blinka", "Proveedor validado"))
     assert approved.decision_status == DecisionStatus.HUMAN_APPROVED
     assert approved.decided_by == "CFO Blinka" and "Proveedor validado" in approved.audit_explanation
@@ -58,7 +62,7 @@ def test_new_vendor_is_scaled_then_known_vendor_is_approved_and_duplicate_reject
 
 def test_human_decision_only_applies_to_scaled_invoices():
     use_case, invoices, notifier = build(cop_invoice())
-    decide = DecideInvoiceUseCase(invoices, notifier)
+    decide = decider(invoices, notifier)
 
     with pytest.raises(InvoiceNotFoundError):
         asyncio.run(decide.execute(99, HumanDecision.APPROVE, "CFO"))
@@ -74,7 +78,7 @@ def test_human_decision_only_applies_to_scaled_invoices():
 def test_concurrent_human_decisions_only_one_wins():
     use_case, invoices, notifier = build(cop_invoice())
     scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice
-    decide = DecideInvoiceUseCase(invoices, notifier)
+    decide = decider(invoices, notifier)
 
     async def race():
         return await asyncio.gather(
@@ -110,3 +114,48 @@ def test_notification_router_only_reaches_the_origin_channel():
 
     asyncio.run(use_case.from_document(b"img", "image/jpeg", "TELEGRAM", chat_id=7))
     assert telegram.received == [("TELEGRAM", 7)] and len(telegram.decisions) == 1
+
+
+def test_aprobar_revalida_la_solvencia_y_registra_la_excepcion():
+    """TC-05: escalada por FIN-01; la persona puede aprobarla, y el Audit Log deja el disponible y la alerta."""
+    big = Vendor("LEM850101AB1", "Logística Express MX S.A. de C.V.", contract_amount_usd=15000)
+    invoices, notifier = InMemoryInvoices(), SpyNotifier()
+    use_case = ProcessInvoiceUseCase(
+        ocr=FakeOCR(None), fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=invoices, rules=InMemoryRules(),
+        vendors=InMemoryVendors(big), sanctions=NoSanctions(), treasury=FixedTreasury(), company_id="TEST",
+        notifier=notifier,
+    )
+    tc05 = asyncio.run(use_case.from_extracted(ExtractedInvoice(
+        invoice_number="LEM-3400", vendor_name=big.legal_name, original_amount=10000, original_currency="USD"), "API")).invoice
+    assert tc05.decision_status == DecisionStatus.SCALED_TO_HUMAN and "FIN-01" in tc05.audit_explanation
+
+    treasury = FixedTreasury(committed_usd=1500.0)
+    approved = asyncio.run(decider(invoices, notifier, treasury).execute(tc05.id, HumanDecision.APPROVE, "CFO Blinka"))
+
+    assert approved.decision_status == DecisionStatus.HUMAN_APPROVED
+    tail = approved.audit_explanation.split(" | ")[-1]
+    assert "disponible $7,000.00 USD" in tail and "Excepción aprobada por CFO Blinka" in tail and "[FIN-01]" in tail
+
+
+def test_aprobar_sin_alertas_fin_lo_deja_dicho():
+    use_case, invoices, notifier = build(cop_invoice())
+    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice  # HITL-02, no FIN
+    approved = asyncio.run(decider(invoices, notifier).execute(scaled.id, HumanDecision.APPROVE, "CFO"))
+    assert "disponible $8,500.00 USD" in approved.audit_explanation and "sin alertas FIN" in approved.audit_explanation
+    assert "Excepción" not in approved.audit_explanation
+
+
+def test_factura_sin_conversion_a_usd_no_se_puede_aprobar_pero_si_rechazar():
+    use_case, invoices, notifier = build(ExtractedInvoice(invoice_number="DS-9", vendor_name=VENDOR.legal_name,
+                                                          original_amount=1000, original_currency="GBP"))
+    integ04 = asyncio.run(use_case.from_document(b"pdf", "application/pdf", "WEB")).invoice
+    assert integ04.usd_amount == 0 and "INTEG-04" in integ04.audit_explanation
+    decide = decider(invoices, notifier)
+
+    with pytest.raises(UnconvertedAmountApprovalError):
+        asyncio.run(decide.execute(integ04.id, HumanDecision.APPROVE, "CFO"))
+    assert invoices.items[integ04.id].decision_status == DecisionStatus.SCALED_TO_HUMAN
+
+    rejected = asyncio.run(decide.execute(integ04.id, HumanDecision.REJECT, "CFO"))
+    assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
+

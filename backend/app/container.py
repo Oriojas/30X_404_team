@@ -66,7 +66,9 @@ class Container:
             notifier=notifier,
             ingestion=PostgresIngestionLog(self.db),
         )
-        self.decide_invoice = DecideInvoiceUseCase(invoice_repo, notifier=notifier)
+        self.decide_invoice = DecideInvoiceUseCase(
+            invoice_repo, treasury_repo, rules_repo, company_id, notifier=notifier
+        )
         self.list_invoices = ListInvoicesUseCase(invoice_repo)
         self.get_rules = GetRulesUseCase(rules_repo, company_id)
         self.update_rules = UpdateRulesUseCase(rules_repo, company_id)

@@ -103,6 +103,10 @@ class RulesPipeline:
         status = self._final_status(alerts)
         return Decision(status, self._explain(status, alerts, invoice, context), evaluations, alerts)
 
+    def evaluate_solvency(self, usd_amount: float, treasury: TreasuryStatus, rules: CompanyRules) -> List[RuleAlert]:
+        """Solo la Capa 3, con la tesorería vigente: la usa la revalidación al aprobar (F6.3)."""
+        return self._solvency(None, EvaluationContext(usd_amount=usd_amount, fx_rate=1.0, treasury=treasury), rules, [])
+
     # ---------------------------------------------------------------- Capa 1
     def _compliance(self, invoice, ctx: EvaluationContext, rules, _prior) -> List[RuleAlert]:
         if ctx.sanctions_match:

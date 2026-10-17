@@ -77,10 +77,14 @@ def test_demo_suite_against_seeded_database(client):
                        vendor_tax_id="US-91-1646860", original_amount=1000, original_currency="GBP")
     assert gbp["decision_status"] == "SCALED_TO_HUMAN" and "INTEG-04" in gbp["audit_explanation"]
     assert gbp["usd_amount"] == 0.0 and gbp["fx_rate_applied"] is None
+    # INTEG-04: aprobarla comprometería $0 por un monto desconocido (F6.3)
+    blocked = client.post(f"/api/invoices/{gbp['id']}/decision", json={"decision": "APPROVE", "decided_by": "CFO"})
+    assert blocked.status_code == 409 and "INTEG-04" in blocked.json()["detail"]
 
     decision = client.post(f"/api/invoices/{tc04['id']}/decision",
                            json={"decision": "APPROVE", "decided_by": "CFO Blinka", "note": "Contrato vigente"})
     assert decision.status_code == 200 and decision.json()["decision_status"] == "HUMAN_APPROVED"
+    assert "Solvencia al aprobar: disponible $8,050.00 USD" in decision.json()["audit_explanation"]
     # FIN-02 suma lo aprobado del mes, autónomo o humano: TC-01 (450) + TC-04 aprobada por el CFO (3.500)
     after = client.get("/api/treasury").json()
     assert after["month_spent_usd"] == treasury["month_spent_usd"] + 3950
