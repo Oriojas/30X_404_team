@@ -37,7 +37,7 @@ def cop_invoice(number="DS-1", amount=1_500_000):
 def test_new_vendor_is_scaled_then_known_vendor_is_approved_and_duplicate_rejected():
     use_case, invoices, notifier = build(cop_invoice())
 
-    first = asyncio.run(use_case.from_document(b"img", "image/jpeg", "TELEGRAM", chat_id=42))
+    first = asyncio.run(use_case.from_document(b"img", "image/jpeg", "TELEGRAM", chat_id=42)).invoice
     assert first.usd_amount == 357.14 and first.fx_rate_applied == 4200.0
     assert first.decision_status == DecisionStatus.SCALED_TO_HUMAN  # HITL-02: sin historial
     assert notifier.received == [("TELEGRAM", 42)]
@@ -48,10 +48,10 @@ def test_new_vendor_is_scaled_then_known_vendor_is_approved_and_duplicate_reject
     assert approved.decision_status == DecisionStatus.HUMAN_APPROVED
     assert approved.decided_by == "CFO Blinka" and "Proveedor validado" in approved.audit_explanation
 
-    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", 2_100_000), "API"))
+    second = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", 2_100_000), "API")).invoice
     assert second.decision_status == DecisionStatus.AUTO_APPROVED
 
-    repeated = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", 2_100_000), "API"))
+    repeated = asyncio.run(use_case.from_extracted(cop_invoice("DS-2", 2_100_000), "API")).invoice
     assert repeated.decision_status == DecisionStatus.REJECTED
     assert "INTEG-01" in repeated.audit_explanation
 
@@ -63,7 +63,7 @@ def test_human_decision_only_applies_to_scaled_invoices():
     with pytest.raises(InvoiceNotFoundError):
         asyncio.run(decide.execute(99, HumanDecision.APPROVE, "CFO"))
 
-    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API"))
+    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice
     rejected = asyncio.run(decide.execute(scaled.id, HumanDecision.REJECT, "CFO"))
     assert rejected.decision_status == DecisionStatus.HUMAN_REJECTED
 
@@ -73,7 +73,7 @@ def test_human_decision_only_applies_to_scaled_invoices():
 
 def test_concurrent_human_decisions_only_one_wins():
     use_case, invoices, notifier = build(cop_invoice())
-    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API"))
+    scaled = asyncio.run(use_case.from_extracted(cop_invoice(), "API")).invoice
     decide = DecideInvoiceUseCase(invoices, notifier)
 
     async def race():
@@ -91,7 +91,7 @@ def test_concurrent_human_decisions_only_one_wins():
 def test_unknown_currency_is_never_converted_at_one_to_one():
     use_case, invoices, _ = build(ExtractedInvoice(invoice_number="DS-9", vendor_name=VENDOR.legal_name,
                                                    original_amount=1000, original_currency="GBP"))
-    result = asyncio.run(use_case.from_document(b"pdf", "application/pdf", "WEB"))
+    result = asyncio.run(use_case.from_document(b"pdf", "application/pdf", "WEB")).invoice
     assert result.decision_status == DecisionStatus.SCALED_TO_HUMAN
     assert "INTEG-04" in result.audit_explanation
     assert result.usd_amount == 0.0 and result.fx_rate_applied is None

@@ -141,13 +141,32 @@ En Railway, la variable `$PORT` es asignada en runtime y el contenedor arranca a
 | Método | Ruta | Descripción |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | Estado del servicio y de la conexión a PostgreSQL |
-| `POST` | `/api/webhook/telegram` | Canal de ingesta: fotos y documentos de Telegram |
+| `POST` | `/api/webhook/telegram` | Canal de ingesta: fotos y documentos de Telegram. Un `update_id` ya procesado responde `200 {"status": "duplicate"}`; uno aún en proceso, `503` |
 | `GET` | `/api/invoices` | Listado histórico de facturas y decisiones del Audit Log (arreglo JSON, con `evaluations` por capa) |
-| `POST` | `/api/invoices` | Evaluación de una factura con datos ya estructurados (sin OCR) |
-| `POST` | `/api/invoices/upload` | Canal de ingesta web: `multipart/form-data` con campo `file` (JPG, PNG, WEBP o PDF, máx. 10 MB) |
+| `POST` | `/api/invoices` | Evaluación de una factura con datos ya estructurados (sin OCR). Acepta `Idempotency-Key` |
+| `POST` | `/api/invoices/upload` | Canal de ingesta web: `multipart/form-data` con campo `file` (JPG, PNG, WEBP o PDF, máx. 10 MB). Acepta `Idempotency-Key` |
 | `POST` | `/api/invoices/{id}/decision` | Decisión humana sobre una factura `SCALED_TO_HUMAN`: `{"decision": "APPROVE" \| "REJECT", "decided_by": "...", "note": "..."}`. Responde `404` si no existe y `409` si no está escalada |
 | `GET` | `/api/rules` | Consulta de reglas de negocio actuales |
 | `POST` | `/api/rules` | Actualización de umbrales autónomos y políticas |
+
+### Ingesta idempotente
+
+Una misma entrega se procesa una sola vez por canal, aunque llegue repetida:
+
+| Canal | Identificador de la entrega | Primera vez | Repetida | Aún en proceso |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST /api/invoices/upload` | Header `Idempotency-Key` | `201` | `200` con la misma factura | `409` (reintenta con la misma clave) |
+| `POST /api/invoices` | Header `Idempotency-Key` | `201` | `200` con la misma factura | `409` |
+| Webhook de Telegram | `update_id` | `{"status": "processed", ...}` | `200 {"status": "duplicate", "decision": ...}` | `503` (Telegram reintenta más tarde) |
+
+- El header es opcional (1 a 200 caracteres; si no, `422`). Sin él, cada solicitud crea una factura nueva.
+- Una repetición no reprocesa ni vuelve a avisar al canal; Telegram tampoco vuelve a descargar el archivo.
+- Si el procesamiento falla, la clave se libera y el reintento sí procesa. Un reclamo que queda colgado más de 5 minutos (p. ej. por un reinicio) se puede retomar.
+- La clave es por canal: la misma clave en `/upload` y en `/api/invoices` son entregas distintas.
+
+```bash
+curl -s -X POST localhost:8000/api/invoices/upload -H "Idempotency-Key: $(uuidgen)" -F "file=@tests/fixtures/factura_devstudio.png"
+```
 
 ---
 
@@ -162,8 +181,8 @@ curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d "url=$TE
 
 ## 🔄 Flujo de una Factura
 
-1. **Ingesta:** Telegram, la subida web o la carga por API entregan la factura a `ProcessInvoiceUseCase`. Los canales **solo ingresan facturas**: no aprueban.
-2. **OCR y FX:** Gemini extrae los datos y el FX Engine convierte a USD con tasas fijas y $0.00 de markup. Una moneda no soportada nunca se convierte 1:1: la factura escala por `INTEG-04`.
+1. **Ingesta:** Telegram, la subida web o la carga por API entregan la factura a `ProcessInvoiceUseCase`. Los canales **solo ingresan facturas**: no aprueban. Cada entrega se reclama en `ingested_messages` para procesarse una sola vez (ver *Ingesta idempotente*).
+2. **OCR y FX:** se calcula el SHA-256 del archivo; si es idéntico a una factura vigente de la ventana de duplicados, no se llama al OCR y la factura se rechaza por `INTEG-01` citando la original. Si no, Gemini extrae los datos y el FX Engine convierte a USD con tasas fijas y $0.00 de markup. Una moneda no soportada nunca se convierte 1:1: la factura escala por `INTEG-04`.
 3. **Tubería de 4 capas:** consulta proveedores, listas restrictivas, tesorería e historial en PostgreSQL. Un `REJECTED` detiene la evaluación; las alertas de escalamiento se acumulan.
 4. **Audit Log:** se guarda la decisión con la explicación y el detalle de cada capa (`evaluations`), y el `ChannelNotificationRouter` avisa solo al canal de origen.
 5. **Decisión humana:** las facturas en `SCALED_TO_HUMAN` se aprueban o rechazan **solo desde el dashboard** y quedan como `HUMAN_APPROVED` o `HUMAN_REJECTED`, con quién decidió y cuándo. La actualización es atómica: si dos operadores deciden a la vez, solo gana uno y el otro recibe `409`.

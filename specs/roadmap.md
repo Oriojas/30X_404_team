@@ -38,13 +38,13 @@
 
 Cualquier canal puede entregar la misma factura más de una vez. Se resuelve en dos niveles: **transporte** (la misma entrega repetida, con el id del canal) y **negocio** (la misma factura por mensajes distintos: INTEG-01, reforzada con el hash del archivo).
 
-- [ ] **F2.1 — Esquema:** tabla `ingested_messages (channel, external_id, invoice_id, status, received_at)` con `PRIMARY KEY (channel, external_id)`, y columna `file_sha256` en `invoices`, ambas en `schema.sql`.
-- [ ] **F2.2 — Puerto genérico:** `IngestionLog` en `core/ports` con `claim(channel, external_id)` (atómico: `INSERT ... ON CONFLICT DO NOTHING`), `complete(..., invoice_id)` y `release(...)`. Adaptador PostgreSQL.
-- [ ] **F2.3 — Caso de uso:** `ProcessInvoiceUseCase` recibe un `external_id` opcional. Si ya fue reclamado, devuelve la factura existente sin reprocesar ni volver a notificar. Si el procesamiento falla, libera la clave para que el reintento sí se procese.
-- [ ] **F2.4 — Telegram:** el webhook pasa `update_id` como `external_id`. Un update repetido responde `200 {"status": "duplicate"}` para que Telegram deje de reintentar.
-- [ ] **F2.5 — Web y API:** `POST /api/invoices/upload` y `POST /api/invoices` aceptan el header `Idempotency-Key`. Una clave repetida devuelve la misma factura (`200`) en vez de crear otra (`201`).
-- [ ] **F2.6 — Hash del archivo:** calcular el SHA-256 de los documentos (Telegram y web), guardarlo en `invoices.file_sha256` y tratar como duplicado (INTEG-01) un archivo idéntico dentro de la ventana, aunque el OCR no haya leído número ni monto.
-- [ ] **F2.7 — Pruebas:** la misma clave dos veces por canal, el reintento tras un fallo, solicitudes concurrentes con la misma clave (solo una procesa), el mismo archivo por dos canales distintos y un caso en la integración con PostgreSQL.
+- [x] **F2.1 — Esquema:** tabla `ingested_messages (channel, external_id, invoice_id, status, received_at)` con `PRIMARY KEY (channel, external_id)`, y columna `file_sha256` en `invoices`, ambas en `schema.sql`.
+- [x] **F2.2 — Puerto genérico:** `IngestionLog` en `core/ports` con `claim(channel, external_id)` (atómico: `INSERT ... ON CONFLICT DO NOTHING`), `complete(..., invoice_id)` y `release(...)`. Adaptador PostgreSQL.
+- [x] **F2.3 — Caso de uso:** `ProcessInvoiceUseCase` recibe un `external_id` opcional. Si ya fue reclamado, devuelve la factura existente sin reprocesar ni volver a notificar. Si el procesamiento falla, libera la clave para que el reintento sí se procese.
+- [x] **F2.4 — Telegram:** el webhook pasa `update_id` como `external_id`. Un update repetido responde `200 {"status": "duplicate"}` para que Telegram deje de reintentar.
+- [x] **F2.5 — Web y API:** `POST /api/invoices/upload` y `POST /api/invoices` aceptan el header `Idempotency-Key`. Una clave repetida devuelve la misma factura (`200`) en vez de crear otra (`201`).
+- [x] **F2.6 — Hash del archivo:** calcular el SHA-256 de los documentos (Telegram y web), guardarlo en `invoices.file_sha256` y tratar como duplicado (INTEG-01) un archivo idéntico dentro de la ventana, aunque el OCR no haya leído número ni monto.
+- [x] **F2.7 — Pruebas:** la misma clave dos veces por canal, el reintento tras un fallo, solicitudes concurrentes con la misma clave (solo una procesa), el mismo archivo por dos canales distintos y un caso en la integración con PostgreSQL. *(Hecho el 17-oct-2026: 70 pruebas verdes con PostgreSQL 16; ver [validación](2026-10-17-ingesta-idempotente/validation.md).)*
 
 **Listo cuando:** repetir una entrega por cualquier canal no crea una segunda factura ni un aviso duplicado, y el mismo archivo enviado por otro canal queda frenado por INTEG-01.
 

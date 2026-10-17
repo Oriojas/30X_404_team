@@ -1,6 +1,7 @@
 """
 Adaptador de Salida: PostgreSQL (asyncpg)
-Implementa InvoiceRepository, RulesRepository, VendorRepository, SanctionsRepository y TreasuryRepository
+Implementa InvoiceRepository, RulesRepository, VendorRepository, SanctionsRepository, TreasuryRepository
+e IngestionLog
 sobre las tablas definidas en schema.sql.
 """
 
@@ -12,7 +13,15 @@ from typing import List, Optional
 
 import asyncpg
 
-from app.core.domain.models import CompanyRules, DecisionStatus, ProcessedInvoice, TreasuryStatus, Vendor
+from app.core.domain.models import (
+    CompanyRules,
+    DecisionStatus,
+    IngestionRecord,
+    IngestionStatus,
+    ProcessedInvoice,
+    TreasuryStatus,
+    Vendor,
+)
 
 SQL_DIR = Path(__file__).parent
 APPROVED = (DecisionStatus.AUTO_APPROVED.value, DecisionStatus.HUMAN_APPROVED.value)
@@ -21,6 +30,8 @@ NOT_REJECTED = (
     DecisionStatus.SCALED_TO_HUMAN.value,
     DecisionStatus.HUMAN_APPROVED.value,
 )
+# Un reclamo que sigue en PROCESSING después de esto se da por colgado (el proceso murió) y se puede retomar
+INGESTION_STALE_SECONDS = 300
 # Coincidencia de proveedor por NIT o por razón social (cuando el OCR no trae NIT)
 VENDOR_MATCH = "((vendor_tax_id IS NOT NULL AND vendor_tax_id = $1) OR lower(vendor_name) = lower($2))"
 
@@ -81,14 +92,15 @@ class PostgresInvoiceRepository:
             """
             INSERT INTO invoices (invoice_number, vendor_name, vendor_tax_id, bank_account, original_amount,
                 original_currency, fx_rate_applied, usd_amount, due_date, ocr_confidence_score, channel_source,
-                source_chat_id, decision_status, audit_explanation, evaluations, processed_at)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+                source_chat_id, decision_status, audit_explanation, evaluations, processed_at, file_sha256)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             RETURNING *
             """,
             invoice.invoice_number, invoice.vendor_name, invoice.vendor_tax_id, invoice.bank_account,
             invoice.original_amount, invoice.original_currency, invoice.fx_rate_applied, invoice.usd_amount,
             invoice.due_date, invoice.ocr_confidence_score, invoice.channel_source, invoice.source_chat_id,
             invoice.decision_status.value, invoice.audit_explanation, invoice.evaluations, invoice.processed_at,
+            invoice.file_sha256,
         )
         return _row_to_invoice(row)
 
@@ -132,6 +144,18 @@ class PostgresInvoiceRepository:
             round(usd_amount, 2) if usd_amount is not None else None, since, list(NOT_REJECTED),
         )
 
+    async def find_by_file_hash(self, file_sha256: str, within_days: int) -> Optional[ProcessedInvoice]:
+        since = datetime.utcnow() - timedelta(days=within_days)
+        row = await self.db.require_pool().fetchrow(
+            """
+            SELECT * FROM invoices
+            WHERE file_sha256 = $1 AND processed_at >= $2 AND decision_status = ANY($3::text[])
+            ORDER BY processed_at DESC, id DESC LIMIT 1
+            """,
+            file_sha256, since, list(NOT_REJECTED),
+        )
+        return _row_to_invoice(row) if row else None
+
     async def vendor_has_paid_history(self, vendor_tax_id: Optional[str], vendor_name: Optional[str]) -> bool:
         return await self.db.require_pool().fetchval(
             f"SELECT EXISTS (SELECT 1 FROM invoices WHERE {VENDOR_MATCH} AND decision_status = ANY($3::text[]))",
@@ -144,6 +168,49 @@ class PostgresInvoiceRepository:
             since, list(APPROVED),
         )
         return float(total)
+
+
+class PostgresIngestionLog:
+    """Registro de entregas por canal: el PRIMARY KEY (channel, external_id) hace atómico el reclamo."""
+
+    def __init__(self, db: PostgresDatabase):
+        self.db = db
+
+    async def claim(self, channel: str, external_id: str) -> Optional[IngestionRecord]:
+        pool = self.db.require_pool()
+        # Gana quien inserta, o quien retoma un reclamo colgado; el resto lee el registro existente
+        won = await pool.fetchval(
+            """
+            INSERT INTO ingested_messages (channel, external_id) VALUES ($1, $2)
+            ON CONFLICT (channel, external_id) DO UPDATE SET received_at = LOCALTIMESTAMP
+            WHERE ingested_messages.status = $3
+              AND ingested_messages.received_at < LOCALTIMESTAMP - make_interval(secs => $4)
+            RETURNING TRUE
+            """,
+            channel, external_id, IngestionStatus.PROCESSING.value, INGESTION_STALE_SECONDS,
+        )
+        if won:
+            return None
+        row = await pool.fetchrow(
+            "SELECT status, invoice_id FROM ingested_messages WHERE channel = $1 AND external_id = $2",
+            channel, external_id,
+        )
+        # Si el ganador liberó el reclamo entre las dos consultas, se informa en proceso y el cliente reintenta
+        if row is None:
+            return IngestionRecord(status=IngestionStatus.PROCESSING)
+        return IngestionRecord(status=IngestionStatus(row["status"]), invoice_id=row["invoice_id"])
+
+    async def complete(self, channel: str, external_id: str, invoice_id: int) -> None:
+        await self.db.require_pool().execute(
+            "UPDATE ingested_messages SET status = $3, invoice_id = $4 WHERE channel = $1 AND external_id = $2",
+            channel, external_id, IngestionStatus.COMPLETED.value, invoice_id,
+        )
+
+    async def release(self, channel: str, external_id: str) -> None:
+        await self.db.require_pool().execute(
+            "DELETE FROM ingested_messages WHERE channel = $1 AND external_id = $2 AND status = $3",
+            channel, external_id, IngestionStatus.PROCESSING.value,
+        )
 
 
 class PostgresRulesRepository:

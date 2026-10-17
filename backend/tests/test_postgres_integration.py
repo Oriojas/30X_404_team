@@ -26,7 +26,7 @@ def client(monkeypatch):
 
     async def reset():
         conn = await asyncpg.connect(TEST_DATABASE_URL)
-        await conn.execute("DROP TABLE IF EXISTS invoices, vendors, sanctions_list, treasury_accounts, company_rules")
+        await conn.execute("DROP TABLE IF EXISTS ingested_messages, invoices, vendors, sanctions_list, treasury_accounts, company_rules")
         await conn.close()
 
     asyncio.run(reset())
@@ -140,3 +140,159 @@ def test_upload_de_fixtures_produce_la_decision_esperada_con_el_seed(client):
 
     stored = {inv["invoice_number"]: inv["decision_status"] for inv in client.get("/api/invoices").json()}
     assert stored["DS-2026-1107"] == "AUTO_APPROVED" and stored["GTP-0091"] == "REJECTED"
+
+
+def run_with_db(scenario):
+    """Corre un escenario async contra una base recién migrada (sin seed)."""
+    import asyncio
+    import asyncpg
+    from app.adapters.outbound.db.postgres_repository import PostgresDatabase
+
+    async def main():
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        await conn.execute("DROP TABLE IF EXISTS ingested_messages, invoices, vendors, sanctions_list, treasury_accounts, company_rules")
+        await conn.close()
+        db = PostgresDatabase(TEST_DATABASE_URL)
+        await db.connect(auto_migrate=True)
+        try:
+            await scenario(db)
+        finally:
+            await db.close()
+
+    asyncio.run(main())
+
+
+def test_ingestion_log_reclamo_atomico_completar_liberar_y_retomar():
+    import asyncio
+    from app.adapters.outbound.db.postgres_repository import PostgresIngestionLog, PostgresInvoiceRepository
+    from app.core.domain.models import DecisionStatus, IngestionStatus, ProcessedInvoice
+
+    async def scenario(db):
+        log = PostgresIngestionLog(db)
+        # Reclamos simultáneos desde conexiones distintas del pool: solo uno gana
+        results = await asyncio.gather(*[log.claim("WEB", "key-1") for _ in range(5)])
+        assert results.count(None) == 1
+        assert all(r.status == IngestionStatus.PROCESSING and r.invoice_id is None for r in results if r)
+
+        # Liberar en proceso permite reintentar
+        await log.release("WEB", "key-1")
+        assert await log.claim("WEB", "key-1") is None
+
+        invoice = await PostgresInvoiceRepository(db).save(ProcessedInvoice(
+            invoice_number="X-1", vendor_name="Proveedor", original_amount=10, original_currency="USD",
+            usd_amount=10, fx_rate_applied=1.0, decision_status=DecisionStatus.AUTO_APPROVED,
+            audit_explanation="ok"))
+        await log.complete("WEB", "key-1", invoice.id)
+        await log.release("WEB", "key-1")  # una entrega completada no se libera
+        record = await log.claim("WEB", "key-1")
+        assert record.status == IngestionStatus.COMPLETED and record.invoice_id == invoice.id
+
+        # La misma clave en otro canal es otra entrega
+        assert await log.claim("API", "key-1") is None
+
+        # Un reclamo colgado más de INGESTION_STALE_SECONDS se puede retomar; uno completado nunca
+        await db.require_pool().execute(
+            "UPDATE ingested_messages SET received_at = LOCALTIMESTAMP - interval '10 minutes'")
+        assert await log.claim("API", "key-1") is None
+        assert (await log.claim("WEB", "key-1")).status == IngestionStatus.COMPLETED
+
+    run_with_db(scenario)
+
+
+def test_find_by_file_hash_respeta_ventana_y_estados():
+    from datetime import datetime, timedelta
+    from app.adapters.outbound.db.postgres_repository import PostgresInvoiceRepository
+    from app.core.domain.models import DecisionStatus, ProcessedInvoice
+
+    def invoice(number, status, sha, days_ago=0):
+        return ProcessedInvoice(
+            invoice_number=number, vendor_name="Proveedor", original_amount=10, original_currency="USD",
+            usd_amount=10, fx_rate_applied=1.0, decision_status=status, audit_explanation="x",
+            file_sha256=sha, processed_at=datetime.utcnow() - timedelta(days=days_ago))
+
+    async def scenario(db):
+        repo = PostgresInvoiceRepository(db)
+        ok = await repo.save(invoice("A", DecisionStatus.SCALED_TO_HUMAN, "a" * 64))
+        assert ok.file_sha256 == "a" * 64
+        await repo.save(invoice("B", DecisionStatus.REJECTED, "b" * 64))
+        await repo.save(invoice("C", DecisionStatus.AUTO_APPROVED, "c" * 64, days_ago=40))
+
+        found = await repo.find_by_file_hash("a" * 64, 30)
+        assert found.id == ok.id and found.invoice_number == "A"
+        assert await repo.find_by_file_hash("b" * 64, 30) is None  # rechazada
+        assert await repo.find_by_file_hash("c" * 64, 30) is None  # fuera de la ventana
+        assert await repo.find_by_file_hash("d" * 64, 30) is None
+
+    run_with_db(scenario)
+
+
+def test_ingesta_idempotente_de_punta_a_punta_con_el_seed(client):
+    """F2.7: Idempotency-Key repetida, solicitudes concurrentes y el mismo archivo con otra clave, sobre PostgreSQL."""
+    import asyncio
+    import asyncpg
+    from app.adapters.outbound.ocr.gemini_ocr import GeminiOCRAdapter
+
+    process_invoice = client.app.state.container.process_invoice
+    process_invoice.ocr = GeminiOCRAdapter("test-key", "gemini-test", client=FakeGenAIClient(text=gemini_reads(
+        "NA-4521", "Nube Andina Consultores S.A.S.", "901.223.450-1", "CO-DAVIVIENDA-55566677788",
+        12600000.0, "COP", "2026-12-05")))
+    fixture = (FIXTURES / "factura_nube_andina.pdf").read_bytes()
+
+    def upload(key):
+        return client.post("/api/invoices/upload", headers={"Idempotency-Key": key},
+                           files={"file": ("f.pdf", fixture, "application/pdf")})
+
+    first, again = upload("web-1"), upload("web-1")
+    assert first.status_code == 201 and again.status_code == 200
+    assert again.json()["id"] == first.json()["id"] and first.json()["decision_status"] == "SCALED_TO_HUMAN"
+
+    copy = upload("web-2")  # mismo archivo, otra entrega: INTEG-01 por hash, sin volver a llamar al OCR
+    assert copy.status_code == 201 and copy.json()["decision_status"] == "REJECTED"
+    assert f"#{first.json()['id']}" in copy.json()["audit_explanation"]
+    assert len(process_invoice.ocr.client.calls) == 1
+
+    async def check_db_and_race():
+        conn = await asyncpg.connect(TEST_DATABASE_URL)
+        try:
+            rows = await conn.fetch("SELECT external_id, status, invoice_id FROM ingested_messages ORDER BY external_id")
+            assert [(r["external_id"], r["status"]) for r in rows] == [("web-1", "COMPLETED"), ("web-2", "COMPLETED")]
+            assert rows[0]["invoice_id"] == first.json()["id"]
+            hashes = await conn.fetchval("SELECT COUNT(DISTINCT file_sha256) FROM invoices WHERE file_sha256 IS NOT NULL")
+            assert hashes == 1
+        finally:
+            await conn.close()
+
+    asyncio.run(check_db_and_race())
+
+
+def test_solicitudes_concurrentes_con_la_misma_clave_procesan_una_sola_vez_en_postgres():
+    """F2.7: varias solicitudes simultáneas con la misma clave sobre PostgreSQL real: una factura y un aviso."""
+    import asyncio
+    from app.adapters.outbound.db.postgres_repository import (
+        PostgresIngestionLog, PostgresInvoiceRepository, PostgresSanctionsRepository, PostgresVendorRepository,
+    )
+    from app.core.domain.models import ExtractedInvoice
+    from app.core.domain.rules_pipeline import RulesPipeline
+    from app.core.use_cases import ProcessInvoiceUseCase
+
+    from .fakes import FakeOCR, FakeRates, FixedTreasury, InMemoryRules, SpyNotifier
+
+    async def scenario(db):
+        notifier = SpyNotifier()
+        use_case = ProcessInvoiceUseCase(
+            ocr=FakeOCR(ExtractedInvoice(invoice_number="R-1", vendor_name="Proveedor Nuevo", original_amount=100)),
+            fx_rates=FakeRates(), pipeline=RulesPipeline(), invoices=PostgresInvoiceRepository(db),
+            rules=InMemoryRules(), vendors=PostgresVendorRepository(db), sanctions=PostgresSanctionsRepository(db),
+            treasury=FixedTreasury(), company_id="TEST", notifier=notifier, ingestion=PostgresIngestionLog(db),
+        )
+        results = await asyncio.gather(*[
+            use_case.from_document(b"misma factura", "image/png", "WEB", external_id="race-1") for _ in range(4)
+        ])
+        assert sum(not r.duplicate for r in results) == 1
+        assert len(notifier.decisions) == 1 and len(notifier.received) == 1
+        assert await db.require_pool().fetchval("SELECT COUNT(*) FROM invoices") == 1
+
+        again = await use_case.from_document(b"misma factura", "image/png", "WEB", external_id="race-1")
+        assert again.duplicate and again.invoice.invoice_number == "R-1"
+
+    run_with_db(scenario)
