@@ -13,7 +13,7 @@
 
 ## 2. Prompt y esquema con normalización incluida (F1.2 + F1.4)
 
-2.1. Definir el `response_schema` (tabla de requirements.md): `amount` numérico, `currency` código ISO 4217, `due_date` `AAAA-MM-DD`, resto texto o `null`, y `confidence` 0–1.
+2.1. Definir el `response_json_schema` (tabla de requirements.md): `amount` numérico, `currency` código ISO 4217, `due_date` `AAAA-MM-DD`, resto texto o `null`, y `confidence` 0–1.
 2.2. Escribir el prompt en español, que le pide al modelo:
    - Extraer el **total a pagar**, devolver `null` en lo que no se vea y no inventar datos.
    - Convertir el monto a número con punto decimal, con ejemplos del formato latino (`1.500.000,00` → `1500000.00`, `2.350,50` → `2350.50`).
@@ -28,8 +28,8 @@
 
 ## 4. Adaptador Gemini (F1.3)
 
-4.1. Constructor `GeminiOCRAdapter(api_key, model_name="gemini-3.8-flash", client=None)`; crea `genai.Client(api_key=...)` solo si hay key y no se inyectó cliente.
-4.2. `extract_invoice_data`: construir `types.Part.from_bytes(data=file_bytes, mime_type=mime_type)` + prompt y llamar a `await client.aio.models.generate_content(model=..., contents=..., config=GenerateContentConfig(response_mime_type="application/json", response_schema=..., temperature=0))`.
+4.1. Constructor `GeminiOCRAdapter(api_key, model_name="gemini-3.8-flash", client=None)`; crea `genai.Client(api_key=...)` solo si hay key y no se inyectó cliente. La key no se guarda en el adaptador.
+4.2. `extract_invoice_data`: construir `types.Part.from_bytes(data=file_bytes, mime_type=mime_type)` + prompt y llamar a `await client.aio.models.generate_content(model=..., contents=..., config=GenerateContentConfig(response_mime_type="application/json", response_json_schema=..., temperature=0))`, envuelto en `asyncio.wait_for(..., timeout=OCR_TIMEOUT_SECONDS)`.
 4.3. Parsear `response.text` con `json.loads` y construir `ExtractedInvoice` con el mapeo del grupo 3.
 4.4. Actualizar el docstring del módulo (quitar "Gemini 1.5 Flash" y el TODO).
 4.5. Verificar que `container.py` sigue construyendo el adaptador sin cambios (o ajustar la firma si hace falta).
@@ -53,7 +53,7 @@
    - Sin API key → extracción vacía y el cliente nunca se llama.
    - El SDK lanza excepción → extracción vacía, confianza 0.
    - Verificar que se envían los bytes y el `mime_type` del fixture (imagen y PDF).
-6.3. No se agregan pruebas de tubería: INTEG-03 (campos faltantes, confianza baja) e INTEG-04 (moneda sin tasa) ya están cubiertas en `test_rules_pipeline.py` y `test_process_invoice.py`.
+6.3. Las reglas siguen probadas en `test_rules_pipeline.py` y `test_process_invoice.py`. Además, a pedido del equipo, `test_ocr_to_decision.py` recorre `POST /api/invoices/upload` → caso de uso → adaptador (cliente simulado) → tubería: rechazo COMP-01 (TC-06), moneda ambigua por INTEG-04 y confianza `NaN` por INTEG-03. El fixture `factura_global_trade.png` cubre el caso rechazado.
 6.4. Correr toda la suite (`pytest`), incluida la prueba de arquitectura.
 
 ## 7. Documentación y prueba manual opcional (F1.7)

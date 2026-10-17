@@ -7,8 +7,10 @@ solo convierte tipos: las validaciones de negocio (campos faltantes, monto <= 0,
 moneda sin tasa) las aplica la tubería con INTEG-03 e INTEG-04.
 """
 
+import asyncio
 import json
 import logging
+import math
 from datetime import date
 from typing import Any, Optional
 
@@ -21,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 # ISO 4217 "sin moneda": no tiene tasa, así que la tubería escala por INTEG-04
 UNKNOWN_CURRENCY = "XXX"
+# Tope de espera de la llamada a Gemini: si se vence, la factura escala en vez de colgar el canal
+OCR_TIMEOUT_SECONDS = 30
 
 EXTRACTION_PROMPT = """Eres un extractor de datos de facturas y cuentas de cobro de proveedores en Latinoamérica.
 Lee el documento adjunto y responde solo con el JSON del esquema. Reglas:
@@ -36,7 +40,7 @@ Lee el documento adjunto y responde solo con el JSON del esquema. Reglas:
    "pesos colombianos". Ejemplo: "$ 1.500.000" con NIT colombiano -> "COP". Si la evidencia no alcanza
    (por ejemplo "$" sin país identificable), devuelve null.
 5. "due_date": fecha de vencimiento en formato AAAA-MM-DD ("15/11/2026" -> "2026-11-15").
-6. "vendor_tax_id" y "bank_account": tal como aparecen en el documento.
+6. "vendor_tax_id" y "bank_account": tal como aparecen en el documento, sin espacios extra al inicio o al final.
 7. "confidence": número entre 0 y 1 con tu seguridad sobre la legibilidad y exactitud de los datos extraídos.
 """
 
@@ -70,7 +74,8 @@ def _empty_extraction() -> ExtractedInvoice:
 
 
 def _is_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    # json.loads acepta NaN e Infinity: un NaN pasaría por alto las comparaciones de la tubería (INTEG-03)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def _text(value: Any) -> Optional[str]:
@@ -113,7 +118,6 @@ class GeminiOCRAdapter:
     """Motor de extracción multimodal usando un modelo Flash de Gemini."""
 
     def __init__(self, api_key: Optional[str], model_name: str = "gemini-3.8-flash", client: Any = None):
-        self.api_key = api_key
         self.model_name = model_name
         self.client = client or (genai.Client(api_key=api_key) if api_key else None)
 
@@ -123,14 +127,17 @@ class GeminiOCRAdapter:
             logger.warning("GEMINI_API_KEY no configurada: se devuelve una extracción vacía")
             return _empty_extraction()
         try:
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=[types.Part.from_bytes(data=file_bytes, mime_type=mime_type), EXTRACTION_PROMPT],
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_json_schema=EXTRACTION_SCHEMA,
-                    temperature=0,
+            response = await asyncio.wait_for(
+                self.client.aio.models.generate_content(
+                    model=self.model_name,
+                    contents=[types.Part.from_bytes(data=file_bytes, mime_type=mime_type), EXTRACTION_PROMPT],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_json_schema=EXTRACTION_SCHEMA,
+                        temperature=0,
+                    ),
                 ),
+                timeout=OCR_TIMEOUT_SECONDS,
             )
             data = json.loads(response.text)
             if not isinstance(data, dict):

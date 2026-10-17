@@ -3,6 +3,7 @@
 import asyncio
 from dataclasses import replace
 from datetime import datetime
+from types import SimpleNamespace
 
 from app.core.domain.models import CompanyRules, DecisionStatus, ExtractedInvoice, TreasuryStatus
 
@@ -15,6 +16,22 @@ class FakeOCR:
 
     async def extract_invoice_data(self, file_bytes, mime_type):
         return self.extracted
+
+
+class FakeGenAIClient:
+    """Imita client.aio.models.generate_content de google-genai y guarda las llamadas."""
+
+    def __init__(self, text=None, error=None, delay=0):
+        self.calls = []
+        self._text, self._error, self._delay = text, error, delay
+        self.aio = SimpleNamespace(models=SimpleNamespace(generate_content=self._generate_content))
+
+    async def _generate_content(self, **kwargs):
+        self.calls.append(kwargs)
+        await asyncio.sleep(self._delay)
+        if self._error:
+            raise self._error
+        return SimpleNamespace(text=self._text)
 
 
 class FakeRates:

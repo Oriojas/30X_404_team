@@ -16,7 +16,10 @@
   - JSON inválido → extracción vacía, confianza `0.0`.
   - Sin API key → extracción vacía y cero llamadas al cliente.
   - Excepción del SDK → extracción vacía, confianza `0.0`, sin propagar la excepción.
-  - Bytes y `mime_type` de los fixtures (imagen y PDF) llegan al cliente.
+  - `NaN`/`Infinity` en monto o confianza → `0.0`.
+  - Llamada que supera `OCR_TIMEOUT_SECONDS` → extracción vacía.
+  - Bytes y `mime_type` de los tres fixtures (dos imágenes y un PDF) llegan al cliente.
+- [ ] `tests/test_ocr_to_decision.py`: la subida por `POST /api/invoices/upload` termina en `REJECTED` (COMP-01) para el proveedor OFAC, en `SCALED_TO_HUMAN` por INTEG-04 con moneda ambigua y por INTEG-03 con confianza `NaN`.
 - [ ] El prompt enviado incluye las instrucciones de inferencia de moneda y de formato latino (verificado en la prueba con el cliente simulado).
 - [ ] Ninguna prueba requiere `GEMINI_API_KEY` ni acceso a internet.
 
@@ -29,7 +32,7 @@
 
 - [ ] `backend/requirements.txt` ya no tiene `google-generativeai` y sí `google-genai`.
 - [ ] `GEMINI_MODEL` por defecto es `gemini-3.8-flash` en `app/config.py` y `.env.example`.
-- [ ] La llamada usa `client.aio.models.generate_content` (sin bloquear el event loop) con `response_schema` que pide `amount` numérico, `currency` ISO y `due_date` ISO.
+- [ ] La llamada usa `client.aio.models.generate_content` (sin bloquear el event loop) con `response_json_schema` que pide `amount` numérico, `currency` ISO y `due_date` ISO.
 - [ ] El adaptador no contiene parseo de formatos ni reglas de negocio: no calcula completitud, no valida el código de moneda ni el signo del monto (eso lo hacen INTEG-03 e INTEG-04).
 - [ ] Las pruebas existentes de INTEG-03 e INTEG-04 siguen verdes sin modificaciones.
 - [ ] El Core (`app/core/**`) no importa `google.genai`; ningún módulo fuera de `app/config.py` usa `os.getenv`.

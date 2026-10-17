@@ -7,9 +7,11 @@ import asyncio
 import json
 from datetime import date
 from pathlib import Path
-from types import SimpleNamespace
 
+from app.adapters.outbound.ocr import gemini_ocr
 from app.adapters.outbound.ocr.gemini_ocr import GeminiOCRAdapter
+
+from .fakes import FakeGenAIClient
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -23,21 +25,6 @@ VALID = {
     "due_date": "2026-11-30",
     "confidence": 0.93,
 }
-
-
-class FakeGenAIClient:
-    """Imita client.aio.models.generate_content y guarda las llamadas."""
-
-    def __init__(self, text=None, error=None):
-        self.calls = []
-        self._text, self._error = text, error
-        self.aio = SimpleNamespace(models=SimpleNamespace(generate_content=self._generate_content))
-
-    async def _generate_content(self, **kwargs):
-        self.calls.append(kwargs)
-        if self._error:
-            raise self._error
-        return SimpleNamespace(text=self._text)
 
 
 def extract(client, file_bytes=b"img", mime_type="image/png", api_key="test-key"):
@@ -83,6 +70,13 @@ def test_confianza_fuera_de_rango_se_acota():
     assert extract(respond(confidence=None)).ocr_confidence_score == 0.0
 
 
+def test_nan_e_infinito_no_pasan_como_numeros():
+    # json.loads acepta NaN: si llegara a la tubería, "NaN < 0.85" es False y saltaría INTEG-03
+    invoice = extract(FakeGenAIClient(text='{"amount": NaN, "confidence": NaN, "invoice_number": "A"}'))
+    assert invoice.original_amount == 0.0 and invoice.ocr_confidence_score == 0.0
+    assert extract(FakeGenAIClient(text='{"amount": Infinity, "confidence": 0.9}')).original_amount == 0.0
+
+
 def test_json_invalido_devuelve_extraccion_vacia():
     assert_empty(extract(FakeGenAIClient(text="no es json")))
     assert_empty(extract(FakeGenAIClient(text="[1, 2]")))
@@ -101,8 +95,14 @@ def test_excepcion_del_sdk_no_se_propaga():
     assert len(client.calls) == 1
 
 
+def test_llamada_lenta_se_corta_por_timeout(monkeypatch):
+    monkeypatch.setattr(gemini_ocr, "OCR_TIMEOUT_SECONDS", 0.01)
+    assert_empty(extract(FakeGenAIClient(text=json.dumps(VALID), delay=1)))
+
+
 def test_envia_bytes_mime_prompt_y_esquema_de_los_fixtures():
-    for name, mime_type in (("factura_devstudio.png", "image/png"), ("factura_nube_andina.pdf", "application/pdf")):
+    for name, mime_type in (("factura_devstudio.png", "image/png"), ("factura_nube_andina.pdf", "application/pdf"),
+                            ("factura_global_trade.png", "image/png")):
         file_bytes = (FIXTURES / name).read_bytes()
         client = respond()
         extract(client, file_bytes, mime_type)
