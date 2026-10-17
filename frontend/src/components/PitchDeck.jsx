@@ -606,6 +606,10 @@ export default function PitchDeck() {
           if (document.fullscreenElement) document.exitFullscreen()
           else document.documentElement.requestFullscreen?.()
           break
+        case 'p':
+        case 'P':
+          window.print()
+          break
         case 'n':
         case 'N':
           setShowNotes((v) => !v)
@@ -637,83 +641,110 @@ export default function PitchDeck() {
   )
 
   return (
-    <div className="fixed inset-0 bg-[#0B1C30] overflow-hidden select-none" role="region" aria-label="Presentación Blinka PayAgent">
-      <div className="absolute shadow-2xl" style={stageStyle}>
-        <div key={slide.id} className="pitch-slide-enter w-full h-full">
-          <SlideFrame dark={slide.dark} index={index} total={total}>
-            <Current />
-          </SlideFrame>
-        </div>
-      </div>
-
-      {/* Barra de progreso */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-white/10">
-        <div
-          className="h-full bg-brand-teal transition-all duration-300"
-          style={{ width: `${((index + 1) / total) * 100}%` }}
-        />
-      </div>
-
-      {/* Notas del presentador (tecla N) */}
-      {showNotes && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-16 max-w-3xl w-[90%] rounded-md border border-white/15 bg-black/80 text-slate-100 px-5 py-3 text-sm leading-relaxed">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-cyan-300 mr-2">Notas</span>
-          {slide.notes}
-        </div>
-      )}
-
-      {/* Controles (tecla H para ocultar) */}
-      {!hideControls && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 rounded-full border border-white/15 bg-black/50 backdrop-blur px-3 py-1.5 opacity-40 hover:opacity-100 transition-opacity">
-          <button
-            id="pitch-prev"
-            onClick={() => go((i) => i - 1)}
-            disabled={index === 0}
-            className="p-1 text-white disabled:opacity-30"
-            aria-label="Slide anterior"
-          >
-            <Icon name="chevron_left" className="text-[22px]" />
-          </button>
-          <div className="flex items-center gap-1.5">
-            {SLIDES.map((s, i) => (
-              <button
-                key={s.id}
-                id={`pitch-dot-${s.id}`}
-                onClick={() => go(i)}
-                aria-label={`Ir a la slide ${i + 1}`}
-                className={`h-2 rounded-full transition-all ${
-                  i === index ? 'w-6 bg-brand-teal' : 'w-2 bg-white/40 hover:bg-white/70'
-                }`}
-              />
-            ))}
+    <>
+      {/* Vista Interactiva (en pantalla, oculta al imprimir) */}
+      <div className="fixed inset-0 bg-[#0B1C30] overflow-hidden select-none print:hidden" role="region" aria-label="Presentación Blinka PayAgent">
+        <div className="absolute shadow-2xl" style={stageStyle}>
+          <div key={slide.id} className="pitch-slide-enter w-full h-full">
+            <SlideFrame dark={slide.dark} index={index} total={total}>
+              <Current />
+            </SlideFrame>
           </div>
-          <button
-            id="pitch-next"
-            onClick={() => go((i) => i + 1)}
-            disabled={index === total - 1}
-            className="p-1 text-white disabled:opacity-30"
-            aria-label="Slide siguiente"
-          >
-            <Icon name="chevron_right" className="text-[22px]" />
-          </button>
-          <span className="w-px h-4 bg-white/20" />
-          <button
-            id="pitch-fullscreen"
-            onClick={() => {
-              if (document.fullscreenElement) document.exitFullscreen()
-              else document.documentElement.requestFullscreen?.()
-            }}
-            className="p-1 text-white"
-            aria-label="Pantalla completa"
-            title="Pantalla completa (F)"
-          >
-            <Icon name="fullscreen" className="text-[20px]" />
-          </button>
-          <a href="#" className="p-1 text-white" aria-label="Volver a la landing" title="Volver a la landing">
-            <Icon name="close" className="text-[20px]" />
-          </a>
         </div>
-      )}
-    </div>
+
+        {/* Barra de progreso */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-white/10">
+          <div
+            className="h-full bg-brand-teal transition-all duration-300"
+            style={{ width: `${((index + 1) / total) * 100}%` }}
+          />
+        </div>
+
+        {/* Notas del presentador (tecla N) */}
+        {showNotes && (
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-16 max-w-3xl w-[90%] rounded-md border border-white/15 bg-black/80 text-slate-100 px-5 py-3 text-sm leading-relaxed">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-cyan-300 mr-2">Notas</span>
+            {slide.notes}
+          </div>
+        )}
+
+        {/* Controles (tecla H para ocultar) */}
+        {!hideControls && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 rounded-full border border-white/15 bg-black/50 backdrop-blur px-3.5 py-1.5 opacity-60 hover:opacity-100 transition-opacity">
+            <button
+              id="pitch-prev"
+              onClick={() => go((i) => i - 1)}
+              disabled={index === 0}
+              className="p-1 text-white disabled:opacity-30 hover:text-cyan-300 transition-colors"
+              aria-label="Slide anterior"
+            >
+              <Icon name="chevron_left" className="text-[22px]" />
+            </button>
+            <div className="flex items-center gap-1.5">
+              {SLIDES.map((s, i) => (
+                <button
+                  key={s.id}
+                  id={`pitch-dot-${s.id}`}
+                  onClick={() => go(i)}
+                  aria-label={`Ir a la slide ${i + 1}`}
+                  className={`h-2 rounded-full transition-all ${
+                    i === index ? 'w-6 bg-brand-teal' : 'w-2 bg-white/40 hover:bg-white/70'
+                  }`}
+                />
+              ))}
+            </div>
+            <button
+              id="pitch-next"
+              onClick={() => go((i) => i + 1)}
+              disabled={index === total - 1}
+              className="p-1 text-white disabled:opacity-30 hover:text-cyan-300 transition-colors"
+              aria-label="Slide siguiente"
+            >
+              <Icon name="chevron_right" className="text-[22px]" />
+            </button>
+            <span className="w-px h-4 bg-white/20" />
+            <button
+              id="pitch-download-pdf"
+              onClick={() => window.print()}
+              className="p-1 text-white hover:text-cyan-300 transition-colors flex items-center gap-1"
+              aria-label="Descargar presentación en PDF"
+              title="Descargar presentación en PDF (P)"
+            >
+              <Icon name="picture_as_pdf" className="text-[19px]" />
+            </button>
+            <button
+              id="pitch-fullscreen"
+              onClick={() => {
+                if (document.fullscreenElement) document.exitFullscreen()
+                else document.documentElement.requestFullscreen?.()
+              }}
+              className="p-1 text-white hover:text-cyan-300 transition-colors"
+              aria-label="Pantalla completa"
+              title="Pantalla completa (F)"
+            >
+              <Icon name="fullscreen" className="text-[20px]" />
+            </button>
+            <a href="#" className="p-1 text-white hover:text-red-400 transition-colors" aria-label="Volver a la landing" title="Volver a la landing">
+              <Icon name="close" className="text-[20px]" />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Contenedor Exclusivo de Impresión / Guardar como PDF (todas las 6 slides) */}
+      <div className="hidden print:block print-deck">
+        {SLIDES.map((s, i) => {
+          const SlideComp = s.Component
+          return (
+            <div key={`print-${s.id}`} className="print-slide-page">
+              <SlideFrame dark={s.dark} index={i} total={total}>
+                <SlideComp />
+              </SlideFrame>
+            </div>
+          )
+        })}
+      </div>
+    </>
   )
 }
+

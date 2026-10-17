@@ -23,6 +23,8 @@ docs/
 │   └── reglas_pago_agente_v1.md       # [Histórico] Borrador inicial de políticas
 ├── especificaciones/                 # Visión de la solución y casos de uso
 │   └── especificacion_solucion.md     # Flujo funcional Telegram + OCR + Landing/Dashboard
+├── pitch_presentacion/                # Presentación comercial y guion del Demo Day
+│   └── presentacion_y_guion.md        # [VIGENTE] Slide deck comercial (6 slides) y guion cronometrado (3 min)
 └── diseno/                            # Identidad visual y tokens UI
     └── DESIGN.md                      # Design System, tokens de color (Blinka) y tipografía
 ```
@@ -38,16 +40,16 @@ Para evaluar la solución durante la Hackathon, los documentos oficiales de refe
 1. **[Arquitectura de Solución (v5)](arquitectura/arquitectura_solucion_v5.md):**  
    Arquitectura **tal como está implementada**, con el modelo **C4**: contexto, contenedores, componentes del hexágono (puertos, casos de uso y adaptadores), flujos de una factura y de la decisión humana, modelo de datos, despliegue en Railway y decisiones de arquitectura.
 
-2. **[Plan de Trabajo Oficial](../plan_de_trabajo.md):**  
+3. **[Plan de Trabajo Oficial](../plan_de_trabajo.md):**  
    Cronograma por fases (Viernes 16 a Domingo 18), asignación de roles entre Oscar Riojas y Luis Felipe Marín Giraldo, y suite de casos de prueba.
 
-3. **[Reglas de Negocio y Pipeline Determinista (v3)](reglas-negocio/reglas_pago_agente_v3.md):**  
+4. **[Reglas de Negocio y Pipeline Determinista (v3)](reglas-negocio/reglas_pago_agente_v3.md):**  
    Especificación detallada de las 4 capas de evaluación (Compliance/SARLAFT, Integridad, Solvencia y Gobernanza HITL), matriz de reglas (COMP, INTEG, FIN, HITL), test suite obligatorio y formato del Audit Log.
 
-4. **[Especificación Funcional de la Solución](especificaciones/especificacion_solucion.md):**  
+5. **[Especificación Funcional de la Solución](especificaciones/especificacion_solucion.md):**  
    Flujo conversacional de ingesta vía Telegram, extracción multimodal y experiencia del dashboard administrativo.
 
-5. **[Sistema de Diseño y Tokens](diseno/DESIGN.md):**  
+6. **[Sistema de Diseño y Tokens](diseno/DESIGN.md):**  
    Paleta de colores oficial de Blinka (`#04243C`, `#2B9CAE`, `#1D3557`), tipografías, componentes y lineamientos de interfaz.
 
 ---

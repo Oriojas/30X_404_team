@@ -55,3 +55,35 @@
     animation: none;
   }
 }
+
+/* Exportación / Impresión a PDF de la Presentación Comercial (1280x720 Landscape) */
+@media print {
+  @page {
+    size: 1280px 720px;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #0B1C30 !important;
+    width: 1280px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .print-deck {
+    display: block !important;
+  }
+
+  .print-slide-page {
+    width: 1280px !important;
+    height: 720px !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    position: relative !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
