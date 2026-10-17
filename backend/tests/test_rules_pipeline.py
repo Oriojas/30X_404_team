@@ -9,7 +9,7 @@ NUBE = Vendor("901.223.450-1", "Nube Andina Consultores S.A.S.", "CO-DAVIVIENDA-
 
 
 def evaluate(amount, vendor=AWS, *, name=None, tax_id=None, bank=None, currency="USD", rate=1.0,
-             history=True, duplicate=False, sanctions=None, balance=8500, budget=25000, spent=0,
+             history=True, duplicate=False, sanctions=None, balance=8500, budget=25000, spent=0, committed=0,
              confidence=1.0, rules=RULES):
     invoice = ExtractedInvoice(
         invoice_number="F-1", vendor_name=name or (vendor.legal_name if vendor else "Proveedor X"),
@@ -17,7 +17,7 @@ def evaluate(amount, vendor=AWS, *, name=None, tax_id=None, bank=None, currency=
         original_currency=currency, ocr_confidence_score=confidence,
     )
     context = EvaluationContext(
-        usd_amount=amount, fx_rate=rate, treasury=TreasuryStatus(balance, budget, spent), vendor=vendor,
+        usd_amount=amount, fx_rate=rate, treasury=TreasuryStatus(balance, budget, spent, committed), vendor=vendor,
         sanctions_match=sanctions, is_duplicate=duplicate, vendor_has_history=history,
     )
     return RulesPipeline().evaluate_invoice(invoice, context, rules)
@@ -129,3 +129,32 @@ def test_unsupported_currency_is_scaled_without_misleading_amounts():
     assert codes(decision) == ["INTEG-04"]
     assert decision.evaluations["solvency_check"]["status"] == "SKIPPED"
     assert "1,000.00 GBP (sin conversión a USD)" in decision.explanation
+
+
+def test_fin01_evalua_contra_el_disponible_y_no_contra_el_saldo():
+    # $1,900 cabe en el saldo de $8,500, pero no en los $1,500 que quedan tras $7,000 comprometidos
+    decision = evaluate(1900, vendor=NUBE, balance=8500, committed=7000)
+    assert decision.status == DecisionStatus.SCALED_TO_HUMAN
+    assert codes(decision) == ["FIN-01"]
+    message = decision.alerts[0].message
+    assert "$8,500.00 USD" in message and "$7,000.00 USD" in message and "$1,500.00 USD" in message
+
+
+def test_fin03_evalua_el_colchon_contra_el_disponible():
+    # Disponible $2,800: pagar $1,900 deja $900, bajo el colchón de $1,000
+    decision = evaluate(1900, vendor=NUBE, balance=8500, committed=5700)
+    assert codes(decision) == ["FIN-03"]
+    assert "disponible $2,800.00 USD" in decision.alerts[0].message
+
+
+def test_cinco_facturas_que_caben_solas_pero_no_juntas():
+    """Con $8,500 y $1,000 de colchón, solo tres de cinco facturas de $1,900 salen aprobadas solas."""
+    committed, statuses = 0.0, []
+    for _ in range(5):
+        decision = evaluate(1900, vendor=NUBE, balance=8500, committed=committed)
+        statuses.append(decision.status)
+        if decision.status == DecisionStatus.AUTO_APPROVED:
+            committed += 1900
+    assert statuses == [DecisionStatus.AUTO_APPROVED] * 3 + [DecisionStatus.SCALED_TO_HUMAN] * 2
+    assert committed == 5700 <= 8500 - RULES.min_treasury_buffer_usd
+

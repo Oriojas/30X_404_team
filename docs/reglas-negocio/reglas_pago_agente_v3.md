@@ -137,9 +137,9 @@ flowchart TD
 
 | Código | Regla | Condición Lógica | Decisión | Razón / Explicación Registrada |
 | :--- | :--- | :--- | :--- | :--- |
-| **FIN-01** | **Verificación de Saldo Existente** | `Monto Factura > Saldo Cuenta Blinka` (USD o Moneda Local). | `SCALED_TO_HUMAN` | *Saldo insuficiente en la cuenta Blinka para ejecutar el pago.* |
-| **FIN-02** | **Tope Presupuestal del Período** | Acumulado de pagos del mes + Monto Factura > Presupuesto Asignado. | `SCALED_TO_HUMAN` | *El pago excede el presupuesto disponible del período.* |
-| **FIN-03** | **Colchón Mínimo de Tesorería** | `Saldo Cuenta Blinka - Monto Factura < Colchón mínimo` (configurable, `min_treasury_buffer_usd`). Solo aplica si no se disparó FIN-01. | `SCALED_TO_HUMAN` | *El pago dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería.* |
+| **FIN-01** | **Verificación de Saldo Existente** | `Monto Factura > Disponible`, donde `Disponible = Saldo Cuenta Blinka (foto) − pagos aprobados después de la foto` (USD). | `SCALED_TO_HUMAN` | *Saldo disponible insuficiente en la cuenta Blinka para ejecutar el pago. Saldo, comprometido y disponible.* |
+| **FIN-02** | **Tope Presupuestal del Período** | Acumulado de pagos aprobados del mes (por fecha de aprobación) + Monto Factura > Presupuesto Asignado. | `SCALED_TO_HUMAN` | *El pago excede el presupuesto disponible del período.* |
+| **FIN-03** | **Colchón Mínimo de Tesorería** | `Disponible - Monto Factura < Colchón mínimo` (configurable, `min_treasury_buffer_usd`). Solo aplica si no se disparó FIN-01. | `SCALED_TO_HUMAN` | *El pago dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería. Saldo, comprometido y disponible.* |
 
 ---
 

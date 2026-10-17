@@ -149,10 +149,14 @@ class RulesPipeline:
     def _solvency(self, invoice, ctx: EvaluationContext, rules: CompanyRules, _prior) -> List[RuleAlert]:
         alerts = []
         t = ctx.treasury
-        if ctx.usd_amount > t.balance_usd:
-            alerts.append(_escalate("FIN-01", f"Saldo insuficiente en la cuenta Blinka ({_usd(t.balance_usd)}) para ejecutar el pago de {_usd(ctx.usd_amount)}."))
-        elif t.balance_usd - ctx.usd_amount < rules.min_treasury_buffer_usd:
-            alerts.append(_escalate("FIN-03", f"El pago dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería ({_usd(rules.min_treasury_buffer_usd)})."))
+        # Solvencia contra el disponible: el saldo de la foto menos lo ya aprobado después de ella (F6.2)
+        available = t.available_usd
+        liquidity = (f"Saldo {_usd(t.balance_usd)}, comprometido en pagos aprobados {_usd(t.committed_usd)}, "
+                     f"disponible {_usd(available)}.")
+        if ctx.usd_amount > available:
+            alerts.append(_escalate("FIN-01", f"Saldo disponible insuficiente en la cuenta Blinka para ejecutar el pago de {_usd(ctx.usd_amount)}. {liquidity}"))
+        elif available - ctx.usd_amount < rules.min_treasury_buffer_usd:
+            alerts.append(_escalate("FIN-03", f"El pago de {_usd(ctx.usd_amount)} dejaría la cuenta Blinka por debajo del colchón mínimo de tesorería ({_usd(rules.min_treasury_buffer_usd)}). {liquidity}"))
         if t.month_spent_usd + ctx.usd_amount > t.monthly_budget_usd:
             alerts.append(_escalate("FIN-02", f"El pago excede el presupuesto disponible del período ({_usd(t.monthly_budget_usd - t.month_spent_usd)} restantes de {_usd(t.monthly_budget_usd)})."))
         return alerts
