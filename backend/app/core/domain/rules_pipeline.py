@@ -45,6 +45,8 @@ class EvaluationContext:
     sanctions_match: Optional[str] = None
     is_duplicate: bool = False
     vendor_has_history: bool = False
+    # Factura vigente con el mismo archivo (SHA-256): INTEG-01 la cita en la explicación
+    duplicate_of_invoice_id: Optional[int] = None
 
 
 def _usd(value: float) -> str:
@@ -122,6 +124,8 @@ class RulesPipeline:
 
     # ---------------------------------------------------------------- Capa 2
     def _integrity(self, invoice, ctx: EvaluationContext, rules: CompanyRules, _prior) -> List[RuleAlert]:
+        if ctx.duplicate_of_invoice_id is not None:
+            return [_reject("INTEG-01", f"Factura rechazada por cobro duplicado: el archivo es idéntico a la factura #{ctx.duplicate_of_invoice_id}, recibida en los últimos {rules.duplicate_check_days} días.")]
         if ctx.is_duplicate:
             return [_reject("INTEG-01", f"Factura rechazada por detección de cobro duplicado del mismo proveedor en los últimos {rules.duplicate_check_days} días.")]
 

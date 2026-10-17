@@ -26,10 +26,10 @@ async def create_invoice(
     payload: InvoiceCreateRequest, use_case: ProcessInvoiceUseCase = Depends(get_process_invoice)
 ):
     """Evalúa una factura con datos ya estructurados (sin OCR) contra la tubería de 4 capas."""
-    processed = await use_case.from_extracted(
+    result = await use_case.from_extracted(
         payload.to_domain(), channel_source=payload.channel_source
     )
-    return InvoiceResponse.from_domain(processed)
+    return InvoiceResponse.from_domain(result.invoice)
 
 
 @router.post("/upload", response_model=InvoiceResponse, status_code=201)
@@ -45,8 +45,8 @@ async def upload_invoice(
     if not content:
         raise HTTPException(400, "El archivo está vacío.")
 
-    processed = await use_case.from_document(content, file.content_type, channel_source="WEB")
-    return InvoiceResponse.from_domain(processed)
+    result = await use_case.from_document(content, file.content_type, channel_source="WEB")
+    return InvoiceResponse.from_domain(result.invoice)
 
 
 @router.post("/{invoice_id}/decision", response_model=InvoiceResponse)

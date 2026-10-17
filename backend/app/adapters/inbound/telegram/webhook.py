@@ -67,7 +67,7 @@ async def telegram_webhook(
 
     chat_id, file_id, mime_type = attachment
     file_bytes = await files.download_file(file_id)
-    processed = await use_case.from_document(
+    result = await use_case.from_document(
         file_bytes, mime_type, channel_source="TELEGRAM", chat_id=chat_id
     )
-    return {"status": "processed", "decision": processed.decision_status.value}
+    return {"status": "processed", "decision": result.invoice.decision_status.value}

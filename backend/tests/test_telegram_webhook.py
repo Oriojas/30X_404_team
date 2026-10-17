@@ -27,7 +27,7 @@ class FakeProcessInvoice:
 
     async def from_document(self, file_bytes, mime_type, channel_source, chat_id=None):
         self.calls.append((mime_type, channel_source, chat_id))
-        return SimpleNamespace(decision_status=DecisionStatus.SCALED_TO_HUMAN)
+        return SimpleNamespace(invoice=SimpleNamespace(decision_status=DecisionStatus.SCALED_TO_HUMAN))
 
 
 def make_client(secret):

@@ -2,7 +2,7 @@
 
 import asyncio
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 
 from app.core.domain.models import (
@@ -80,6 +80,7 @@ class InMemoryInvoices:
     async def find_by_file_hash(self, file_sha256, within_days):
         matches = [i for i in self.items.values()
                    if i.file_sha256 == file_sha256
+                   and i.processed_at >= datetime.utcnow() - timedelta(days=within_days)
                    and i.decision_status not in {DecisionStatus.REJECTED, DecisionStatus.HUMAN_REJECTED}]
         return matches[-1] if matches else None
 
