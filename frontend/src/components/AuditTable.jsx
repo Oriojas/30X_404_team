@@ -7,7 +7,7 @@ import { parseApiDate } from '../api'
 
 const BATCH_SIZE = 5
 
-// Hora relativa a partir de processed_at (ISO del backend)
+// Hora relativa y formateada a partir de processed_at (ISO del backend)
 function timeAgo(iso) {
   const date = parseApiDate(iso)
   if (!date || Number.isNaN(date.getTime())) return 'Reciente'
@@ -17,6 +17,25 @@ function timeAgo(iso) {
   const hours = Math.round(minutes / 60)
   if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`
   return date.toLocaleDateString()
+}
+
+// Formatea la explicación algorítmica resaltando códigos normativos ([INTEG-03], [HITL-01], etc.)
+function formatExplanation(text) {
+  if (!text) return null
+  const parts = text.split(/(\[[A-Z0-9_-]+\])/g)
+  return parts.map((part, i) => {
+    if (/^\[[A-Z0-9_-]+\]$/.test(part)) {
+      return (
+        <span
+          key={i}
+          className="font-mono text-[10px] font-bold px-1.5 py-0.5 mx-0.5 rounded bg-white/95 border border-slate-300 text-slate-800 shadow-2xs inline-block align-baseline"
+        >
+          {part}
+        </span>
+      )
+    }
+    return part
+  })
 }
 
 export default function AuditTable({
@@ -175,52 +194,66 @@ export default function AuditTable({
   }
 
   return (
-    <section className="w-full py-12 lg:py-16 bg-transparent border-b border-brand-border/60" id="auditoria">
+    <section className="w-full py-10 lg:py-14 bg-transparent border-b border-brand-border/60" id="auditoria">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Header & Controls */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-brand-teal animate-pulse"></span>
-              <h2 className="font-display font-bold text-2xl text-brand-navy tracking-tight">
-                Auditoría & Explicabilidad • LIVE LOG
-              </h2>
-            </div>
+        
+        {/* Header de Sección: Auditoría & Explicabilidad • LIVE LOG (Alternativa 1) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-brand-border">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-teal opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-teal"></span>
+                </span>
+                <h2 className="font-display font-extrabold text-xl sm:text-2xl text-brand-navy tracking-tight">
+                  Auditoría &amp; Explicabilidad • <span className="font-mono text-brand-teal tracking-normal">LIVE LOG</span>
+                </h2>
+              </div>
 
-            {/* Botón Actualizar reubicado inline junto al título */}
-            <button
-              onClick={() => onRefresh && onRefresh()}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-brand-border bg-white text-xs font-semibold text-brand-navy hover:bg-slate-50 hover:border-brand-teal/40 disabled:opacity-60 disabled:cursor-wait shrink-0 shadow-2xs transition-all"
-              title="Recargar facturas de la API"
-            >
-              <span className={`material-symbols-outlined text-[15px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
-              {loading ? 'Actualizando...' : 'Actualizar'}
-            </button>
-
-            {/* Botón de limpiar filtros activos si hay alguno aplicado */}
-            {activeFiltersCount > 0 && (
+              {/* Botón Actualizar inline */}
               <button
-                onClick={handleClearAllFilters}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors shadow-2xs"
-                title="Restablecer todos los filtros del encabezado"
+                onClick={() => onRefresh && onRefresh()}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-brand-navy bg-white border border-brand-border hover:bg-slate-50 hover:border-brand-teal transition-all shadow-2xs disabled:opacity-60 disabled:cursor-wait"
+                title="Recargar facturas de la API"
               >
-                <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
-                Limpiar filtros ({activeFiltersCount})
+                <span className={`material-symbols-outlined text-[15px] text-brand-teal ${loading ? 'animate-spin' : ''}`}>
+                  refresh
+                </span>
+                <span>{loading ? 'Actualizando...' : 'Actualizar'}</span>
               </button>
-            )}
+
+              {/* Botón de limpiar filtros activos */}
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={handleClearAllFilters}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors shadow-2xs"
+                  title="Restablecer todos los filtros del encabezado"
+                >
+                  <span className="material-symbols-outlined text-[15px]">filter_alt_off</span>
+                  <span>Limpiar filtros ({activeFiltersCount})</span>
+                </button>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-slate-600 font-sans">
+              Caja blanca algorítmica: cada decisión del agente incluye trazabilidad explicable y justificación normativa en tiempo real.
+            </p>
           </div>
-          <p className="text-xs text-brand-muted">
-            Caja blanca algorítmica: cada decisión del agente incluye trazabilidad explicable y justificación normativa en tiempo real.
-          </p>
+
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-brand-border shadow-2xs self-start sm:self-auto">
+            <span className="material-symbols-outlined text-[16px] text-brand-teal">schedule</span>
+            <span>Sincronización: <strong className="text-brand-navy">En tiempo real</strong></span>
+          </div>
         </div>
 
+        {/* 4 Tarjetas KPI Institucionales */}
         <DashboardMetrics counts={counts} total={invoices.length} />
 
-        {/* Acciones sobre el Audit Log (subida de facturas) */}
+        {/* Módulo de Ingesta y Carga de Facturas */}
         {children}
 
-        {/* Demo mode banner */}
+        {/* Banners informativos */}
         {demoMode && (
           <Notice size="lg" icon="cloud_off">
             <span className="font-semibold">Modo demostración:</span> la API no responde, así que se muestran datos
@@ -233,30 +266,55 @@ export default function AuditTable({
           </Notice>
         )}
 
-        {/* Table Container Card */}
+        {/* Tabla de Auditoría con In-Header Filters y Filas Semánticas (Alternativa 1) */}
         <div className="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                {/* Fila 1: Títulos de columna */}
-                <tr className="bg-slate-50 border-b border-brand-border text-brand-muted font-semibold text-[11px] uppercase tracking-wider">
-                  <th className="py-3 px-4 text-left w-44">ID & Hora</th>
-                  <th className="py-3 px-4 text-left min-w-[200px]">Proveedor / Concepto</th>
-                  <th className="py-3 px-4 text-right w-44">Monto (USD)</th>
-                  <th className="py-3 px-4 text-center w-40">Estado</th>
-                  <th className="py-3 px-4 text-left min-w-[260px]">Justificación (Caja Blanca)</th>
-                  <th className="py-3 px-4 text-right w-36">Acción</th>
-                </tr>
+          
+          {/* Barra superior de la tabla con métrica de eventos y estado del ledger */}
+          <div className="px-5 py-3 border-b border-brand-border bg-slate-50/70 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-display font-bold text-brand-navy">Registro de Trazabilidad Criptográfica</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700 font-mono font-medium text-[11px]">
+                {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Evento' : 'Eventos'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-slate-500 font-medium">
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={handleClearAllFilters}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 font-sans text-[11px] font-semibold hover:bg-red-100 transition-colors shadow-2xs"
+                  title="Restablecer todos los filtros"
+                >
+                  <span className="material-symbols-outlined text-[13px]">filter_alt_off</span>
+                  <span>Limpiar {activeFiltersCount} filtro{activeFiltersCount > 1 ? 's' : ''}</span>
+                </button>
+              )}
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px] text-slate-400">lock</span>
+                SHA-256 Ledger Verificado
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="text-brand-teal font-mono text-[11px]">4 Capas de Gobernanza</span>
+            </div>
+          </div>
 
-                {/* Fila 2: Filtros integrados dentro del encabezado */}
-                <tr className="bg-slate-100/90 border-b border-brand-border text-xs">
-                  {/* Filtro: Fecha / Hora */}
-                  <th className="py-2.5 px-3 align-top font-normal">
-                    <div className="space-y-1">
+          {/* Tabla de Alta Densidad */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[960px]">
+              
+              {/* Encabezado con filtros integrados directamente en cada columna */}
+              <thead>
+                <tr className="bg-[#F8FAFC] border-b border-brand-border text-slate-700 text-xs font-semibold">
+                  
+                  {/* Columna 1: ID & HORA */}
+                  <th className="py-3 px-3.5 w-[145px] align-top">
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] uppercase tracking-wider text-slate-600 font-display whitespace-nowrap">
+                        ID &amp; Hora
+                      </span>
                       <select
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
-                        className="w-full bg-white border border-brand-border rounded-lg px-2 py-1 text-[11px] text-brand-navy focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 shadow-2xs"
+                        className="w-full bg-white border border-brand-border text-brand-navy text-xs rounded-md px-2 py-1 outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 transition-all shadow-2xs font-sans"
                         title="Filtrar por fecha"
                       >
                         <option value="ALL">Todas las fechas</option>
@@ -270,42 +328,53 @@ export default function AuditTable({
                           type="date"
                           value={customDate}
                           onChange={(e) => setCustomDate(e.target.value)}
-                          className="w-full bg-white border border-brand-border rounded-lg px-2 py-0.5 text-[10px] text-brand-navy focus:outline-none focus:border-brand-teal"
+                          className="w-full bg-white border border-brand-border rounded-md px-2 py-0.5 text-[10px] text-brand-navy focus:outline-none focus:border-brand-teal mt-1"
                         />
                       )}
                     </div>
                   </th>
 
-                  {/* Filtro: Proveedor / Concepto */}
-                  <th className="py-2.5 px-3 align-top font-normal">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={vendorFilter}
-                        onChange={(e) => setVendorFilter(e.target.value)}
-                        placeholder="Filtrar proveedor..."
-                        className="w-full bg-white border border-brand-border rounded-lg pl-2 pr-6 py-1 text-[11px] text-brand-navy placeholder:text-brand-muted/70 focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 shadow-2xs"
-                      />
-                      {vendorFilter && (
-                        <button
-                          onClick={() => setVendorFilter('')}
-                          className="absolute right-2 top-1 text-brand-muted hover:text-brand-navy text-xs font-bold"
-                          title="Limpiar proveedor"
-                        >
-                          ×
-                        </button>
-                      )}
+                  {/* Columna 2: PROVEEDOR / CONCEPTO */}
+                  <th className="py-3 px-3.5 w-[210px] align-top">
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] uppercase tracking-wider text-slate-600 font-display whitespace-nowrap">
+                        Proveedor / Concepto
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={vendorFilter}
+                          onChange={(e) => setVendorFilter(e.target.value)}
+                          placeholder="Filtrar proveedor..."
+                          className="w-full bg-white border border-brand-border text-brand-navy text-xs rounded-md pl-6 pr-5 py-1 outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 transition-all shadow-2xs font-sans placeholder:text-slate-400"
+                        />
+                        <span className="material-symbols-outlined text-[14px] text-slate-400 absolute left-1.5 top-1.5 pointer-events-none">
+                          search
+                        </span>
+                        {vendorFilter && (
+                          <button
+                            onClick={() => setVendorFilter('')}
+                            className="absolute right-1.5 top-1 text-slate-400 hover:text-brand-navy text-xs font-bold"
+                            title="Limpiar"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </th>
 
-                  {/* Filtro: Monto */}
-                  <th className="py-2.5 px-3 align-top font-normal">
-                    <div className="space-y-1">
+                  {/* Columna 3: MONTO USD */}
+                  <th className="py-3 px-3.5 w-[150px] align-top text-right">
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] uppercase tracking-wider text-slate-600 font-display text-right whitespace-nowrap">
+                        Monto USD
+                      </span>
                       <select
                         value={amountFilter}
                         onChange={(e) => setAmountFilter(e.target.value)}
-                        className="w-full bg-white border border-brand-border rounded-lg px-2 py-1 text-[11px] text-brand-navy focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 shadow-2xs"
-                        title="Filtrar por rango de monto"
+                        className="w-full bg-white border border-brand-border text-brand-navy text-xs rounded-md px-2 py-1 outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 transition-all shadow-2xs font-sans text-right"
+                        title="Filtrar por monto"
                       >
                         <option value="ALL">Todos los montos</option>
                         <option value="UNDER_2000">≤ $2,000 USD (Autónomo)</option>
@@ -317,85 +386,95 @@ export default function AuditTable({
                         <input
                           type="number"
                           min="0"
-                          step="50"
+                          step="100"
                           value={customAmount}
                           onChange={(e) => setCustomAmount(e.target.value)}
                           placeholder="$ USD"
-                          className="w-full bg-white border border-brand-border rounded-lg px-2 py-0.5 text-[10px] text-brand-navy focus:outline-none focus:border-brand-teal"
+                          className="w-full bg-white border border-brand-border rounded-md px-2 py-0.5 text-[10px] text-brand-navy focus:outline-none focus:border-brand-teal text-right mt-1"
                         />
                       )}
                     </div>
                   </th>
 
-                  {/* Filtro: Estado */}
-                  <th className="py-2.5 px-3 align-top font-normal">
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full bg-white border border-brand-border rounded-lg px-2 py-1 text-[11px] text-brand-navy focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 shadow-2xs"
-                      title="Filtrar por estado de decisión"
-                    >
-                      <option value="ALL">Todos ({invoices.length})</option>
-                      {STATUS_ORDER.map((key) => (
-                        <option key={key} value={key}>
-                          {STATUS[key].label} ({counts[key] || 0})
-                        </option>
-                      ))}
-                    </select>
-                  </th>
-
-                  {/* Filtro: Justificación / Caja Blanca */}
-                  <th className="py-2.5 px-3 align-top font-normal">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={explanationFilter}
-                        onChange={(e) => setExplanationFilter(e.target.value)}
-                        placeholder="Buscar regla o motivo..."
-                        className="w-full bg-white border border-brand-border rounded-lg pl-2 pr-6 py-1 text-[11px] text-brand-navy placeholder:text-brand-muted/70 focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 shadow-2xs"
-                      />
-                      {explanationFilter && (
-                        <button
-                          onClick={() => setExplanationFilter('')}
-                          className="absolute right-2 top-1 text-brand-muted hover:text-brand-navy text-xs font-bold"
-                          title="Limpiar búsqueda"
-                        >
-                          ×
-                        </button>
-                      )}
+                  {/* Columna 4: ESTADO */}
+                  <th className="py-3 px-3.5 w-[165px] align-top text-center">
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] uppercase tracking-wider text-slate-600 font-display text-center whitespace-nowrap">
+                        Estado
+                      </span>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full bg-white border border-brand-border text-brand-navy text-xs rounded-md px-2 py-1 outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 transition-all shadow-2xs font-sans text-center"
+                        title="Filtrar por estado"
+                      >
+                        <option value="ALL">Todos ({invoices.length})</option>
+                        {STATUS_ORDER.map((key) => (
+                          <option key={key} value={key}>
+                            {STATUS[key].label} ({counts[key] || 0})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </th>
 
-                  {/* Filtro: Acción */}
-                  <th className="py-2.5 px-3 align-top font-normal text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                  {/* Columna 5: JUSTIFICACIÓN CAJA BLANCA */}
+                  <th className="py-3 px-3.5 align-top">
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] uppercase tracking-wider text-slate-600 font-display whitespace-nowrap">
+                        Justificación Caja Blanca
+                      </span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={explanationFilter}
+                          onChange={(e) => setExplanationFilter(e.target.value)}
+                          placeholder="Buscar regla o motivo..."
+                          className="w-full bg-white border border-brand-border text-brand-navy text-xs rounded-md pl-6 pr-5 py-1 outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 transition-all shadow-2xs font-sans placeholder:text-slate-400"
+                        />
+                        <span className="material-symbols-outlined text-[14px] text-slate-400 absolute left-1.5 top-1.5 pointer-events-none">
+                          search
+                        </span>
+                        {explanationFilter && (
+                          <button
+                            onClick={() => setExplanationFilter('')}
+                            className="absolute right-1.5 top-1 text-slate-400 hover:text-brand-navy text-xs font-bold"
+                            title="Limpiar"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </th>
+
+                  {/* Columna 6: ACCIÓN */}
+                  <th className="py-3 px-3.5 w-[115px] align-top text-right">
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] uppercase tracking-wider text-slate-600 font-display text-right whitespace-nowrap">
+                        Acción
+                      </span>
                       <select
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
-                        className="w-full bg-white border border-brand-border rounded-lg px-2 py-1 text-[11px] text-brand-navy focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 shadow-2xs"
-                        title="Filtrar por tipo de acción"
+                        className="w-full bg-white border border-brand-border text-brand-navy text-xs rounded-md px-2 py-1 outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 transition-all shadow-2xs font-sans text-right"
+                        title="Filtrar por acción"
                       >
                         <option value="ALL">Todas</option>
-                        <option value="REVIEW">Requiere Revisión</option>
-                        <option value="RESOLVED">Informativas</option>
+                        <option value="REVIEW">Revisar</option>
+                        <option value="RESOLVED">Detalles</option>
                       </select>
-                      {activeFiltersCount > 0 && (
-                        <button
-                          onClick={handleClearAllFilters}
-                          className="p-1 rounded-lg hover:bg-slate-200 text-brand-muted hover:text-red-600 transition-colors shrink-0"
-                          title="Restablecer todos los filtros"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">filter_alt_off</span>
-                        </button>
-                      )}
                     </div>
                   </th>
+
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-border">
+
+              {/* Cuerpo de la tabla */}
+              <tbody className="divide-y divide-brand-border text-xs">
                 {displayedInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="py-12 text-center text-brand-muted">
+                    <td colSpan="6" className="py-12 text-center text-slate-500">
                       {loading && invoices.length === 0 ? (
                         'Cargando facturas...'
                       ) : invoices.length === 0 ? (
@@ -418,67 +497,113 @@ export default function AuditTable({
                   displayedInvoices.map((inv, idx) => {
                     const isScaled = inv.decision_status === 'SCALED_TO_HUMAN'
                     const isRejected = isRejectedStatus(inv.decision_status)
+                    const isHumanApproved = inv.decision_status === 'HUMAN_APPROVED'
 
                     return (
                       <tr
                         key={inv.id || idx}
-                        className={`hover:bg-slate-50/80 transition-colors ${
-                          idx % 2 === 1 ? 'bg-slate-50/30' : ''
-                        }`}
+                        className={`transition-colors ${
+                          isScaled
+                            ? 'bg-amber-50/20 hover:bg-amber-50/50'
+                            : isRejected
+                            ? 'bg-red-50/15 hover:bg-red-50/40'
+                            : 'hover:bg-slate-50/80'
+                        } ${idx % 2 === 1 && !isScaled && !isRejected ? 'bg-slate-50/30' : ''}`}
                       >
                         {/* ID & Hora */}
-                        <td className="py-4 px-4 align-top font-mono">
-                          <span className={`font-bold ${isRejected ? 'text-red-600' : 'text-brand-navy'}`}>
+                        <td className="py-3.5 px-4 font-mono align-top">
+                          <div className={`font-bold ${isRejected ? 'text-red-600' : isScaled ? 'text-amber-700' : 'text-brand-navy'}`}>
                             {invoiceRef(inv)}
-                          </span>
-                          <span className="block text-[11px] text-brand-muted font-sans mt-0.5">
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-sans mt-0.5">
                             {timeAgo(inv.processed_at)}
-                          </span>
+                          </div>
                         </td>
 
                         {/* Proveedor / Concepto */}
-                        <td className="py-4 px-4 align-top">
-                          <span className="font-semibold text-brand-navy block">{inv.vendor_name}</span>
-                          <span className="text-brand-muted text-[11px] block truncate max-w-xs">
+                        <td className="py-3.5 px-4 align-top">
+                          <div className="font-semibold text-brand-navy">{inv.vendor_name || 'PROVEEDOR_DESCONOCIDO'}</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5 truncate max-w-xs font-sans">
                             {inv.concept || 'Servicios Corporativos & Infraestructura'}
-                          </span>
+                          </div>
                         </td>
 
-                        {/* Monto */}
-                        <td className="py-4 px-4 align-top text-right font-mono">
-                          <span className="font-bold text-brand-navy block">
-                            ${inv.usd_amount ? inv.usd_amount.toFixed(2) : '0.00'} USD
-                          </span>
-                          {inv.original_currency !== 'USD' && (
-                            <span className="text-[11px] text-brand-muted block">
+                        {/* Monto USD */}
+                        <td className="py-3.5 px-4 text-right font-mono align-top">
+                          <div className="font-bold text-brand-navy text-sm">
+                            ${Number(inv.usd_amount ?? 0).toFixed(2)}{' '}
+                            <span className="text-[10px] text-slate-400 font-normal">USD</span>
+                          </div>
+                          {inv.original_currency && inv.original_currency !== 'USD' && (
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                               ({inv.original_amount?.toLocaleString()} {inv.original_currency})
-                            </span>
+                            </div>
                           )}
                         </td>
 
-                        {/* Estado */}
-                        <td className="py-4 px-4 align-top text-center">
+                        {/* Estado Badge */}
+                        <td className="py-3.5 px-4 text-center align-top">
                           <StatusBadge status={inv.decision_status} />
                         </td>
 
-                        {/* Justificación de Explicabilidad */}
-                        <td className="py-4 px-4 align-top text-brand-steel leading-relaxed">
-                          {inv.audit_explanation}
+                        {/* Justificación Caja Blanca (Callout Box estilizado Alternativa 1) */}
+                        <td className="py-3.5 px-4 align-top">
+                          <div
+                            className={`p-2.5 rounded-lg text-xs leading-relaxed transition-all ${
+                              isScaled
+                                ? 'bg-amber-50/80 border border-amber-200/90 text-amber-950'
+                                : isRejected
+                                ? 'bg-red-50/70 border border-red-200/90 text-red-950'
+                                : isHumanApproved
+                                ? 'bg-teal-50/60 border border-teal-200/80 text-teal-950'
+                                : 'bg-emerald-50/50 border border-emerald-200/70 text-slate-800'
+                            }`}
+                          >
+                            <div className="flex items-start gap-1.5">
+                              <span
+                                className={`material-symbols-outlined text-[16px] shrink-0 mt-0.5 ${
+                                  isScaled
+                                    ? 'text-amber-600'
+                                    : isRejected
+                                    ? 'text-red-600'
+                                    : isHumanApproved
+                                    ? 'text-brand-teal'
+                                    : 'text-emerald-600'
+                                }`}
+                              >
+                                {isScaled
+                                  ? 'warning'
+                                  : isRejected
+                                  ? 'gpp_bad'
+                                  : isHumanApproved
+                                  ? 'how_to_reg'
+                                  : 'shield'}
+                              </span>
+                              <div className="leading-relaxed">
+                                {formatExplanation(inv.audit_explanation)}
+                              </div>
+                            </div>
+                          </div>
                         </td>
 
                         {/* Acción */}
-                        <td className="py-4 px-4 align-top text-right">
+                        <td className="py-3.5 px-4 text-right align-top">
                           <button
                             onClick={() => onSelectInvoice && onSelectInvoice(inv)}
-                            className={`px-3 py-1 rounded-lg font-semibold text-[11px] transition-colors shadow-xs ${
+                            className={`inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-2xs whitespace-nowrap min-w-[76px] ${
                               isScaled
                                 ? 'bg-brand-navy hover:bg-brand-steel text-white'
                                 : isRejected
                                 ? 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-                                : 'bg-slate-100 hover:bg-slate-200 text-brand-navy border border-brand-border'
+                                : 'bg-white hover:bg-slate-50 text-slate-700 border border-brand-border'
                             }`}
                           >
-                            {isScaled ? 'Revisar' : 'Detalles'}
+                            {isScaled && (
+                              <span className="material-symbols-outlined text-[14px] text-brand-teal">
+                                edit_note
+                              </span>
+                            )}
+                            <span>{isScaled ? 'Revisar' : 'Detalles'}</span>
                           </button>
                         </td>
                       </tr>
@@ -489,20 +614,21 @@ export default function AuditTable({
             </table>
           </div>
 
-          {/* Pie de tabla: Carga por lotes e indicador de conteo */}
-          <div className="bg-slate-50/90 border-t border-brand-border px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-brand-muted">
-            <div className="flex items-center gap-2 flex-wrap">
+          {/* Pie de tabla: Carga por lotes e indicador de conteo (Alternativa 1) */}
+          <div className="px-5 py-3.5 bg-[#F8FAFC] border-t border-brand-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-600 font-medium">
+              <span className="material-symbols-outlined text-[16px] text-brand-teal">layers</span>
               <span>
-                Mostrando <strong className="text-brand-navy font-semibold">{displayedInvoices.length}</strong> de{' '}
-                <strong className="text-brand-navy font-semibold">{filteredInvoices.length}</strong> facturas
+                Mostrando <strong className="text-brand-navy font-mono">{displayedInvoices.length}</strong> de{' '}
+                <strong className="text-brand-navy font-mono">{filteredInvoices.length}</strong> facturas registradas
                 {filteredInvoices.length !== invoices.length && (
-                  <span className="text-brand-muted/80"> (filtradas de {invoices.length} totales)</span>
+                  <span className="text-slate-400 font-sans"> (filtradas de {invoices.length} totales)</span>
                 )}
               </span>
               {activeFiltersCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-teal/10 text-brand-teal font-medium text-[10px]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-teal/10 text-brand-teal font-medium text-[10px] ml-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-teal"></span>
-                  {activeFiltersCount} filtro{activeFiltersCount > 1 ? 's' : ''} activo{activeFiltersCount > 1 ? 's' : ''}
+                  {activeFiltersCount} activo{activeFiltersCount > 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -512,26 +638,26 @@ export default function AuditTable({
                 <>
                   <button
                     onClick={handleLoadMore}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-navy hover:bg-brand-steel text-white font-semibold text-xs shadow-xs transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-brand-navy hover:bg-brand-steel transition-colors shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                    Cargar siguientes 5 (+5)
+                    <span className="material-symbols-outlined text-[16px] text-brand-teal">add_circle</span>
+                    <span>Cargar siguientes 5 (+5)</span>
                   </button>
                   <button
                     onClick={handleShowAll}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-brand-border bg-white hover:bg-slate-100 text-brand-navy font-medium text-xs transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-white border border-brand-border hover:bg-slate-50 transition-colors"
                   >
-                    Mostrar todas ({filteredInvoices.length})
+                    <span>Mostrar todas ({filteredInvoices.length})</span>
                   </button>
                 </>
               )}
               {visibleCount >= filteredInvoices.length && filteredInvoices.length > BATCH_SIZE && (
                 <button
                   onClick={handleResetBatch}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-brand-border bg-white hover:bg-slate-100 text-brand-muted hover:text-brand-navy font-medium text-xs transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-brand-border bg-white hover:bg-slate-50 text-slate-600 hover:text-brand-navy font-medium text-xs transition-colors"
                 >
                   <span className="material-symbols-outlined text-[14px]">unfold_less</span>
-                  Ver solo las 5 más recientes
+                  <span>Ver solo las 5 más recientes</span>
                 </button>
               )}
             </div>
