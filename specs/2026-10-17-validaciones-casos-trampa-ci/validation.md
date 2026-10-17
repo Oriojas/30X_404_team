@@ -7,17 +7,17 @@
 
 ### Código y pruebas
 
-- [ ] `pytest` en `backend/` verde (integración omitida sin `TEST_DATABASE_URL`), incluida la prueba unitaria de TC-07: solo INTEG-02, sin HITL-03.
-- [ ] `tests/test_postgres_integration.py` contra PostgreSQL 16 con seed en Docker: TC-01 a TC-07 dan lo esperado (TC-07 `SCALED_TO_HUMAN` con `INTEG-02` en `audit_explanation`).
-- [ ] La prueba de arquitectura sigue en verde y el Core no cambió.
-- [ ] `npm run build` en `frontend/` sin errores.
-- [ ] TC-07 aparece en `casos_demo.py`, en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y en `backend/README.md`; ningún texto dice "TC-01..TC-06" donde ya corren siete casos.
+- [x] `pytest` en `backend/` verde (integración omitida sin `TEST_DATABASE_URL`), incluida la prueba unitaria de TC-07: solo INTEG-02, sin HITL-03. *(71 pasadas, 6 omitidas)*
+- [x] `tests/test_postgres_integration.py` contra PostgreSQL 16 con seed en Docker: TC-01 a TC-07 dan lo esperado (TC-07 `SCALED_TO_HUMAN` con `INTEG-02` en `audit_explanation`). *(6 pasadas, 17-oct-2026)*
+- [x] La prueba de arquitectura sigue en verde y el Core no cambió.
+- [x] `npm run build` en `frontend/` sin errores.
+- [x] TC-07 aparece en `casos_demo.py`, en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y en `backend/README.md`; ningún texto dice "TC-01..TC-06" donde ya corren siete casos.
 
 ### CI
 
 - [ ] `.github/workflows/ci.yml` corre en el PR de esta rama con los jobs `backend` y `frontend`, y ambos quedan en verde.
 - [ ] El workflow no usa secretos ni servicios externos; el log de `pytest` muestra las pruebas de integración como omitidas.
-- [ ] [tech-stack.md](../tech-stack.md) menciona GitHub Actions.
+- [x] [tech-stack.md](../tech-stack.md) menciona GitHub Actions.
 
 ### Producción (Fases 2 a 4)
 

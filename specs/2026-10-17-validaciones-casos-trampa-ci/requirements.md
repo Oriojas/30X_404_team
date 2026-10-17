@@ -22,7 +22,7 @@ Además, el reto enumera casos trampa que la demo debe mostrar. La Test Suite (T
 **Entra (una sola rama, F5.1 a F5.7):**
 - Las verificaciones en producción de F5.1 a F5.3, con evidencia registrada en el `validation.md` de origen.
 - F5.4: marcar con referencia lo que ya se probó en la Fase 4 (segunda corrida de `humo_produccion.py` y el build del Dockerfile en Railway).
-- F5.5: TC-07 en `casos_demo.py` (y por lo tanto en `humo_produccion.py` y `test_postgres_integration.py`), en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y en la tabla de casos de `backend/README.md`.
+- F5.5: TC-07 en `casos_demo.py` (y por lo tanto en `humo_produccion.py` y `test_postgres_integration.py`), en la Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y en los textos de `backend/README.md` que enumeran la suite.
 - F5.6: tiempo de arranque en frío del backend y captura del dashboard en producción, guardados para el pitch.
 - F5.7: workflow de GitHub Actions con `pytest` y `npm run build` en cada PR.
 

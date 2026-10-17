@@ -1,5 +1,5 @@
 """
-Prueba de integración contra PostgreSQL real con el seed de demostración (TC-01..TC-06 vía API REST).
+Prueba de integración contra PostgreSQL real con el seed de demostración (TC-01..TC-07 vía API REST).
 Se ejecuta solo si TEST_DATABASE_URL apunta a una base desechable:
     TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/blinka_test pytest
 """

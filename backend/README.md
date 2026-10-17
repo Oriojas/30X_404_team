@@ -40,7 +40,7 @@ backend/app/
 │       ├── db/
 │       │   ├── postgres_repository.py # Repositorios -> PostgreSQL (asyncpg)
 │       │   ├── schema.sql             # DDL idempotente de todas las tablas
-│       │   └── seed.sql               # Datos de demostración para la Test Suite TC-01..TC-06
+│       │   └── seed.sql               # Datos de demostración para la Test Suite TC-01..TC-07
 │       └── telegram/telegram_client.py# Notificador del canal TELEGRAM y descarga de adjuntos
 ├── config.py                          # Settings (pydantic-settings) leídos del .env raíz
 ├── container.py                       # Composition root: conecta adaptadores con puertos
@@ -115,7 +115,7 @@ pytest
 ```
 Las pruebas unitarias usan adaptadores falsos, así que no necesitan Gemini, PostgreSQL ni Telegram.
 
-La prueba de integración corre la Test Suite TC-01..TC-06 contra un PostgreSQL real con el seed. Usa una base desechable, porque la prueba borra y recrea las tablas:
+La prueba de integración corre la Test Suite TC-01..TC-07 contra un PostgreSQL real con el seed. Usa una base desechable, porque la prueba borra y recrea las tablas:
 ```bash
 docker run -d --rm --name blinka-pg-test -e POSTGRES_USER=blinka -e POSTGRES_PASSWORD=blinka -e POSTGRES_DB=blinka_test -p 54329:5432 postgres:16-alpine
 TEST_DATABASE_URL=postgresql://blinka:blinka@localhost:54329/blinka_test pytest
@@ -189,7 +189,7 @@ El script nunca imprime el token. Si `TELEGRAM_WEBHOOK_SECRET` cambia, hay que v
 
 ### Prueba de humo
 
-Verifica `/api/health`, TC-01..TC-06, `/api/rules` y el CORS del frontend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
+Verifica `/api/health`, TC-01..TC-07, `/api/rules` y el CORS del frontend. Cada caso usa un `Idempotency-Key` fijo, así que se puede repetir sin crear duplicados. Ojo: desde la segunda corrida los casos responden `200` con la factura guardada (el script lo advierte), así que solo la primera corrida sobre una base recién sembrada evalúa el deploy actual. Las facturas del humo quedan en la base y se ven en el dashboard. Los casos viven en `scripts/casos_demo.py`, compartidos con `tests/test_postgres_integration.py`:
 
 ```bash
 cd backend

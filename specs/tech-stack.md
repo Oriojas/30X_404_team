@@ -15,7 +15,7 @@
 | Frontend | React 18 + Vite 5 + Tailwind CSS 3 + lucide-react | En uso |
 | Contenedores | Docker: `python:3.12-slim` (backend), `node:20-alpine` + Nginx (frontend) | En uso |
 | Despliegue | Railway (PostgreSQL + backend + frontend en un solo canvas), infraestructura en `.railway/railway.ts` (IaC, SDK `railway` + Railway CLI) | En uso |
-| Pruebas | pytest (unitarias, arquitectura e integración con PostgreSQL real) | En uso |
+| Pruebas | pytest (unitarias, arquitectura e integración con PostgreSQL real); CI en GitHub Actions (`pytest` con fakes y `npm run build` en cada PR) | En uso |
 
 ## Backend
 

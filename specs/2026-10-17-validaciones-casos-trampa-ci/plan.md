@@ -9,7 +9,7 @@
 1.2. `backend/scripts/humo_produccion.py`: actualizar el docstring y cualquier conteo fijo de casos.
 1.3. `test_postgres_integration.py`: confirmar que recorre TC-07 sin cambios (D2) y ajustar los conteos que dependan del número de facturas creadas.
 1.4. Prueba unitaria con fakes en `test_rules_pipeline.py` o `test_process_invoice.py`: proveedor con historial, monto sobre la tarifa pactada y bajo el umbral → solo INTEG-02, sin HITL-03.
-1.5. Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md) y tabla de casos de `backend/README.md`: fila TC-07.
+1.5. Test Suite de [reglas_pago_agente_v3.md](../../docs/reglas-negocio/reglas_pago_agente_v3.md): fila TC-07; `backend/README.md` pasa de "TC-01..TC-06" a "TC-01..TC-07".
 
 ## 2. CI en GitHub Actions (F5.7)
 
