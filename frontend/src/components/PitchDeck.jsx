@@ -397,12 +397,28 @@ function SlideArchitecture() {
 function SlideAudit() {
   const rows = [
     {
-      vendor: 'Técnico Urgencias y Biometría',
-      original: '450,000 COP',
-      usd: '$107.14',
-      status: 'HUMAN_APPROVED',
+      vendor: 'COMCEL S.A. (#13489CAV)',
+      original: '173,360 COP',
+      usd: '$41.28',
+      status: 'AUTO_APPROVED',
+      rule: '—',
+      why: 'Factura procesada vía Telegram Bot. Proveedor en lista permitida, saldo suficiente y dentro del límite autónomo.'
+    },
+    {
+      vendor: 'PROVEEDOR_DESCONOCIDO (#SIN_NUMERO)',
+      original: '$0.00 COP',
+      usd: '$0.00',
+      status: 'SCALED_TO_HUMAN',
+      rule: 'INTEG-03 · HITL-02',
+      why: 'Lectura ambigua o ilegible (confianza 0%). Beneficiario fuera de lista permitida. Freno preventivo inmediato.'
+    },
+    {
+      vendor: 'PROVEEDOR_DESCONOCIDO (#SIN_NUMERO)',
+      original: '$0.00 COP',
+      usd: '$0.00',
+      status: 'HUMAN_REJECTED',
       rule: 'HITL-02',
-      why: 'Proveedor nuevo de urgencia; escalado a revisión y aprobado por el CFO en el dashboard.'
+      why: 'Rechazado manualmente por CFO Demo desde el dashboard. Nota: "Se rechaza por no ser legible".'
     },
     {
       vendor: 'Amazon Web Services LATAM',
@@ -410,23 +426,7 @@ function SlideAudit() {
       usd: '$285.71',
       status: 'AUTO_APPROVED',
       rule: '—',
-      why: 'Proveedor verificado en lista permitida, saldo suficiente y dentro del límite autónomo.'
-    },
-    {
-      vendor: 'Amazon Web Services LATAM',
-      original: '1,200,000 COP',
-      usd: '$285.71',
-      status: 'REJECTED',
-      rule: 'INTEG-01',
-      why: 'Factura duplicada: archivo idéntico (SHA-256) recibido en ventana de 30 días. 0 costo de IA.'
-    },
-    {
-      vendor: 'Logística Express MX S.A.',
-      original: '117,000 MXN',
-      usd: '$6,000.00',
-      status: 'SCALED_TO_HUMAN',
-      rule: 'HITL-01',
-      why: 'Supera el límite autónomo de $2,000 USD ($6,000 USD). Escalado a revisión del CFO.'
+      why: 'Factura recurrente cloud verificada en lista permitida y aprobada automáticamente dentro de presupuesto.'
     }
   ]
   return (
@@ -665,40 +665,40 @@ const SLIDES = [
   {
     id: 'portada',
     dark: true,
-    notes: '0:00–0:10 · Portada. Presentar Blinka PayAgent: agentes IA de decisión de pagos corporativos con gobernanza financiera. Cero pagos indebidos, conversión de divisas y trazabilidad total.',
+    notes: '0:00–0:15 · Portada. Presentar Blinka PayAgent: gobernanza financiera y decisiones de pago autónomas sin riesgos ni pagos indebidos.',
     Component: SlideCover
   },
   {
     id: 'problema',
-    notes: '0:10–0:42 · Gancho del Lector Biométrico. La ilusión del control: las cuentas recurrentes están vigiladas, pero los imprevistos (Ad-Hoc Spend) de un sábado paralizan la operación y queman relaciones con técnicos clave.',
+    notes: '0:15–0:30 · El Problema Real. La ilusión del control: lo recurrente está vigilado; las facturas de servicios e imprevistos paralizan la tesorería.',
     Component: SlideProblem
   },
   {
     id: 'solucion',
-    notes: '0:42–1:00 · La Solución: Pagar, Frenar o Escalar + Aprobación Humana en el Dashboard. Aclarar que el agente decide y audita, no mueve dinero real.',
+    notes: '0:30–0:50 · La Solución. Triaje de decisiones (Pagar, Frenar, Escalar) con explicabilidad de caja blanca. No mueve dinero real.',
     Component: SlideSolution
   },
   {
     id: 'arquitectura',
-    notes: '1:50–2:20 · Arquitectura Hexagonal en FastAPI. Gemini Flash para OCR, FX Engine, y 4 capas deterministas en Python sin alucinaciones. Respaldado por 136 pruebas automatizadas.',
+    notes: '0:50–1:10 · Arquitectura Hexagonal en FastAPI. Gemini 3.8 Flash para OCR (1 llamada) y 4 capas deterministas en Python sin alucinaciones.',
     Component: SlideArchitecture
-  },
-  {
-    id: 'demo',
-    notes: '1:00–1:50 · Demo en vivo: Caso 1 Biométrico HITL-02 aprobado por CFO; Caso 2 AWS recurrente AUTO_APPROVED; Caso 3 Reenvío REJECTED INTEG-01 sin gastar IA; Caso 4 Logística MX SCALED_TO_HUMAN por umbral.',
-    Component: SlideAudit
   },
   {
     id: 'costos',
     dark: true,
-    notes: '2:15–2:40 · Costos Operativos: ~$0.005 USD de IA por factura (Gemini 3.8 Flash) y ~$1.20 USD/mes de infraestructura en Railway (cubierto por el plan Hobby de $5). 1.000 facturas al mes por solo ~$10 USD (~42 COP/factura).',
+    notes: '1:10–1:35 · Costos Operativos por Factura. Inferencia a ~$0.005 USD de IA e infraestructura en Railway a ~$1.20 USD/mes (Plan Hobby $5). 1.000 facturas/mes por solo ~$10 USD (~42 COP/factura).',
     Component: SlideCosts
   },
   {
     id: 'impacto',
     dark: true,
-    notes: '2:40–3:00 · Impacto y Cierre: ~90% menos carga manual, 0 pagos fuera de reglas, 8/8 casos trampa superados. Desplegado en Railway y código abierto en GitHub. Somos el Equipo 404. ¡Muchas gracias!',
+    notes: '1:35–1:55 · Impacto de Negocio. ~90% menos carga manual, 0 pagos fuera de reglas, normalización automática de 5+ divisas.',
     Component: SlideImpact
+  },
+  {
+    id: 'demo',
+    notes: '1:55–2:45 · Demo en Vivo en Producción. Caso 1 Comcel vía Telegram AUTO_APPROVED; Caso 2 Documento ilegible SCALED_TO_HUMAN preventivo; Caso 3 Rechazo manual del CFO con nota HUMAN_REJECTED. Cierre 2:45–3:00.',
+    Component: SlideAudit
   }
 ]
 
