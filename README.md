@@ -34,7 +34,7 @@ Esta sección mapea exhaustivamente cada uno de los 10 puntos de la ficha oficia
 | :---: | :--- | :--- | :--- | :---: |
 | **01** | **Ficha del Reto** | Producto / Crear algo nuevo / Agente funcionando | Agente autónomo full-stack desplegado con UI reactiva, motor OCR multimodal y backend determinista en FastAPI. | `COMPLETO` |
 | **02** | **Cómo funciona hoy** | Proceso manual fragmentado (correo, chat, PDF, conversión y conciliación en hojas de cálculo). | Ingesta dual unificada (Web Dropzone + Telegram Bot), normalización FX automática y conciliación en tiempo real. | `COMPLETO` |
-| **03** | **A quién afecta** | Empresas de EE. UU. operando en LATAM con docenas de contratistas/proveedores transfronterizos. | Motor multimoneda con conversión automática a USD para COP, MXN, BRL, EUR y ARS según TRM oficial. | `COMPLETO` |
+| **03** | **A quién afecta** | Solución específica para Blinka frente a la fricción de pagos, dispersión de gastos e imprevistos en LATAM. | Motor multimoneda con conversión automática a USD para COP, MXN, BRL, EUR y ARS según TRM oficial. | `COMPLETO` |
 | **04** | **Por qué importa ahora** | Confianza operativa: pagar solo lo debido, respetar límites estrictos y explicar cada decisión. | Cero alucinaciones financieras mediante Tubería Determinista de 4 Capas con explicabilidad en lenguaje natural. | `COMPLETO` |
 | **05** | **Hasta dónde llega el flujo** | Decidir: **PAGAR**, **FRENAR** o **ESCALAR**, registrar y explicar. Cero movimiento de dinero real. | El agente toma la decisión, registra auditoría detallada y presenta acciones HITL. No toca rieles bancarios reales. | `COMPLETO` |
 | **06** | **Qué entra y qué no** | Extracción estructurada + evaluación de reglas dinámicas + bitácora de auditoría explicable. | OCR estructurado (Gemini 3.8 Flash), matriz de reglas en base de datos y Audit Log inmutable. | `COMPLETO` |
@@ -79,10 +79,10 @@ flowchart TD
 
 ## 🌎 03. A Quién Afecta
 
-Diseñado especialmente para **empresas incorporadas en EE. UU. (Delaware / C-Corp)** con operaciones distribuidas y masa laboral en Latinoamérica y el mundo. Resuelve la fricción de:
-* Dispersión de pagos en monedas no estandarizadas con variaciones cambiarias.
-* Dependencia de personal contable para procesar pagos rutinarios de infraestructura o suscripciones recurrentes.
-* Riesgo de pérdida por cobros duplicados no detectados en hojas de cálculo manuales.
+Diseñado como una **solución específica para Blinka** y la gestión de gastos de sus clientes y operaciones con contratistas y proveedores distribuidos en Latinoamérica y el mundo. Resuelve la fricción de:
+* Dispersión de pagos en monedas locales (`COP`, `MXN`, `BRL`, `EUR`, `ARS`) desde cuentas corporativas en USD con sobrecostos cambiarios y comisiones innecesarias.
+* Dependencia de equipos contables para procesar gastos imprevistos (*ad-hoc spend*) o pagos rutinarios de suscripciones e infraestructura.
+* Riesgo de pérdida financiera por cobros duplicados no detectados en hojas de cálculo manuales o falta de validación SARLAFT / OFAC.
 
 ---
 
@@ -247,6 +247,95 @@ flowchart TD
     style PIPELINE fill:#021524,stroke:#10B981,stroke-width:2px,color:#ffffff
     style AUDIT fill:#0f172a,stroke:#38B2AC,stroke-width:2px,color:#ffffff
 ```
+
+---
+
+## 💰 Viabilidad Económica y Soporte de Costos Operativos (OPEX)
+
+Uno de los pilares del diseño de **Blinka PayAgent** es su eficiencia económica extrema. Las cifras operativas presentadas en el pitch y la documentación están respaldadas por **mediciones empíricas reales** realizadas sobre las facturas de prueba con la API de Google Gemini y telemetría de contenedores extraída directamente mediante el **CLI oficial de Railway (`railway-cli`)**.
+
+> [!NOTE]
+> **Alcance del análisis:** Se calcula estrictamente el **costo operativo recurrente (OPEX)** por procesamiento de factura (inferencia de IA + infraestructura en nube). No se computa el costo del desarrollo inicial (CAPEX) ni licencias de autoría. El canal de mensajería (Telegram Bot API) opera sobre la capa gratuita sin costo adicional.
+
+```mermaid
+flowchart LR
+    subgraph COSTO_UNITARIO ["💵 DESGLOSE DE COSTO POR FACTURA (~$0.01 USD / FACTURA A 1.000 DOCS/MES)"]
+        direction TB
+        IA["🧠 Inferencia Gemini 3.8 Flash<br/><b>$0.0050 USD</b> (50%)<br/>• OCR Multimodal (1 llamada)<br/>• Esquema JSON estricto"]
+        INFRA["☁️ Infraestructura Railway<br/><b>$0.0050 USD</b> (50%)<br/>• FastAPI + Postgres + React<br/>• Plan Hobby ($5/mes incluye $5 cómputo)"]
+    end
+```
+
+---
+
+### 1. Modelo de IA Utilizado y Telemetría de Tokens
+
+* **Modelo Seleccionado:** `gemini-3.8-flash` (configurado en `backend/app/config.py` mediante la variable `GEMINI_MODEL`).
+* **Estrategia de Inferencia:** Arquitectura de **1 sola llamada multimodal por documento** (`client.aio.models.generate_content`) que extrae directamente la estructura tipada (`EXTRACTION_SCHEMA`) con `temperature=0` para garantizar reproducibilidad matemática.
+* **Medición Real de Tokens:** Ejecutando el extractor contra los documentos sintéticos de demostración (`docs/pitch_presentacion/facturas_demo/`):
+
+| Tipo de Documento | Tokens Entrada (Prompt + Doc) | Tokens Salida (JSON Estructurado) | Tokens Razonamiento (*Thinking*) | Total Tokens / Factura | Costo Inferencia (USD) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Factura PDF** (Vectorial / Escaneada) | ~1,090 | ~146 | ~903 | **~2,139** | **$0.00475 USD** |
+| **Foto / Imagen PNG** (Captura Telegram) | ~1,603 | ~146 | ~903 | **~2,652** | **$0.00514 USD** |
+| **Factura Duplicada** (Filtro SHA-256) | 0 | 0 | 0 | **0** | **$0.00000 USD** |
+
+* **Tarifas Oficiales de Google Gemini API** *(Standard Paid Tier)*:
+  * Entrada: **$0.75 USD** por millón de tokens ($0.00000075 / token).
+  * Salida (incluye tokens de razonamiento): **$3.75 USD** por millón de tokens ($0.00000375 / token).
+* **Fórmula de Cálculo:**
+  $$\text{Costo IA (PDF)} = (1,090 \times \frac{0.75}{10^6}) + ((146 + 903) \times \frac{3.75}{10^6}) = \$0.00082 + \$0.00393 = \mathbf{\$0.00475\ USD}$$
+  $$\text{Costo Promedio Ponderado de IA} \approx \mathbf{\$0.0050\ USD\ /\ factura\ (\$5.00\ USD\ /\ 1.000\ facturas)}$$
+
+---
+
+### 2. Infraestructura de Cómputo y Telemetría en Railway
+
+La solución completa opera en producción en **Railway**, dividida en tres servicios contenerizados conectados por red privada:
+1. `backend`: Contenedor Python 3.12 / FastAPI / Uvicorn (~67 MB RAM en reposo, < 0.01 vCPU).
+2. `Postgres`: Base de datos PostgreSQL para almacenamiento inmutable de auditoría, lista blanca y reglas (~55 MB RAM, 116 MB de volumen).
+3. `30X_404_team` (frontend): Servidor web estático Nginx con la aplicación React 18 / Vite (~39 MB RAM, 0 vCPU en reposo).
+
+#### Comandos de Telemetría Ejecutados con Railway CLI:
+```bash
+# 1. Monitoreo del consumo acumulado y facturación del workspace
+railway usage
+
+# 2. Desglose detallado por servicio en formato JSON estructurado
+railway usage projects --project <PROJECT_ID> --json
+
+# 3. Métricas de consumo de CPU, memoria RAM y ancho de banda en tiempo real
+railway metrics -p <PROJECT_ID> -e production -a --since 2d
+```
+
+#### Evidencia Empírica de Consumo (Telemetría en Producción):
+* **Consumo Real Medido en ~24 Horas:** **$0.0394 USD** acumulados tras procesar 20 facturas entre canales Web, API y Webhook de Telegram:
+  * Servicio `backend`: $0.0130 USD (CPU: $0.00047, RAM: $0.01242, Red: $0.00014).
+  * Servicio `Postgres`: $0.0158 USD (RAM: $0.01529, Disco: $0.00034, CPU: $0.00018).
+  * Servicio `frontend`: $0.0106 USD (RAM: $0.01020, Red: $0.00038, CPU: $0.00001).
+* **Proyección Mensual de Consumo de Hardware:** **~$1.20 USD / mes**. El 96% corresponde al consumo base de memoria RAM de los contenedores en espera activa (*idle*).
+* **Costo Marginal de Infraestructura:** Menos de **$0.00003 USD por factura adicional** en CPU y transferencia de red.
+* **Modelo Comercial de Railway:** El **Plan Hobby ($5.00 USD/mes)** incluye **$5.00 USD de crédito de cómputo**. Como nuestro consumo proyectado es de ~$1.20 USD/mes, la operación completa se absorbe íntegramente dentro de los $5.00 USD fijos del plan.
+
+---
+
+### 3. Matriz Consolidada de Costos por Volumen (Unit Economics)
+
+La siguiente tabla ilustra la escalabilidad de costos del sistema ante diferentes volúmenes mensuales:
+
+| Facturas / Mes | Costo IA (Gemini 3.8 Flash) | Costo Infraestructura (Railway) | **Costo Total Mensual** | **Costo Unitario por Factura** | Equivalente Estimado (COP)* |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **100** | $0.50 USD | $5.00 USD | **$5.50 USD** | $0.0550 USD | ~231 COP |
+| **1,000** | $5.00 USD | $5.00 USD | **$10.00 USD** | **$0.0100 USD** | **~42 COP** |
+| **5,000** | $25.00 USD | $5.00 USD | **$30.00 USD** | **$0.0060 USD** | **~25 COP** |
+| **10,000** | $50.00 USD | $5.00 USD | **$55.00 USD** | **$0.0055 USD** | **~23 COP** |
+| **50,000** | $250.00 USD | $7.50 USD** | **$257.50 USD** | **$0.0051 USD** | **~21 COP** |
+
+*\*TRM de referencia estimada: $4,200 COP / USD.*  
+*\*\*A partir de 50,000 facturas/mes se proyecta un incremento marginal en recursos de base de datos y memoria caché.*
+
+> [!TIP]
+> **Costo Marginal por Cada 1,000 Facturas Adicionales:** **~$5.03 USD** ($5.00 USD de inferencia de IA + $0.03 USD de cómputo marginal en nube).
 
 ---
 

@@ -526,6 +526,141 @@ function SlideImpact() {
   )
 }
 
+function SlideCosts() {
+  const tiers = [
+    { vol: '100 docs', ai: '$0.50', infra: '$5.00', total: '$5.50', unit: '$0.055' },
+    { vol: '1,000 docs', ai: '$5.00', infra: '$5.00', total: '$10.00', unit: '$0.010', highlight: true, note: '~42 COP' },
+    { vol: '10,000 docs', ai: '$50.00', infra: '$5.00', total: '$55.00', unit: '$0.0055', note: '~23 COP' }
+  ]
+
+  return (
+    <div className="flex-1 flex flex-col justify-between py-2">
+      <div>
+        <SlideTitle dark eyebrow="Viabilidad financiera · Unit Economics" title="Costos operativos mínimos: ~$0.01 USD por factura." />
+        <p className="text-[16px] text-slate-300 max-w-[950px] mt-2">
+          Telemetría empírica medida con Google Gemini API y Railway CLI. Sin costos ocultos de desarrollo ni licencias.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-12 gap-5 my-3 items-stretch">
+        {/* Columna 1: IA (Gemini 3.8 Flash) */}
+        <div className="col-span-4 rounded-md border border-white/15 bg-white/5 p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300 font-semibold">01 · Inteligencia Artificial</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/30">Gemini 3.8 Flash</span>
+            </div>
+            <div className="pt-1">
+              <div className="font-display font-extrabold text-[36px] leading-none text-white tracking-tight">~$0.005 <span className="text-[18px] font-normal text-slate-300">USD</span></div>
+              <span className="text-[13px] text-slate-300 block mt-1">Costo medio por factura procesada</span>
+            </div>
+            <div className="space-y-1.5 pt-2 text-[12px] font-mono text-slate-300 border-t border-white/10">
+              <div className="flex justify-between">
+                <span>PDF (2.139 tokens):</span>
+                <span className="text-white font-semibold">$0.0048 USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Foto/PNG (2.652 tokens):</span>
+                <span className="text-white font-semibold">$0.0051 USD</span>
+              </div>
+              <div className="flex justify-between text-cyan-300">
+                <span>Cobro duplicado (SHA-256):</span>
+                <span className="font-semibold">$0.0000 USD</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 bg-white/[0.03] p-2.5 rounded border border-white/10 leading-snug">
+            1 sola llamada multimodal por documento. $0.75 / 1M input · $3.75 / 1M output (incluye reasoning).
+          </div>
+        </div>
+
+        {/* Columna 2: Infraestructura (Railway) */}
+        <div className="col-span-4 rounded-md border border-white/15 bg-white/5 p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300 font-semibold">02 · Infraestructura Nube</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-400/10 text-emerald-300 border border-emerald-400/30">Railway CLI</span>
+            </div>
+            <div className="pt-1">
+              <div className="font-display font-extrabold text-[36px] leading-none text-white tracking-tight">$5.00 <span className="text-[18px] font-normal text-slate-300">USD/mes</span></div>
+              <span className="text-[13px] text-slate-300 block mt-1">Piso fijo plan Hobby (incluye $5 cómputo)</span>
+            </div>
+            <div className="space-y-1.5 pt-2 text-[12px] font-mono text-slate-300 border-t border-white/10">
+              <div className="flex justify-between">
+                <span>Medido 24h (20 facturas):</span>
+                <span className="text-white font-semibold">$0.039 USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Proyección mensual real:</span>
+                <span className="text-white font-semibold">~$1.20 USD</span>
+              </div>
+              <div className="flex justify-between text-emerald-300">
+                <span>Marginal por factura:</span>
+                <span className="font-semibold">&lt; $0.00003 USD</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 bg-white/[0.03] p-2.5 rounded border border-white/10 leading-snug">
+            3 servicios contenerizados: FastAPI (~67MB) + Postgres (~55MB) + React/Nginx (~39MB).
+          </div>
+        </div>
+
+        {/* Columna 3: Escala & Unit Economics */}
+        <div className="col-span-4 rounded-md border border-cyan-400/30 bg-cyan-950/20 p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300 font-semibold">03 · Unit Economics</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-teal/20 text-cyan-200 border border-brand-teal/40">Escala</span>
+            </div>
+            <div className="space-y-2 pt-1">
+              {tiers.map((t) => (
+                <div
+                  key={t.vol}
+                  className={`p-2.5 rounded border flex items-center justify-between text-[13px] ${
+                    t.highlight
+                      ? 'border-cyan-400/50 bg-cyan-500/10 text-white'
+                      : 'border-white/10 bg-white/[0.02] text-slate-300'
+                  }`}
+                >
+                  <div>
+                    <span className="font-semibold block">{t.vol}/mes</span>
+                    <span className="font-mono text-[11px] text-slate-400">Total: {t.total}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-[15px] text-cyan-300 block">{t.unit}</span>
+                    <span className="text-[11px] text-slate-400">{t.note || '/factura'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="text-[11px] text-cyan-200 bg-cyan-500/10 p-2.5 rounded border border-cyan-400/20 font-mono flex items-center gap-2">
+            <Icon name="trending_up" className="text-cyan-300 text-[16px] shrink-0" />
+            <span>+1.000 facturas adicionales suman solo ~$5.03 USD</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer con gobernanza de costos */}
+      <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[12px] text-slate-400 font-mono">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <Icon name="check_circle" className="text-cyan-300 text-[15px]" />
+            Telegram Webhook: $0.00 (API gratuita)
+          </span>
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <Icon name="check_circle" className="text-cyan-300 text-[15px]" />
+            Cero costos de desarrollo en cálculo
+          </span>
+        </div>
+        <span className="text-slate-400">
+          TRM ref: $4.200 COP/USD · Precios oficiales vigentes 2026
+        </span>
+      </div>
+    </div>
+  )
+}
+
 const SLIDES = [
   {
     id: 'portada',
@@ -554,9 +689,15 @@ const SLIDES = [
     Component: SlideAudit
   },
   {
+    id: 'costos',
+    dark: true,
+    notes: '2:15–2:40 · Costos Operativos: ~$0.005 USD de IA por factura (Gemini 3.8 Flash) y ~$1.20 USD/mes de infraestructura en Railway (cubierto por el plan Hobby de $5). 1.000 facturas al mes por solo ~$10 USD (~42 COP/factura).',
+    Component: SlideCosts
+  },
+  {
     id: 'impacto',
     dark: true,
-    notes: '2:20–3:00 · Impacto y Cierre: ~90% menos carga manual, 0 pagos fuera de reglas, 8/8 casos trampa superados. URL en Railway y repositorio en GitHub.',
+    notes: '2:40–3:00 · Impacto y Cierre: ~90% menos carga manual, 0 pagos fuera de reglas, 8/8 casos trampa superados. Desplegado en Railway y código abierto en GitHub. Somos el Equipo 404. ¡Muchas gracias!',
     Component: SlideImpact
   }
 ]
@@ -780,7 +921,7 @@ export default function PitchDeck() {
         )}
       </div>
 
-      {/* Contenedor Exclusivo de Impresión / Guardar como PDF (todas las 6 slides) */}
+      {/* Contenedor Exclusivo de Impresión / Guardar como PDF (todas las slides) */}
       <div className="hidden print:block print-deck">
         {SLIDES.map((s, i) => {
           const SlideComp = s.Component
