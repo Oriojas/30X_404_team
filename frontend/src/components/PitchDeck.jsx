@@ -347,7 +347,7 @@ function SlideArchitecture() {
         <div className="col-span-5 rounded-md border border-brand-navy bg-white p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted">Core del agente · FastAPI</div>
-            <span className="font-mono text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">136 Tests Activos</span>
+            <span className="font-mono text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">168 Tests Activos</span>
           </div>
           <div className="grid grid-cols-4 gap-2">
             {coreSteps.map((s) => (

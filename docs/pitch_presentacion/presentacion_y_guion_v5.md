@@ -76,7 +76,7 @@ En esta versión V5, ajustamos el guion y el orden visual para sincronizarlo al 
 * **~90%** de reducción en carga manual contable.
 * **0** pagos fuera de reglas (Garantía de cero pagos indebidos).
 * **5+** divisas normalizadas automáticamente (COP, MXN, EUR, BRL, ARS ➔ USD).
-* **136** pruebas unitarias y de integración activas.
+* **168** pruebas unitarias y de integración activas (100% aprobadas).
 * 🌐 `30x404team-production.up.railway.app` · 📦 `github.com/Oriojas/30X_404_team`
 
 ---
@@ -156,7 +156,7 @@ En esta versión V5, ajustamos el guion y el orden visual para sincronizarlo al 
 ### ⏱️ Bloque 6: Cierre Oficial & Repositorio (2:45 – 3:00 · 15s)
 *(En cámara o con Slide 6/7 de fondo mostrando URLs)*
 
-> *"Blinka PayAgent ya está desplegado y funcionando en producción en Railway, y todo nuestro código está abierto en GitHub respaldado por 136 pruebas automatizadas.
+> *"Blinka PayAgent ya está desplegado y funcionando en producción en Railway, y todo nuestro código está abierto en GitHub respaldado por 168 pruebas automatizadas.
 > Somos el Equipo 404 para el Reto Blinka. ¡Muchas gracias!"*
 
 ---
