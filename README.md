@@ -5,6 +5,7 @@
 
 <div align="center">
 
+[![YouTube Video Pitch](https://img.shields.io/badge/YouTube-Video_Pitch_3min-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/ieCPVmi2RJk)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
@@ -19,10 +20,19 @@
 ---
 
 ### 🌐 Accesos Directos a la Solución en Producción
+* 🎬 **Video Pitch Oficial (YouTube · 3 min):** [https://youtu.be/ieCPVmi2RJk](https://youtu.be/ieCPVmi2RJk)
 * 🚀 **Plataforma y Dashboard en Vivo:** [https://30x404team-production.up.railway.app](https://30x404team-production.up.railway.app/)
 * 🎯 **Slide Deck & Pitch Comercial Interactivo:** [https://30x404team-production.up.railway.app/#/pitch/1](https://30x404team-production.up.railway.app/#/pitch/1)
 * 🧪 **Laboratorio de Animaciones e Integración Stitch:** [https://30x404team-production.up.railway.app/#/stitch](https://30x404team-production.up.railway.app/#/stitch)
 * 📑 **Documentación Interactiva Swagger (API REST):** `https://30x404team-production.up.railway.app/docs` (o local en `http://localhost:8000/docs`)
+
+<div align="center">
+
+[![Ver Video Pitch Blinka PayAgent](https://img.youtube.com/vi/ieCPVmi2RJk/maxresdefault.jpg)](https://youtu.be/ieCPVmi2RJk)
+
+*🎬 Haz clic en la imagen superior para ver el **Video Pitch Oficial (3 Minutos)** en YouTube.*
+
+</div>
 
 ---
 
@@ -416,6 +426,6 @@ npm run dev
 <div align="center">
 
 **Blinka PayAgent** — *Construyendo la infraestructura de confianza para pagos autónomos gobernados por IA.*  
-[Ver Demo en Vivo](https://30x404team-production.up.railway.app/) • [Ver Presentación (Pitch)](https://30x404team-production.up.railway.app/#/pitch/1)
+[Ver Video Pitch en YouTube](https://youtu.be/ieCPVmi2RJk) • [Ver Demo en Vivo](https://30x404team-production.up.railway.app/) • [Ver Presentación (Pitch)](https://30x404team-production.up.railway.app/#/pitch/1)
 
 </div>
