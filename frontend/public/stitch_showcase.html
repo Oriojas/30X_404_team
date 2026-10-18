@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blinka PayAgent - Interactive Animated Pitch Deck Presentation Showcase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              navy: '#04243C',
+              navyDeep: '#021524',
+              navyLight: '#093657',
+              teal: '#2B9CAE',
+              tealGlow: '#38D1E6',
+              steel: '#1D3557',
+              surface: '#F8FAFC',
+              border: '#1E476B',
+              borderLight: '#E2E8F0',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes laserScan {
+      0% { top: 0%; opacity: 0.2; }
+      50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(43, 156, 174, 0.9)); }
+      100% { top: 96%; opacity: 0.2; }
+    }
+    @keyframes packetFlow {
+      0% { left: 0%; opacity: 0; transform: translateY(-50%) scale(0.6); }
+      15% { opacity: 1; transform: translateY(-50%) scale(1); }
+      85% { opacity: 1; transform: translateY(-50%) scale(1); }
+      100% { left: 100%; opacity: 0; transform: translateY(-50%) scale(0.6); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(43, 156, 174, 0.4); }
+      50% { box-shadow: 0 0 25px 6px rgba(43, 156, 174, 0.25); }
+    }
+    @keyframes statusBadgePing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .laser-line {
+      animation: laserScan 2.4s ease-in-out infinite alternate;
+    }
+    .packet-runner {
+      animation: packetFlow 2.8s linear infinite;
+    }
+    .pulse-teal-glow {
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+    .badge-pulse {
+      animation: statusBadgePing 2s infinite ease-in-out;
+    }
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #021524;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1E476B;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2B9CAE;
+    }
+  </style>
+</head>
+<body class="bg-brand-navyDeep text-slate-100 font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-brand-teal selection:text-brand-navyDeep">
+
+  <!-- Top Institutional Bar -->
+  <header class="h-14 border-b border-brand-border/60 bg-brand-navy/90 backdrop-blur-md px-6 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-teal to-brand-tealGlow flex items-center justify-center shadow-lg shadow-brand-teal/20 text-brand-navy font-bold text-base tracking-tighter">
+          B
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white text-base">Blinka</span>
+          <span class="text-brand-teal font-semibold text-base ml-1">PayAgent</span>
+          <span class="text-[10px] uppercase font-mono ml-2 px-2 py-0.5 rounded bg-brand-steel/60 text-slate-300 border border-brand-border font-medium">Showcase 16:9 Deck</span>
+        </div>
+      </div>
+      <div class="h-4 w-px bg-brand-border"></div>
+      <div class="flex items-center gap-2 text-xs text-slate-300 font-mono">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>TELEMETRÍA EN VIVO • LATAM B2B FINTECH</span>
+      </div>
+    </div>
+
+    <!-- Mode Selector Toggles -->
+    <div class="flex items-center gap-1.5 bg-brand-navyDeep/80 p-1 rounded-xl border border-brand-border/80">
+      <button id="btn-mode-1" onclick="switchDemoMode(1)" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 bg-brand-teal text-brand-navyDeep font-semibold shadow-sm">
+        <span class="material-symbols-outlined text-sm">view_carousel</span>
+        1. Kinetic Carousel
+      </button>
+      <button id="btn-mode-2" onclick="switchDemoMode(2)" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-brand-navy">
+        <span class="material-symbols-outlined text-sm">auto_awesome_motion</span>
+        2. Staggered Glow Reveal
+      </button>
+      <button id="btn-mode-3" onclick="switchDemoMode(3)" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-brand-navy">
+        <span class="material-symbols-outlined text-sm">timeline</span>
+        3. Telemetry Pipeline Pulse
+      </button>
+    </div>
+
+    <!-- Right Global Controls -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1 bg-brand-navyDeep/60 px-2 py-1 rounded-lg border border-brand-border/40 text-xs font-mono text-slate-300">
+        <span class="text-brand-teal">FPS:</span> <span id="fps-counter">60.0</span>
+      </div>
+      <button id="btn-play-pause" onclick="togglePlayPause()" class="w-8 h-8 rounded-lg bg-brand-navy hover:bg-brand-navyLight border border-brand-border flex items-center justify-center text-slate-200 hover:text-brand-teal transition-colors" title="Reproducir / Pausar Animaciones">
+        <span id="play-pause-icon" class="material-symbols-outlined text-base">pause</span>
+      </button>
+      <button onclick="restartActiveDemo()" class="w-8 h-8 rounded-lg bg-brand-navy hover:bg-brand-navyLight border border-brand-border flex items-center justify-center text-slate-200 hover:text-brand-teal transition-colors" title="Reiniciar Animación">
+        <span class="material-symbols-outlined text-base">replay</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main 16:9 Presentation Stage Container -->
+  <main class="flex-1 flex items-center justify-center p-4 lg:p-6 relative overflow-hidden">
+    <!-- Atmospheric Ambient Background Gradients -->
+    <div class="absolute -top-40 left-1/4 w-[600px] h-[600px] bg-brand-teal/10 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="absolute -bottom-40 right-1/4 w-[500px] h-[500px] bg-brand-steel/30 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- 16:9 Aspect Ratio Frame Container -->
+    <div class="w-full max-w-[1240px] aspect-[16/9] max-h-[82vh] bg-brand-navy rounded-2xl border border-brand-border shadow-2xl relative overflow-hidden flex flex-col justify-between group">
+      
+      <!-- Slide Presentation Header Ribbon inside 16:9 Frame -->
+      <div class="h-12 px-6 border-b border-brand-border/70 flex items-center justify-between bg-brand-navyDeep/40 z-20 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+          </div>
+          <span class="text-xs text-slate-400 font-mono pl-2">Blinka_Executive_Deck_v4.8.key</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-mono">
+          <span class="text-slate-400">SLIDE <span id="current-slide-number" class="text-brand-teal font-bold">01</span> / 04</span>
+          <div class="flex items-center gap-1">
+            <button onclick="prevSlide()" class="p-1 hover:bg-brand-navyLight rounded text-slate-300 hover:text-white transition-colors" title="Diapositiva Anterior">
+              <span class="material-symbols-outlined text-sm">chevron_left</span>
+            </button>
+            <button onclick="nextSlide()" class="p-1 hover:bg-brand-navyLight rounded text-slate-300 hover:text-white transition-colors" title="Siguiente Diapositiva">
+              <span class="material-symbols-outlined text-sm">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide Viewport (Houses the 3 Animated Demonstrations) -->
+      <div id="viewport-container" class="relative flex-1 overflow-hidden w-full h-full bg-gradient-to-b from-brand-navy to-brand-navyDeep">
+
+        <!-- ============================================================== -->
+        <!-- DEMO 1: Directional Kinetic Carousel Transition (Slides) -->
+        <!-- ============================================================== -->
+        <div id="demo-mode-1-view" class="absolute inset-0 w-full h-full transition-opacity duration-500 opacity-100 pointer-events-auto">
+          <!-- Slide Track -->
+          <div id="carousel-track" class="w-full h-full relative transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex">
+            
+            <!-- Slide 01: Hero Problem & Mission -->
+            <div class="slide-pane min-w-full h-full p-8 lg:p-12 flex flex-col justify-between shrink-0 transition-all duration-700">
+              <div class="flex justify-between items-start">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-teal/15 border border-brand-teal/30 text-brand-teal text-xs font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-brand-teal animate-ping"></span>
+                  MISIÓN FINTECH AUTÓNOMA
+                </div>
+                <div class="text-right font-mono text-xs text-slate-400">
+                  ESTRATEGIA ENTERPRISE • Q2 2025
+                </div>
+              </div>
+
+              <div class="grid grid-cols-12 gap-8 my-auto items-center">
+                <div class="col-span-7 space-y-4">
+                  <h1 class="text-3xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                    Agentes IA que pagan por tu empresa <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-teal to-brand-tealGlow">sin perder el control</span>
+                  </h1>
+                  <p class="text-slate-300 text-sm lg:text-base leading-relaxed max-w-xl">
+                    Eliminamos la fricción manual de portales bancarios y dispersiones repetitivas con una orquestación determinista auditada en cada paso.
+                  </p>
+                  <div class="flex items-center gap-4 pt-3">
+                    <div class="flex items-center gap-2 bg-brand-navyDeep/90 px-3.5 py-2 rounded-xl border border-brand-border">
+                      <span class="text-brand-teal font-mono font-bold text-lg">99.4%</span>
+                      <span class="text-[11px] text-slate-400 leading-tight">Autonomía<br>Operativa</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-brand-navyDeep/90 px-3.5 py-2 rounded-xl border border-brand-border">
+                      <span class="text-emerald-400 font-mono font-bold text-lg">&lt; 12s</span>
+                      <span class="text-[11px] text-slate-400 leading-tight">SLA Dispersión<br>SPEI / ACH</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-brand-navyDeep/90 px-3.5 py-2 rounded-xl border border-brand-border">
+                      <span class="text-amber-400 font-mono font-bold text-lg">0</span>
+                      <span class="text-[11px] text-slate-400 leading-tight">Falsos Positivos<br>SARLAFT</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Visual Card right -->
+                <div class="col-span-5 bg-brand-navyDeep/80 rounded-2xl p-6 border border-brand-border/90 shadow-xl relative overflow-hidden group-hover:border-brand-teal/50 transition-colors">
+                  <div class="flex items-center justify-between pb-3 border-b border-brand-border/60 mb-4">
+                    <span class="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Nodo Activo: Telegram Corp
+                    </span>
+                    <span class="text-xs font-mono text-brand-teal">TLS 1.3 mTLS</span>
+                  </div>
+                  <div class="space-y-3 font-mono text-xs">
+                    <div class="p-3 rounded-lg bg-brand-navy border border-brand-border/60">
+                      <div class="text-[11px] text-slate-400 mb-1">FACTURA INGESTADA</div>
+                      <div class="text-white font-semibold">DevStudio LatAm S.A.S.</div>
+                      <div class="text-brand-teal font-bold text-sm mt-1">$1,200.00 USD <span class="text-slate-400 text-[10px]">(COP 5,040,000)</span></div>
+                    </div>
+                    <div class="flex items-center justify-between p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px]">
+                      <span>Check SARLAFT & Tesorería</span>
+                      <span class="font-bold">PASSED (0 hits)</span>
+                    </div>
+                    <div class="p-2 rounded bg-brand-steel/40 text-[11px] text-slate-300 flex items-center justify-between">
+                      <span>Acción Determinista:</span>
+                      <span class="text-brand-teal font-bold">AUTO_APPROVED</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer of slide -->
+              <div class="flex justify-between items-center text-xs text-slate-400 font-mono pt-4 border-t border-brand-border/40">
+                <span>01 // Visión General & Propuesta de Valor</span>
+                <span class="text-brand-teal">Usa las flechas &lt; &gt; para deslizar</span>
+              </div>
+            </div>
+
+            <!-- Slide 02: Architecture Matrix -->
+            <div class="slide-pane min-w-full h-full p-8 lg:p-12 flex flex-col justify-between shrink-0 transition-all duration-700">
+              <div class="flex justify-between items-start">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  ARQUITECTURA DE CONTROL CUÁDRUPLE
+                </div>
+                <div class="text-right font-mono text-xs text-slate-400">
+                  INFRAESTRUCTURA INMUTABLE
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-6 my-auto">
+                <div class="bg-brand-navyDeep/80 rounded-xl p-5 border border-brand-border hover:border-brand-teal/60 transition-all duration-300">
+                  <div class="w-10 h-10 rounded-lg bg-brand-steel/50 border border-brand-border flex items-center justify-center text-brand-teal mb-3">
+                    <span class="material-symbols-outlined">document_scanner</span>
+                  </div>
+                  <h3 class="text-white font-bold text-base mb-1">1. Ingesta Multicanal</h3>
+                  <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                    Recepción vía Telegram Bot oficial y Webhooks ERP. OCR inteligente en 1.2 segundos con lectura de NIT, impuestos y renglones.
+                  </p>
+                  <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">Extracción 99.8% Precisa</span>
+                </div>
+
+                <div class="bg-brand-navyDeep/80 rounded-xl p-5 border border-brand-teal/40 shadow-lg shadow-brand-teal/5">
+                  <div class="w-10 h-10 rounded-lg bg-brand-teal/20 border border-brand-teal/50 flex items-center justify-center text-brand-teal mb-3">
+                    <span class="material-symbols-outlined">security</span>
+                  </div>
+                  <h3 class="text-white font-bold text-base mb-1">2. Matriz Determinista</h3>
+                  <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                    Cruce simultáneo de 4 filtros: Listas SARLAFT/OFAC, integridad de hash SHA-256, solvencia de bóveda y umbral HITL.
+                  </p>
+                  <span class="text-[10px] font-mono text-brand-teal bg-brand-teal/15 px-2 py-0.5 rounded border border-brand-teal/30">Latencia &lt; 84ms</span>
+                </div>
+
+                <div class="bg-brand-navyDeep/80 rounded-xl p-5 border border-brand-border hover:border-brand-teal/60 transition-all duration-300">
+                  <div class="w-10 h-10 rounded-lg bg-brand-steel/50 border border-brand-border flex items-center justify-center text-brand-teal mb-3">
+                    <span class="material-symbols-outlined">account_balance</span>
+                  </div>
+                  <h3 class="text-white font-bold text-base mb-1">3. Dispersión Segura</h3>
+                  <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                    Instrucción bancaria directa vía API a rieles SPEI, ACH o Wire internacional con confirmación biométrica si excede límites.
+                  </p>
+                  <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">Cifrado Bancario mTLS</span>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center text-xs text-slate-400 font-mono pt-4 border-t border-brand-border/40">
+                <span>02 // Matriz de Flujo de Fondos</span>
+                <span class="text-slate-400">Escalamiento Cero Fricción al CFO</span>
+              </div>
+            </div>
+
+            <!-- Slide 03: Live Decision Cards Matrix Preview -->
+            <div class="slide-pane min-w-full h-full p-8 lg:p-12 flex flex-col justify-between shrink-0 transition-all duration-700">
+              <div class="flex justify-between items-start">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  TAXONOMÍA DE DECISIÓN ALGORÍTMICA
+                </div>
+                <div class="text-right font-mono text-xs text-slate-400">
+                  CAJA BLANCA TOTAL
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 my-auto">
+                <div class="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-left">
+                  <div class="text-[11px] font-mono text-emerald-400 font-bold mb-1">● AUTO_APPROVED</div>
+                  <div class="text-xs text-slate-200 font-semibold mb-2">&lt; $2,000 USD sin anomalías</div>
+                  <p class="text-[11px] text-slate-400">Dispersión autónoma inmediata verificada contra listas y saldo operativo.</p>
+                </div>
+                <div class="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-left">
+                  <div class="text-[11px] font-mono text-amber-400 font-bold mb-1">● SCALED_TO_HUMAN</div>
+                  <div class="text-xs text-slate-200 font-semibold mb-2">&gt; $2,000 USD o NIT ambiguo</div>
+                  <p class="text-[11px] text-slate-400">Envío instantáneo de botón 2FA interactivo a Telegram del CFO.</p>
+                </div>
+                <div class="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/40 text-left">
+                  <div class="text-[11px] font-mono text-cyan-400 font-bold mb-1">● HUMAN_APPROVED</div>
+                  <div class="text-xs text-slate-200 font-semibold mb-2">Aprobación vía 2FA CFO</div>
+                  <p class="text-[11px] text-slate-400">Firma criptográfica registrada con trazabilidad de IP y dispositivo.</p>
+                </div>
+                <div class="p-4 rounded-xl bg-rose-950/30 border border-rose-500/40 text-left">
+                  <div class="text-[11px] font-mono text-rose-400 font-bold mb-1">● REJECTED</div>
+                  <div class="text-xs text-slate-200 font-semibold mb-2">Coincidencia SARLAFT / Doble</div>
+                  <p class="text-[11px] text-slate-400">Bloqueo preventivo en menos de 84ms con congelamiento de fondos.</p>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center text-xs text-slate-400 font-mono pt-4 border-t border-brand-border/40">
+                <span>03 // Estados de Resolución Explicable</span>
+                <span class="text-brand-teal font-semibold">Cambia a Modo 2 para ver la animación en cascada</span>
+              </div>
+            </div>
+
+            <!-- Slide 04: Traction & Enterprise Security -->
+            <div class="slide-pane min-w-full h-full p-8 lg:p-12 flex flex-col justify-between shrink-0 transition-all duration-700">
+              <div class="flex justify-between items-start">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                  SEGURIDAD INSTITUCIONAL & TRACCIÓN
+                </div>
+                <div class="text-right font-mono text-xs text-slate-400">
+                  COMPLIANCE AUDITABLE
+                </div>
+              </div>
+
+              <div class="grid grid-cols-12 gap-8 my-auto items-center">
+                <div class="col-span-6 space-y-4">
+                  <h2 class="text-2xl lg:text-3xl font-extrabold text-white">Construido para directores financieros que auditan cada centavo</h2>
+                  <p class="text-xs lg:text-sm text-slate-300 leading-relaxed">
+                    Certificaciones de grado bancario, inmutabilidad de ledger y conexión segura mediante canal verificado de mensajería empresarial.
+                  </p>
+                  <div class="flex flex-wrap gap-2 pt-2">
+                    <span class="px-2.5 py-1 bg-brand-steel/60 border border-brand-border text-xs font-mono rounded text-slate-200">SOC2 Type II</span>
+                    <span class="px-2.5 py-1 bg-brand-steel/60 border border-brand-border text-xs font-mono rounded text-slate-200">ISO 27001 Certified</span>
+                    <span class="px-2.5 py-1 bg-brand-steel/60 border border-brand-border text-xs font-mono rounded text-slate-200">SARLAFT / OFAC / ONU Clean</span>
+                  </div>
+                </div>
+
+                <div class="col-span-6 bg-brand-navyDeep p-6 rounded-2xl border border-brand-border font-mono text-xs space-y-3">
+                  <div class="text-slate-400 uppercase text-[10px] tracking-wider pb-2 border-b border-brand-border">Resumen Operativo Trimestral</div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400">Volumen Dispersado:</span>
+                    <span class="text-white font-bold">$14.2M USD</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400">Tiempo Ahorrado Finanzas:</span>
+                    <span class="text-emerald-400 font-bold">186 hrs / mes</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400">Incidentes de Fraude:</span>
+                    <span class="text-emerald-400 font-bold">0 (Cero)</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-t border-brand-border/60 pt-2">
+                    <span class="text-slate-400">Hash de Bloque:</span>
+                    <span class="text-brand-teal text-[10px]">#0x489F...7A2C (Verificado)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center text-xs text-slate-400 font-mono pt-4 border-t border-brand-border/40">
+                <span>04 // Seguridad & Cumplimiento Enterprise</span>
+                <span class="text-emerald-400">Listo para despliegue productivo</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- ============================================================== -->
+        <!-- DEMO 2: Staggered Card Reveal & Glow (Autonomous Decisions) -->
+        <!-- ============================================================== -->
+        <div id="demo-mode-2-view" class="absolute inset-0 w-full h-full p-8 lg:p-10 flex flex-col justify-between transition-opacity duration-500 opacity-0 pointer-events-none">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-teal/15 border border-brand-teal/30 text-brand-teal text-xs font-mono mb-2">
+                <span class="material-symbols-outlined text-sm">auto_awesome_motion</span> DEMO ANIMADA 2: CASCADA Y RESPLANDOR
+              </div>
+              <h2 class="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
+                Decisiones Autónomas con Explicabilidad de Caja Blanca
+              </h2>
+            </div>
+            <button onclick="triggerStaggerReveal()" class="px-4 py-2 rounded-xl bg-brand-teal/20 hover:bg-brand-teal/30 border border-brand-teal text-brand-teal text-xs font-mono font-semibold flex items-center gap-2 transition-all">
+              <span class="material-symbols-outlined text-sm">play_arrow</span> Re-lanzar Cascada
+            </button>
+          </div>
+
+          <!-- Staggered Decision Cards Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-auto">
+            
+            <!-- Card 1: AUTO_APPROVED (Green) -->
+            <div id="stagger-card-1" class="transform translate-y-8 opacity-0 transition-all duration-700 ease-out bg-brand-navyDeep/90 rounded-2xl p-5 border border-emerald-500/40 relative overflow-hidden shadow-lg group hover:border-emerald-400 hover:shadow-emerald-500/20">
+              <div class="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 flex items-center gap-1.5 badge-pulse">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  AUTO_APPROVED
+                </span>
+                <span class="text-[11px] font-mono text-slate-400">1.2s</span>
+              </div>
+              <div class="text-sm font-bold text-white mb-0.5">DevStudio LatAm S.A.S.</div>
+              <div class="text-lg font-mono font-extrabold text-emerald-400 mb-2">$1,200.00 USD</div>
+              <div class="text-[11px] text-slate-300 font-sans leading-relaxed border-t border-brand-border/60 pt-3">
+                <span class="text-emerald-400 font-semibold">Explicación IA:</span> Aprobado automáticamente. Monto dentro del límite autónomo ($2,000 USD). Lista SARLAFT/OFAC limpia (0 hits). Fondos suficientes.
+              </div>
+              <div class="mt-4 pt-2 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-brand-border/30">
+                <span>Riel: SPEI Directo</span>
+                <span class="text-emerald-400 font-semibold">Hash Verificado ✓</span>
+              </div>
+            </div>
+
+            <!-- Card 2: SCALED_TO_HUMAN (Amber) -->
+            <div id="stagger-card-2" class="transform translate-y-8 opacity-0 transition-all duration-700 ease-out bg-brand-navyDeep/90 rounded-2xl p-5 border border-amber-500/40 relative overflow-hidden shadow-lg group hover:border-amber-400 hover:shadow-amber-500/20">
+              <div class="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-500/50 flex items-center gap-1.5 badge-pulse">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  SCALED_TO_HUMAN
+                </span>
+                <span class="text-[11px] font-mono text-slate-400">SLA 15m</span>
+              </div>
+              <div class="text-sm font-bold text-white mb-0.5">PROVEEDOR_DESCONOCIDO</div>
+              <div class="text-lg font-mono font-extrabold text-amber-400 mb-2">$0.00 USD</div>
+              <div class="text-[11px] text-slate-300 font-sans leading-relaxed border-t border-brand-border/60 pt-3">
+                <span class="text-amber-400 font-semibold">[INTEG-03]:</span> Factura ambigua o ilegible recibida por Telegram. Falta NIT y desglose tributario. Escala a auditoría manual del CFO.
+              </div>
+              <div class="mt-4 pt-2 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-brand-border/30">
+                <span>Canal: Telegram Bot</span>
+                <span class="text-amber-400 font-semibold">2FA Pendiente ⏳</span>
+              </div>
+            </div>
+
+            <!-- Card 3: HUMAN_APPROVED (Cyan) -->
+            <div id="stagger-card-3" class="transform translate-y-8 opacity-0 transition-all duration-700 ease-out bg-brand-navyDeep/90 rounded-2xl p-5 border border-cyan-500/40 relative overflow-hidden shadow-lg group hover:border-cyan-400 hover:shadow-cyan-500/20">
+              <div class="absolute -top-10 -right-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-xl pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-500/50 flex items-center gap-1.5 badge-pulse">
+                  <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                  HUMAN_APPROVED
+                </span>
+                <span class="text-[11px] font-mono text-slate-400">2FA CFO</span>
+              </div>
+              <div class="text-sm font-bold text-white mb-0.5">Logística Express MX</div>
+              <div class="text-lg font-mono font-extrabold text-cyan-400 mb-2">$6,000.00 USD</div>
+              <div class="text-[11px] text-slate-300 font-sans leading-relaxed border-t border-brand-border/60 pt-3">
+                <span class="text-cyan-400 font-semibold">Explicación IA:</span> Superó el umbral autónomo ($2,000). Aprobado por CFO vía Telegram con firma biométrica registrada a las 11:45.
+              </div>
+              <div class="mt-4 pt-2 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-brand-border/30">
+                <span>Riel: SPEI Directo</span>
+                <span class="text-cyan-400 font-semibold">Firma Valida ✓</span>
+              </div>
+            </div>
+
+            <!-- Card 4: REJECTED (Red) -->
+            <div id="stagger-card-4" class="transform translate-y-8 opacity-0 transition-all duration-700 ease-out bg-brand-navyDeep/90 rounded-2xl p-5 border border-rose-500/40 relative overflow-hidden shadow-lg group hover:border-rose-400 hover:shadow-rose-500/20">
+              <div class="absolute -top-10 -right-10 w-28 h-28 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-500/50 flex items-center gap-1.5 badge-pulse">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                  REJECTED
+                </span>
+                <span class="text-[11px] font-mono text-rose-400">0.08s</span>
+              </div>
+              <div class="text-sm font-bold text-white mb-0.5">Global Consulting S.A.S</div>
+              <div class="text-lg font-mono font-extrabold text-rose-400 mb-2">$3,100.00 USD</div>
+              <div class="text-[11px] text-slate-300 font-sans leading-relaxed border-t border-brand-border/60 pt-3">
+                <span class="text-rose-400 font-semibold">ALERTA SARLAFT:</span> Representante legal coincide con reporte preventivo en lista PEP. Pago congelado automáticamente.
+              </div>
+              <div class="mt-4 pt-2 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-brand-border/30">
+                <span>Riesgo: Lista PEP</span>
+                <span class="text-rose-400 font-semibold">Dispersión Cancelada ✕</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="flex justify-between items-center text-xs text-slate-400 font-mono pt-3 border-t border-brand-border/40">
+            <span>Borde lumínico con resplandor Teal responsivo al cursor</span>
+            <span class="text-brand-teal">Blinka PayAgent • Malla Criptográfica Inmutable</span>
+          </div>
+        </div>
+
+
+        <!-- ============================================================== -->
+        <!-- DEMO 3: Live Telemetry Pipeline Pulse (4-Layer Diagram) -->
+        <!-- ============================================================== -->
+        <div id="demo-mode-3-view" class="absolute inset-0 w-full h-full p-8 lg:p-10 flex flex-col justify-between transition-opacity duration-500 opacity-0 pointer-events-none">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-2">
+                <span class="material-symbols-outlined text-sm">schema</span> DEMO ANIMADA 3: PIPELINE DETERMINISTA
+              </div>
+              <h2 class="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
+                Malla de Control en 4 Capas con Escáner Láser OCR
+              </h2>
+            </div>
+            <div class="flex items-center gap-3 font-mono text-xs">
+              <span class="text-slate-400">Latencia promedio:</span>
+              <span class="px-2.5 py-1 rounded-lg bg-brand-navy border border-brand-teal/40 text-brand-teal font-bold">&lt; 84 ms</span>
+            </div>
+          </div>
+
+          <!-- Pipeline Interactive Architecture Diagram -->
+          <div class="my-auto relative py-6">
+            
+            <!-- Laser Scanning Incoming Document Box (Telegram Invoice) -->
+            <div class="grid grid-cols-12 gap-6 items-center">
+              
+              <!-- Source Box with Laser Bar -->
+              <div class="col-span-3 bg-brand-navyDeep rounded-2xl p-4 border border-brand-teal/50 shadow-lg shadow-brand-teal/10 relative overflow-hidden">
+                <!-- Laser Scanner Bar Animation -->
+                <div class="laser-line absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-teal to-transparent shadow-[0_0_15px_#2B9CAE] pointer-events-none z-10"></div>
+                
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-brand-border text-xs font-mono text-slate-300">
+                  <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-brand-teal"></span> Telegram PDF</span>
+                  <span class="text-[10px] text-brand-teal font-semibold">OCR EN CURSO</span>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                  <div class="p-2 rounded bg-brand-navy border border-brand-border/60">
+                    <div class="text-[10px] text-slate-400">ARCHIVO RECIBIDO:</div>
+                    <div class="text-white font-bold text-[11px] truncate">Factura_AWS_Cloud.pdf</div>
+                  </div>
+                  <div class="p-2 rounded bg-brand-steel/30 text-[11px]">
+                    <span class="text-slate-400">Monto:</span> <span class="text-emerald-400 font-bold">$1,420.00 USD</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 leading-tight">
+                    Láser OCR extrayendo claves fiscales, emisor y NIT...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connecting Conduit with Moving Data Packets -->
+              <div class="col-span-9 relative">
+                <!-- Horizontal Bus Line -->
+                <div class="h-1 w-full bg-brand-border/80 rounded-full relative overflow-visible">
+                  <!-- Animated Packet 1 -->
+                  <div class="packet-runner absolute top-1/2 w-4 h-4 -mt-2 rounded-full bg-brand-teal shadow-[0_0_12px_#38D1E6] flex items-center justify-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  </div>
+                  <!-- Animated Packet 2 (Delayed) -->
+                  <div class="packet-runner absolute top-1/2 w-4 h-4 -mt-2 rounded-full bg-emerald-400 shadow-[0_0_12px_#10B981] flex items-center justify-center" style="animation-delay: 1.4s;">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                  </div>
+                </div>
+
+                <!-- The 4 Deterministic Pipeline Nodes -->
+                <div class="grid grid-cols-4 gap-3 pt-6">
+                  
+                  <!-- Layer 1 -->
+                  <div class="bg-brand-navyDeep p-3.5 rounded-xl border border-brand-border relative hover:border-brand-teal/80 transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-emerald-400 absolute -top-1.5 left-1/2 -ml-1 shadow-[0_0_8px_#10B981]"></div>
+                    <div class="text-[10px] font-mono text-brand-teal uppercase font-bold mb-1">Capa 01</div>
+                    <div class="text-xs font-bold text-white mb-1">Listas SARLAFT</div>
+                    <p class="text-[10px] text-slate-300 leading-tight">OFAC, Clinton, ONU y PEP en tiempo real.</p>
+                    <div class="mt-2 text-[9px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded inline-block">0 Hits • Clean</div>
+                  </div>
+
+                  <!-- Layer 2 -->
+                  <div class="bg-brand-navyDeep p-3.5 rounded-xl border border-brand-border relative hover:border-brand-teal/80 transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-brand-teal absolute -top-1.5 left-1/2 -ml-1 shadow-[0_0_8px_#2B9CAE]"></div>
+                    <div class="text-[10px] font-mono text-brand-teal uppercase font-bold mb-1">Capa 02</div>
+                    <div class="text-xs font-bold text-white mb-1">Integridad SHA-256</div>
+                    <p class="text-[10px] text-slate-300 leading-tight">Detección estricta de pagos duplicados.</p>
+                    <div class="mt-2 text-[9px] font-mono text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded inline-block">Fingerprint Único</div>
+                  </div>
+
+                  <!-- Layer 3 -->
+                  <div class="bg-brand-navyDeep p-3.5 rounded-xl border border-brand-border relative hover:border-brand-teal/80 transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-cyan-400 absolute -top-1.5 left-1/2 -ml-1 shadow-[0_0_8px_#22D3EE]"></div>
+                    <div class="text-[10px] font-mono text-brand-teal uppercase font-bold mb-1">Capa 03</div>
+                    <div class="text-xs font-bold text-white mb-1">Solvencia de Caja</div>
+                    <p class="text-[10px] text-slate-300 leading-tight">Verificación de colchón mínimo de seguridad.</p>
+                    <div class="mt-2 text-[9px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded inline-block">Saldo: $48.2k USD</div>
+                  </div>
+
+                  <!-- Layer 4 -->
+                  <div class="bg-brand-navyDeep p-3.5 rounded-xl border border-brand-teal/50 shadow-md shadow-brand-teal/10 relative hover:border-brand-teal transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-amber-400 absolute -top-1.5 left-1/2 -ml-1 shadow-[0_0_8px_#F59E0B]"></div>
+                    <div class="text-[10px] font-mono text-brand-teal uppercase font-bold mb-1">Capa 04</div>
+                    <div class="text-xs font-bold text-white mb-1">Gobernanza HITL</div>
+                    <p class="text-[10px] text-slate-300 leading-tight">Umbral autónomo $2,000 USD o 2FA al CFO.</p>
+                    <div class="mt-2 text-[9px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded inline-block">Monto &lt; Límite</div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="flex justify-between items-center text-xs text-slate-400 font-mono pt-3 border-t border-brand-border/40">
+            <span>Paquetes de telemetría pulsando a 120ms por nodo</span>
+            <span class="text-emerald-400 font-semibold">Estado Global: OPERACIONAL • 99.98% SLA</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Slide Navigation Indicator Dots (Bottom Bar inside Frame) -->
+      <div class="h-11 px-6 border-t border-brand-border/70 flex items-center justify-between bg-brand-navyDeep/60 z-20 shrink-0">
+        <div class="flex items-center gap-2">
+          <button onclick="goToSlide(0)" class="slide-dot w-2.5 h-2.5 rounded-full bg-brand-teal transition-all duration-300" title="Diapositiva 1"></button>
+          <button onclick="goToSlide(1)" class="slide-dot w-2.5 h-2.5 rounded-full bg-brand-border transition-all duration-300" title="Diapositiva 2"></button>
+          <button onclick="goToSlide(2)" class="slide-dot w-2.5 h-2.5 rounded-full bg-brand-border transition-all duration-300" title="Diapositiva 3"></button>
+          <button onclick="goToSlide(3)" class="slide-dot w-2.5 h-2.5 rounded-full bg-brand-border transition-all duration-300" title="Diapositiva 4"></button>
+        </div>
+
+        <div class="flex items-center gap-6 text-xs text-slate-400 font-mono">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-brand-teal pulse-teal-glow"></span>
+            <span>Blinka Deterministic Engine</span>
+          </div>
+          <span class="hidden md:inline">Presiona <kbd class="px-1.5 py-0.5 bg-brand-navy rounded border border-brand-border text-slate-200">Espacio</kbd> o flechas</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Presentation Control Dock (Bottom Shelf) -->
+  <footer class="h-14 border-t border-brand-border/60 bg-brand-navy/95 backdrop-blur-md px-6 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-3 text-xs font-mono text-slate-400">
+      <span class="text-brand-teal font-bold">INTERACTIVE DECK CONTROLLER</span>
+      <span class="text-slate-600">•</span>
+      <span id="deck-status-text">Demostración 1 activa: Transición Cinética 16:9 con efecto de escala y profundidad</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="switchDemoMode(1)" class="text-xs px-3 py-1.5 rounded-lg bg-brand-navy border border-brand-border text-slate-300 hover:text-brand-teal transition-colors">
+        Modo 1: Slides
+      </button>
+      <button onclick="switchDemoMode(2)" class="text-xs px-3 py-1.5 rounded-lg bg-brand-navy border border-brand-border text-slate-300 hover:text-brand-teal transition-colors">
+        Modo 2: Glow Cascade
+      </button>
+      <button onclick="switchDemoMode(3)" class="text-xs px-3 py-1.5 rounded-lg bg-brand-navy border border-brand-border text-slate-300 hover:text-brand-teal transition-colors">
+        Modo 3: Pipeline
+      </button>
+      <div class="h-4 w-px bg-brand-border"></div>
+      <button onclick="toggleFullscreen()" class="px-3 py-1.5 rounded-lg bg-brand-teal text-brand-navyDeep font-bold text-xs flex items-center gap-1.5 hover:bg-brand-tealGlow transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-sm">fullscreen</span>
+        Pantalla Completa
+      </button>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    let currentSlide = 0;
+    const totalSlides = 4;
+    let currentMode = 1;
+    let isPlaying = true;
+    let autoSlideTimer = null;
+
+    // Slide Carousel Handlers
+    function updateSlideDisplay() {
+      const track = document.getElementById('carousel-track');
+      const slidePanes = document.querySelectorAll('.slide-pane');
+      const dots = document.querySelectorAll('.slide-dot');
+      const slideNumDisplay = document.getElementById('current-slide-number');
+
+      // Kinetic transformation with depth scaling
+      slidePanes.forEach((pane, idx) => {
+        if (idx === currentSlide) {
+          pane.style.transform = 'scale(1)';
+          pane.style.opacity = '1';
+          pane.style.filter = 'blur(0px)';
+        } else {
+          pane.style.transform = 'scale(0.96)';
+          pane.style.opacity = '0.35';
+          pane.style.filter = 'blur(1.5px)';
+        }
+      });
+
+      track.style.transform = `translateX(-${currentSlide * 100}%)`;
+      slideNumDisplay.textContent = String(currentSlide + 1).padStart(2, '0');
+
+      dots.forEach((dot, idx) => {
+        if (idx === currentSlide) {
+          dot.classList.remove('bg-brand-border');
+          dot.classList.add('bg-brand-teal', 'w-6');
+        } else {
+          dot.classList.remove('bg-brand-teal', 'w-6');
+          dot.classList.add('bg-brand-border');
+        }
+      });
+    }
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % totalSlides;
+      updateSlideDisplay();
+    }
+
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+      updateSlideDisplay();
+    }
+
+    function goToSlide(idx) {
+      currentSlide = idx;
+      updateSlideDisplay();
+    }
+
+    // Switch Demo Modes
+    function switchDemoMode(mode) {
+      currentMode = mode;
+      const v1 = document.getElementById('demo-mode-1-view');
+      const v2 = document.getElementById('demo-mode-2-view');
+      const v3 = document.getElementById('demo-mode-3-view');
+      const b1 = document.getElementById('btn-mode-1');
+      const b2 = document.getElementById('btn-mode-2');
+      const b3 = document.getElementById('btn-mode-3');
+      const statusText = document.getElementById('deck-status-text');
+
+      // Reset button styles
+      [b1, b2, b3].forEach(b => {
+        b.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 text-slate-300 hover:text-white hover:bg-brand-navy";
+      });
+
+      // Hide all views
+      [v1, v2, v3].forEach(v => {
+        v.classList.remove('opacity-100', 'pointer-events-auto');
+        v.classList.add('opacity-0', 'pointer-events-none');
+      });
+
+      if (mode === 1) {
+        v1.classList.remove('opacity-0', 'pointer-events-none');
+        v1.classList.add('opacity-100', 'pointer-events-auto');
+        b1.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 bg-brand-teal text-brand-navyDeep font-semibold shadow-sm";
+        statusText.textContent = "Demostración 1 activa: Transición Cinética 16:9 con efecto de escala y profundidad";
+      } else if (mode === 2) {
+        v2.classList.remove('opacity-0', 'pointer-events-none');
+        v2.classList.add('opacity-100', 'pointer-events-auto');
+        b2.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 bg-brand-teal text-brand-navyDeep font-semibold shadow-sm";
+        statusText.textContent = "Demostración 2 activa: Cascada secuencial y resplandor de tarjetas de gobernanza";
+        triggerStaggerReveal();
+      } else if (mode === 3) {
+        v3.classList.remove('opacity-0', 'pointer-events-none');
+        v3.classList.add('opacity-100', 'pointer-events-auto');
+        b3.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 bg-brand-teal text-brand-navyDeep font-semibold shadow-sm";
+        statusText.textContent = "Demostración 3 activa: Pipeline determinista con escáner láser OCR y pulsos de telemetría";
+      }
+    }
+
+    // Demo 2: Staggered Card Reveal
+    function triggerStaggerReveal() {
+      const cards = [
+        document.getElementById('stagger-card-1'),
+        document.getElementById('stagger-card-2'),
+        document.getElementById('stagger-card-3'),
+        document.getElementById('stagger-card-4')
+      ];
+
+      // Reset
+      cards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(32px) scale(0.95)';
+      });
+
+      // Animate staggered
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0) scale(1)';
+        }, index * 180 + 100);
+      });
+    }
+
+    // Toggle Play / Pause Animation Loop
+    function togglePlayPause() {
+      isPlaying = !isPlaying;
+      const icon = document.getElementById('play-pause-icon');
+      if (isPlaying) {
+        icon.textContent = 'pause';
+        startAutoSlide();
+      } else {
+        icon.textContent = 'play_arrow';
+        clearInterval(autoSlideTimer);
+      }
+    }
+
+    function startAutoSlide() {
+      clearInterval(autoSlideTimer);
+      autoSlideTimer = setInterval(() => {
+        if (isPlaying && currentMode === 1) {
+          nextSlide();
+        }
+      }, 5500);
+    }
+
+    function restartActiveDemo() {
+      if (currentMode === 1) {
+        currentSlide = 0;
+        updateSlideDisplay();
+      } else if (currentMode === 2) {
+        triggerStaggerReveal();
+      } else if (currentMode === 3) {
+        const packets = document.querySelectorAll('.packet-runner');
+        packets.forEach(p => {
+          p.style.animation = 'none';
+          void p.offsetWidth; // trigger reflow
+          p.style.animation = '';
+        });
+      }
+    }
+
+    // Fullscreen support
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Fullscreen error: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === '1') {
+        switchDemoMode(1);
+      } else if (e.key === '2') {
+        switchDemoMode(2);
+      } else if (e.key === '3') {
+        switchDemoMode(3);
+      }
+    });
+
+    // Initial setup
+    updateSlideDisplay();
+    startAutoSlide();
+  </script>
+</body>
+</html>

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blinka PayAgent - Pitch Deck Interactive Transition Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brandNavy: '#04243C',
+            deepNavy: '#0B1C30',
+            cardNavy: '#0E233C',
+            accentTeal: '#2B9CAE',
+            steelBlue: '#1D3557',
+            hairlineDark: '#1E476B',
+            hairlineLight: '#E2E8F0',
+            statusApproved: '#10B981',
+            statusApprovedBg: '#ECFDF5',
+            statusScaled: '#F59E0B',
+            statusScaledBg: '#FFFBEB',
+            statusRejected: '#EF4444',
+            statusRejectedBg: '#FEF2F2',
+          },
+          fontFamily: {
+            headline: ['"Plus Jakarta Sans"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          transitionTimingFunction: {
+            'spring-smooth': 'cubic-bezier(0.16, 1, 0.3, 1)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Topographic contour background pattern */
+    .topo-pattern {
+      background-color: #0B1C30;
+      background-image: radial-gradient(circle at 10% 20%, rgba(43, 156, 174, 0.08) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(29, 53, 87, 0.25) 0%, transparent 50%);
+    }
+
+    /* Glow on hover */
+    .interactive-glow {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .interactive-glow:hover {
+      border-color: rgba(43, 156, 174, 0.7) !important;
+      box-shadow: 0 0 20px rgba(43, 156, 174, 0.25), inset 0 0 12px rgba(43, 156, 174, 0.08);
+      transform: translateY(-2px);
+    }
+
+    /* Staggered slide transition classes */
+    .slide-stage {
+      perspective: 1200px;
+    }
+
+    .slide-panel {
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform, opacity;
+    }
+
+    .slide-panel.slide-active {
+      opacity: 1;
+      transform: scale(1) translateX(0);
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    .slide-panel.slide-prev {
+      opacity: 0;
+      transform: scale(0.97) translateX(-48px);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .slide-panel.slide-next {
+      opacity: 0;
+      transform: scale(0.97) translateX(48px);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Staggered element reveals */
+    .stagger-item {
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slide-active .stagger-1 { transition-delay: 0.05s; }
+    .slide-active .stagger-2 { transition-delay: 0.12s; }
+    .slide-active .stagger-3 { transition-delay: 0.20s; }
+    .slide-active .stagger-4 { transition-delay: 0.28s; }
+    .slide-active .stagger-5 { transition-delay: 0.36s; }
+
+    .slide-prev .stagger-item, .slide-next .stagger-item {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    .slide-active .stagger-item {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Custom subtle pulse */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-animation {
+      animation: pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-deepNavy text-slate-100 font-body antialiased min-h-screen flex flex-col items-center justify-center p-3 md:p-6 overflow-hidden select-none">
+
+  <!-- SVG Topographic Contour Curves in Background -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <svg class="absolute w-[180%] h-[180%] -top-[40%] -left-[40%] opacity-15 stroke-[#2B9CAE]" fill="none" stroke-width="1.2" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 0,300 Q 300,100 600,350 T 1200,280 T 1800,420 T 2400,200" />
+      <path d="M 0,450 Q 400,250 800,500 T 1500,400 T 2100,550 T 2600,380" />
+      <path d="M 0,600 Q 350,400 750,680 T 1400,550 T 2000,720 T 2600,520" />
+      <path d="M 0,750 Q 450,550 900,820 T 1600,700 T 2250,860 T 2800,680" />
+      <path d="M 0,900 Q 380,720 820,950 T 1500,850 T 2150,1000 T 2700,820" />
+      <ellipse cx="60%" cy="45%" rx="480" ry="260" transform="rotate(-15 1100 500)" stroke-dasharray="4 8" opacity="0.3" />
+      <ellipse cx="60%" cy="45%" rx="620" ry="340" transform="rotate(-15 1100 500)" opacity="0.2" />
+    </svg>
+    <div class="absolute inset-0 bg-gradient-to-t from-deepNavy via-transparent to-deepNavy/80"></div>
+  </div>
+
+  <!-- Main Presentation Container: 16:9 Stage Frame -->
+  <div class="relative z-10 w-full max-w-[1360px] aspect-[16/9] min-h-[680px] bg-cardNavy/90 backdrop-blur-xl border border-hairlineDark/70 rounded-2xl shadow-[0_24px_70px_rgba(4,36,60,0.65)] flex flex-col justify-between overflow-hidden">
+
+    <!-- Top Bar: Logo & Hackathon Meta Badge -->
+    <header class="w-full px-6 py-4 border-b border-hairlineDark/60 flex items-center justify-between bg-brandNavy/60 z-30">
+      <div class="flex items-center gap-3.5">
+        <div class="w-9 h-9 rounded-lg bg-accentTeal/15 border border-accentTeal/40 flex items-center justify-center text-accentTeal font-headline font-extrabold text-lg shadow-sm">
+          B
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-headline font-bold text-base text-white tracking-tight">Blinka</span>
+            <span class="font-headline font-semibold text-base text-accentTeal">PayAgent</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium tracking-wide bg-accentTeal/20 text-accentTeal border border-accentTeal/30 uppercase">
+              V4.8 AUTONOMOUS
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Interactive Slide Tabs for Immediate Stitch Validation -->
+      <div class="hidden md:flex items-center bg-deepNavy/80 p-1 rounded-xl border border-hairlineDark/80 gap-1 text-xs font-headline">
+        <button onclick="goToSlide(0)" id="quick-btn-0" class="px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 text-white bg-accentTeal/25 border border-accentTeal/50 shadow-sm flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-accentTeal"></span>
+          <span>01. Misión & Biometría</span>
+        </button>
+        <button onclick="goToSlide(1)" id="quick-btn-1" class="px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+          <span>02. El Dolor vs Blinka</span>
+        </button>
+        <button onclick="goToSlide(2)" id="quick-btn-2" class="px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+          <span>03. Gobernanza & Log</span>
+        </button>
+      </div>
+
+      <!-- Hackathon Badge Meta -->
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <p class="font-mono text-xs text-accentTeal font-medium tracking-wider uppercase">HACKATHON 30X · EQUIPO 404</p>
+          <p class="font-mono text-[10px] text-slate-400 font-normal">PITCH DECK PROTOTYPE · LATAM B2B</p>
+        </div>
+        <div class="w-2.5 h-2.5 rounded-full bg-statusApproved shadow-[0_0_8px_#10B981] pulse-animation"></div>
+      </div>
+    </header>
+
+    <!-- Stage Center: Interactive Presentation Slides Container -->
+    <main class="relative flex-1 w-full h-full overflow-hidden slide-stage p-6 sm:p-10 flex items-center justify-center">
+
+      <!-- ==================== SLIDE 01: PORTADA & CASO BIOMÉTRICO ==================== -->
+      <section id="slide-0" class="slide-panel slide-active absolute inset-6 sm:inset-10 flex flex-col justify-between">
+        
+        <!-- Top Tags -->
+        <div class="stagger-item stagger-1 flex items-center justify-between">
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium tracking-wide bg-accentTeal/15 text-accentTeal border border-accentTeal/30">
+            <span class="w-2 h-2 rounded-full bg-accentTeal"></span>
+            MISIÓN FINTECH AUTÓNOMA · STAGE 16:9
+          </span>
+          <span class="font-mono text-xs text-slate-400">SLIDE [ 01 / 03 ]</span>
+        </div>
+
+        <!-- Hero Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto">
+          
+          <div class="lg:col-span-7 space-y-5">
+            <h1 class="stagger-item stagger-2 font-headline font-extrabold text-3xl sm:text-5xl lg:text-5xl tracking-tight text-white leading-[1.12]">
+              Agentes IA que pagan por tu empresa <span class="text-transparent bg-clip-text bg-gradient-to-r from-accentTeal via-cyan-300 to-sky-400">sin perder el control</span>
+            </h1>
+            <p class="stagger-item stagger-3 font-body text-slate-300 text-base sm:text-lg max-w-xl font-normal leading-relaxed">
+              Eliminamos la fricción manual de portales bancarios y dispersiones repetitivas con una orquestación determinista auditada en cada paso. Dispersión en <span class="text-white font-semibold">&lt; 12 segundos</span> con salvaguardas SARLAFT.
+            </p>
+
+            <!-- Key metrics row with hover glow -->
+            <div class="stagger-item stagger-4 grid grid-cols-3 gap-3.5 pt-2 max-w-lg">
+              <div class="interactive-glow bg-deepNavy/80 border border-hairlineDark p-3.5 rounded-xl">
+                <div class="font-mono text-2xl font-bold text-accentTeal">99.4%</div>
+                <div class="font-body text-xs text-slate-300 mt-0.5">Autonomía Operativa</div>
+              </div>
+              <div class="interactive-glow bg-deepNavy/80 border border-hairlineDark p-3.5 rounded-xl">
+                <div class="font-mono text-2xl font-bold text-statusApproved">&lt; 12s</div>
+                <div class="font-body text-xs text-slate-300 mt-0.5">SLA Dispersión SPEI/ACH</div>
+              </div>
+              <div class="interactive-glow bg-deepNavy/80 border border-hairlineDark p-3.5 rounded-xl">
+                <div class="font-mono text-2xl font-bold text-white">0</div>
+                <div class="font-body text-xs text-slate-300 mt-0.5">Falsos Positivos SARLAFT</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telegram Biometric Card Demonstration -->
+          <div class="lg:col-span-5 stagger-item stagger-4">
+            <div class="interactive-glow bg-deepNavy/90 border border-accentTeal/30 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
+              <div class="absolute -right-8 -top-8 w-32 h-32 bg-accentTeal/10 rounded-full blur-2xl pointer-events-none"></div>
+              
+              <!-- Telegram Header -->
+              <div class="flex items-center justify-between pb-3.5 mb-3.5 border-b border-hairlineDark">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-accentTeal/20 border border-accentTeal/50 flex items-center justify-center text-accentTeal">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                  </div>
+                  <div>
+                    <div class="font-headline font-semibold text-xs text-white flex items-center gap-1.5">
+                      Blinka PayBot
+                      <span class="text-accentTeal text-[11px] font-mono">✓</span>
+                    </div>
+                    <div class="font-body text-[10px] text-slate-400">Canal Institucional CFO (2FA Biométrico)</div>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-statusApprovedBg text-statusApproved font-semibold border border-statusApproved/30">
+                  SESIÓN ACTIVA
+                </span>
+              </div>
+
+              <!-- Chat Message Bubble -->
+              <div class="space-y-3 font-body text-xs">
+                <div class="bg-brandNavy/90 p-3 rounded-xl border border-hairlineDark text-slate-200">
+                  <div class="flex items-center justify-between text-[11px] font-mono text-accentTeal mb-1">
+                    <span>⚡ ALERTA DE DISPERSIÓN</span>
+                    <span>14:32:08</span>
+                  </div>
+                  <p class="text-slate-300 text-xs">Factura <span class="font-mono text-white font-medium">#DS-1042</span> de <span class="text-white font-medium">DevStudio LatAm S.A.S</span> por <span class="font-mono text-accentTeal font-bold">$1,200.00 USD</span> lista para liquidación.</p>
+                  
+                  <div class="mt-2.5 pt-2 border-t border-hairlineDark/60 flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400">Validación SARLAFT/OFAC:</span>
+                    <span class="text-statusApproved font-mono font-medium">0 Coincidencias ✓</span>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] mt-1">
+                    <span class="text-slate-400">Caja Proyectada Post-Pago:</span>
+                    <span class="text-slate-200 font-mono font-medium">$47,050 USD</span>
+                  </div>
+                </div>
+
+                <!-- Action Button in Card -->
+                <div class="bg-accentTeal/10 border border-accentTeal/40 rounded-xl p-2.5 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-statusApproved"></span>
+                    <span class="font-headline font-semibold text-xs text-white">Auto-Aprobación Ejecutada</span>
+                  </div>
+                  <span class="font-mono text-[11px] text-accentTeal">SPEI #BLK-8921</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide Footer Note -->
+        <div class="stagger-item stagger-5 flex items-center justify-between pt-3 border-t border-hairlineDark/50 text-xs font-mono text-slate-400">
+          <span>01 // Visión General & Propuesta de Valor</span>
+          <span class="text-accentTeal font-medium">Blinka Autonomous Settlement Stack</span>
+        </div>
+      </section>
+
+      <!-- ==================== SLIDE 02: EL DOLOR VS SOLUCIÓN ==================== -->
+      <section id="slide-1" class="slide-panel slide-next absolute inset-6 sm:inset-10 flex flex-col justify-between">
+        
+        <!-- Top Tags -->
+        <div class="stagger-item stagger-1 flex items-center justify-between">
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium tracking-wide bg-statusScaled/15 text-statusScaled border border-statusScaled/30">
+            <span class="w-2 h-2 rounded-full bg-statusScaled"></span>
+            COMPARATIVA OPERATIVA FINANCIERA
+          </span>
+          <span class="font-mono text-xs text-slate-400">SLIDE [ 02 / 03 ]</span>
+        </div>
+
+        <!-- Center Comparison Columns -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto">
+          
+          <!-- Dolor Tradicional Card -->
+          <div class="interactive-glow bg-deepNavy/80 border border-statusRejected/40 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded text-xs font-headline font-bold uppercase tracking-wider bg-statusRejected/20 text-statusRejected border border-statusRejected/40">
+                  Modelo Manual Tradicional
+                </span>
+                <span class="material-symbols-outlined text-statusRejected text-xl">error</span>
+              </div>
+              <h3 class="font-headline font-bold text-xl text-white">4 a 6 horas diarias en portales bancarios</h3>
+              
+              <ul class="space-y-3 font-body text-xs sm:text-sm text-slate-300">
+                <li class="flex items-start gap-2.5">
+                  <span class="text-statusRejected font-bold font-mono">✕</span>
+                  <span>Carga manual de tokens 2FA por analistas, propensa a errores de digitación y transferencias duplicadas.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-statusRejected font-bold font-mono">✕</span>
+                  <span>Chequeos SARLAFT y listas restrictivas desincronizados, ejecutados días después de pagar.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-statusRejected font-bold font-mono">✕</span>
+                  <span>Riesgo de fraude de suplantación de cuenta bancaria mediante facturas PDF alteradas.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-hairlineDark/60 flex items-center justify-between font-mono text-xs text-slate-400">
+              <span>Tiempo de ciclo: <strong class="text-statusRejected">24-48 horas</strong></span>
+              <span class="text-statusRejected font-medium">Costo de error: Crítico</span>
+            </div>
+          </div>
+
+          <!-- Solución Blinka PayAgent Card -->
+          <div class="interactive-glow bg-deepNavy/80 border border-accentTeal/50 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-xl">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded text-xs font-headline font-bold uppercase tracking-wider bg-accentTeal/20 text-accentTeal border border-accentTeal/40">
+                  Blinka PayAgent Autónomo
+                </span>
+                <span class="material-symbols-outlined text-accentTeal text-xl">verified_user</span>
+              </div>
+              <h3 class="font-headline font-bold text-xl text-white">Ejecución determinista en menos de 12 segundos</h3>
+              
+              <ul class="space-y-3 font-body text-xs sm:text-sm text-slate-300">
+                <li class="flex items-start gap-2.5">
+                  <span class="text-accentTeal font-bold font-mono">✓</span>
+                  <span><strong>OCR Cuádruple:</strong> Extracción de RUT, NIT, detalle tributario y verificación de unicidad en 1.2 segundos.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-accentTeal font-bold font-mono">✓</span>
+                  <span><strong>Gobernanza Parametrizada:</strong> Pagos menores a $2,000 USD se dispersan solos si cumplen reglas; excepciones van al CFO en Telegram.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <span class="text-accentTeal font-bold font-mono">✓</span>
+                  <span><strong>Auditoría Criptográfica SHA-256:</strong> Cada decisión genera traza inmutable en caja blanca con explicabilidad legal.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-hairlineDark/60 flex items-center justify-between font-mono text-xs text-slate-400">
+              <span>Tiempo de ciclo: <strong class="text-statusApproved">&lt; 12 segundos</strong></span>
+              <span class="text-accentTeal font-medium">99.4% Automatizado</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Slide Footer Note -->
+        <div class="stagger-item stagger-5 flex items-center justify-between pt-3 border-t border-hairlineDark/50 text-xs font-mono text-slate-400">
+          <span>02 // Análisis de Impacto Operativo y Reducción de Riesgos</span>
+          <span class="text-accentTeal font-medium">Ahorro promedio: 82% en costos de tesorería</span>
+        </div>
+      </section>
+
+      <!-- ==================== SLIDE 03: REGLAS DE DECISIÓN & GOBERNANZA ==================== -->
+      <section id="slide-2" class="slide-panel slide-next absolute inset-6 sm:inset-10 flex flex-col justify-between">
+        
+        <!-- Top Tags -->
+        <div class="stagger-item stagger-1 flex items-center justify-between">
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium tracking-wide bg-statusApproved/15 text-statusApproved border border-statusApproved/30">
+            <span class="w-2 h-2 rounded-full bg-statusApproved"></span>
+            MOTOR DE DECISIÓN Y AUDITORÍA EXPLICABLE
+          </span>
+          <span class="font-mono text-xs text-slate-400">SLIDE [ 03 / 03 ]</span>
+        </div>
+
+        <!-- Content Matrix: Rules & Live Trace -->
+        <div class="my-auto space-y-4">
+          
+          <!-- Rules Badges Top Line -->
+          <div class="stagger-item stagger-2 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div class="interactive-glow bg-deepNavy/80 border border-hairlineDark p-3.5 rounded-xl">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-headline font-semibold text-xs text-slate-300">Regla L1: Límite Autónomo</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-accentTeal/20 text-accentTeal font-bold">$2,000 USD</span>
+              </div>
+              <p class="text-[11px] font-body text-slate-400">Monto superior escala a 2FA del CFO sin dispersar.</p>
+            </div>
+
+            <div class="interactive-glow bg-deepNavy/80 border border-hairlineDark p-3.5 rounded-xl">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-headline font-semibold text-xs text-slate-300">Regla L2: SARLAFT & OFAC</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-statusApprovedBg text-statusApproved font-bold">100% STRICT</span>
+              </div>
+              <p class="text-[11px] font-body text-slate-400">Bloqueo automático preventivo ante cualquier coincidencia.</p>
+            </div>
+
+            <div class="interactive-glow bg-deepNavy/80 border border-hairlineDark p-3.5 rounded-xl">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-headline font-semibold text-xs text-slate-300">Regla L3: Colchón de Caja</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-statusApprovedBg text-statusApproved font-bold">$10,000 USD</span>
+              </div>
+              <p class="text-[11px] font-body text-slate-400">Reserva intocable para solvencia operativa del negocio.</p>
+            </div>
+          </div>
+
+          <!-- Live Audit Decision Cards (Strict Status Tokens) -->
+          <div class="stagger-item stagger-3 space-y-2.5">
+            <div class="font-headline font-bold text-xs uppercase tracking-wider text-slate-400">
+              Simulación de Decisiones del Motor en Tiempo Real (Caja Blanca):
+            </div>
+
+            <!-- Case 1: AUTO_APPROVED -->
+            <div class="interactive-glow bg-deepNavy/90 border border-hairlineDark rounded-xl p-3 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-[#ECFDF5] text-[#10B981] border border-[#10B981]/30">
+                  AUTO_APPROVED
+                </span>
+                <div>
+                  <div class="font-headline font-semibold text-xs text-white">DevStudio LatAm S.A.S <span class="font-mono text-slate-400 text-[11px]">(#DS-1042)</span></div>
+                  <div class="text-[11px] text-slate-400 font-body">Monto dentro de límite autónomo. Listas SARLAFT 0 coinc. Saldo en bóveda validado.</div>
+                </div>
+              </div>
+              <div class="text-right sm:border-l sm:border-hairlineDark sm:pl-4">
+                <div class="font-mono font-bold text-accentTeal text-sm">$1,200.00 USD</div>
+                <div class="text-[10px] font-mono text-statusApproved">SPEI Ejecutado (1.4s)</div>
+              </div>
+            </div>
+
+            <!-- Case 2: SCALED_TO_HUMAN -->
+            <div class="interactive-glow bg-deepNavy/90 border border-hairlineDark rounded-xl p-3 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-[#FFFBEB] text-[#F59E0B] border border-[#F59E0B]/30">
+                  SCALED_TO_HUMAN
+                </span>
+                <div>
+                  <div class="font-headline font-semibold text-xs text-white">Logística Express MX <span class="font-mono text-slate-400 text-[11px]">(#LEM-3301)</span></div>
+                  <div class="text-[11px] text-slate-400 font-body">Monto excede umbral ($2k). Notificación prioritaria 2FA enviada a @cfo_alberto.</div>
+                </div>
+              </div>
+              <div class="text-right sm:border-l sm:border-hairlineDark sm:pl-4">
+                <div class="font-mono font-bold text-statusScaled text-sm">$6,000.00 USD</div>
+                <div class="text-[10px] font-mono text-statusScaled">Espera Firma Biométrica</div>
+              </div>
+            </div>
+
+            <!-- Case 3: REJECTED -->
+            <div class="interactive-glow bg-deepNavy/90 border border-hairlineDark rounded-xl p-3 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-[#FEF2F2] text-[#EF4444] border border-[#EF4444]/30">
+                  REJECTED
+                </span>
+                <div>
+                  <div class="font-headline font-semibold text-xs text-white">Global Consulting S.A.S <span class="font-mono text-slate-400 text-[11px]">(#BLK-8914)</span></div>
+                  <div class="text-[11px] text-slate-400 font-body">Alerta SARLAFT: Representante legal coincide con lista PEP preventiva. Desembolso bloqueado.</div>
+                </div>
+              </div>
+              <div class="text-right sm:border-l sm:border-hairlineDark sm:pl-4">
+                <div class="font-mono font-bold text-statusRejected text-sm">$3,100.00 USD</div>
+                <div class="text-[10px] font-mono text-statusRejected">Pago Congelado</div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Slide Footer Note -->
+        <div class="stagger-item stagger-5 flex items-center justify-between pt-3 border-t border-hairlineDark/50 text-xs font-mono text-slate-400">
+          <span>03 // Explicabilidad y Gobernanza Auditada en Cada Centavo</span>
+          <span class="text-accentTeal font-medium">Hash Ledger: 0x8f2a...c419</span>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Toolbar: Minimalist Floating Controller Pill -->
+    <footer class="w-full px-6 py-3.5 border-t border-hairlineDark/60 bg-brandNavy/80 flex items-center justify-between z-30">
+      
+      <!-- Slide Indicator Label -->
+      <div class="flex items-center gap-3 font-mono text-xs text-slate-400">
+        <span class="text-accentTeal font-semibold">DIAPOSITIVA</span>
+        <span id="current-slide-counter" class="text-white font-bold">01 / 03</span>
+      </div>
+
+      <!-- Center Minimalist Navigation Pill -->
+      <div class="flex items-center gap-2 bg-deepNavy/90 border border-hairlineDark px-3.5 py-1.5 rounded-full shadow-lg">
+        <!-- Prev Button -->
+        <button onclick="prevSlide()" class="p-1 text-slate-300 hover:text-accentTeal hover:bg-slate-800/80 rounded-full transition-colors flex items-center justify-center" title="Diapositiva Anterior (Flecha Izq)">
+          <span class="material-symbols-outlined text-lg">chevron_left</span>
+        </button>
+
+        <!-- Slide Dots -->
+        <div class="flex items-center gap-2 px-2">
+          <button onclick="goToSlide(0)" id="dot-0" class="w-6 h-2 rounded-full bg-accentTeal transition-all duration-300"></button>
+          <button onclick="goToSlide(1)" id="dot-1" class="w-2 h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all duration-300"></button>
+          <button onclick="goToSlide(2)" id="dot-2" class="w-2 h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all duration-300"></button>
+        </div>
+
+        <!-- Next Button -->
+        <button onclick="nextSlide()" class="p-1 text-slate-300 hover:text-accentTeal hover:bg-slate-800/80 rounded-full transition-colors flex items-center justify-center" title="Siguiente Diapositiva (Flecha Der o Espacio)">
+          <span class="material-symbols-outlined text-lg">chevron_right</span>
+        </button>
+      </div>
+
+      <!-- Right Controls: Transition Controller & Fullscreen Toggle -->
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-2 font-mono text-[11px] text-slate-400 bg-deepNavy/60 px-2.5 py-1 rounded-lg border border-hairlineDark/60">
+          <span class="w-1.5 h-1.5 rounded-full bg-accentTeal"></span>
+          <span>CURVA: cubic-bezier(0.16, 1, 0.3, 1)</span>
+        </div>
+        
+        <button onclick="toggleFullscreen()" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors border border-hairlineDark/60" title="Pantalla Completa">
+          <span class="material-symbols-outlined text-base">fullscreen</span>
+        </button>
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- Interactive Deck Vanilla JS Orchestrator -->
+  <script>
+    let currentSlide = 0;
+    const totalSlides = 3;
+    let isTransitioning = false;
+
+    function updateSlideUI() {
+      // Update Slide Panels
+      for (let i = 0; i < totalSlides; i++) {
+        const slide = document.getElementById(`slide-${i}`);
+        const dot = document.getElementById(`dot-${i}`);
+        const quickBtn = document.getElementById(`quick-btn-${i}`);
+
+        slide.classList.remove('slide-active', 'slide-prev', 'slide-next');
+
+        if (i === currentSlide) {
+          slide.classList.add('slide-active');
+          if (dot) {
+            dot.className = "w-6 h-2 rounded-full bg-accentTeal transition-all duration-300";
+          }
+          if (quickBtn) {
+            quickBtn.className = "px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 text-white bg-accentTeal/25 border border-accentTeal/50 shadow-sm flex items-center gap-1.5";
+            quickBtn.querySelector('span:first-child').className = "w-1.5 h-1.5 rounded-full bg-accentTeal";
+          }
+        } else if (i < currentSlide) {
+          slide.classList.add('slide-prev');
+          if (dot) {
+            dot.className = "w-2 h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all duration-300";
+          }
+          if (quickBtn) {
+            quickBtn.className = "px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center gap-1.5";
+            quickBtn.querySelector('span:first-child').className = "w-1.5 h-1.5 rounded-full bg-slate-600";
+          }
+        } else {
+          slide.classList.add('slide-next');
+          if (dot) {
+            dot.className = "w-2 h-2 rounded-full bg-slate-600 hover:bg-slate-400 transition-all duration-300";
+          }
+          if (quickBtn) {
+            quickBtn.className = "px-3.5 py-1.5 rounded-lg font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/60 flex items-center gap-1.5";
+            quickBtn.querySelector('span:first-child').className = "w-1.5 h-1.5 rounded-full bg-slate-600";
+          }
+        }
+      }
+
+      // Update Slide Counter
+      document.getElementById('current-slide-counter').textContent = `0${currentSlide + 1} / 0${totalSlides}`;
+    }
+
+    function goToSlide(index) {
+      if (index === currentSlide || isTransitioning) return;
+      isTransitioning = true;
+      currentSlide = index;
+      updateSlideUI();
+      setTimeout(() => { isTransitioning = false; }, 450);
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        goToSlide(currentSlide + 1);
+      } else {
+        goToSlide(0); // Loop to start
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        goToSlide(currentSlide - 1);
+      } else {
+        goToSlide(totalSlides - 1); // Loop to end
+      }
+    }
+
+    // Keyboard support (Arrows and Spacebar)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      }
+    });
+
+    // Fullscreen Toggle
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Fullscreen error: ${err.message}`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Initialize on load
+    updateSlideUI();
+  </script>
+</body>
+</html>
