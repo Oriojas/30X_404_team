@@ -102,58 +102,84 @@ function SlideTitle({ eyebrow, title, dark }) {
 
 function SlideCover() {
   return (
-    <div className="flex-1 grid grid-cols-12 gap-12 items-center">
-      <div className="col-span-7 space-y-7">
+    <div className="flex-1 grid grid-cols-12 gap-10 items-center">
+      <div className="col-span-7 space-y-6">
         <Eyebrow dark>Hackathon 30X · Reto Blinka</Eyebrow>
-        <h1 className="font-display font-extrabold text-[72px] leading-[1.02] tracking-tight">
+        <h1 className="font-display font-extrabold text-[68px] leading-[1.02] tracking-tight">
           Blinka <span className="text-brand-teal">PayAgent</span>
         </h1>
-        <p className="font-display font-semibold text-[28px] leading-[1.3] text-slate-100 max-w-[640px]">
+        <p className="font-display font-semibold text-[26px] leading-[1.3] text-slate-100 max-w-[640px]">
           Agentes IA de decisión de pagos con gobernanza financiera.
         </p>
-        <p className="text-[18px] leading-relaxed text-slate-300 max-w-[600px]">
-          Cero pagos indebidos, conversión de divisas sin sobrecosto y trazabilidad total.
+        <p className="text-[17px] leading-relaxed text-slate-300 max-w-[600px]">
+          Cero pagos indebidos, normalización multidivisa a USD y trazabilidad total.
         </p>
-        <div className="inline-flex items-center gap-3 rounded-md border border-white/15 bg-white/5 px-5 py-3 text-[16px] text-slate-100">
+        <div className="inline-flex items-center gap-3 rounded-md border border-white/15 bg-white/5 px-5 py-3 text-[15px] text-slate-100">
           <Icon name="verified_user" className="text-cyan-300 text-[22px]" />
           Un proceso autónomo, seguro y 100% auditable.
         </div>
       </div>
 
-      {/* Mockup: Telegram → decisión */}
-      <div className="col-span-5">
-        <div className="rounded-md border border-white/15 bg-white/5 p-6 space-y-4">
-          <div className="flex items-center gap-2 text-[12px] font-mono text-slate-300">
-            <Icon name="send" className="text-[16px] text-cyan-300" />
-            Telegram · Blinka PayBot
+      {/* Mockup Dual: Telegram → Caso Biométrico HITL y AWS Recurrente */}
+      <div className="col-span-5 space-y-3">
+        <div className="rounded-md border border-white/15 bg-white/5 p-4 space-y-3">
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span className="flex items-center gap-2">
+              <Icon name="send" className="text-[15px] text-cyan-300" />
+              Telegram · Blinka PayBot
+            </span>
+            <span className="text-cyan-300 font-semibold">Caso 1: Imprevisto HITL</span>
           </div>
 
-          <div className="ml-auto max-w-[300px] rounded-md rounded-tr-none bg-brand-steel p-3.5 space-y-2">
-            <div className="flex items-center gap-3 rounded border border-white/10 bg-black/20 p-2.5">
-              <Icon name="picture_as_pdf" className="text-red-300 text-[24px]" />
-              <div className="font-mono text-[12px] leading-tight">
-                Factura_AWS_Cloud.pdf
-                <div className="text-slate-300 text-[11px]">1.4 MB</div>
+          <div className="rounded-md border border-white/10 bg-white p-3 text-brand-navy space-y-2">
+            <div className="flex items-center justify-between font-mono text-[10px] text-brand-muted">
+              <span>Cuenta_Cobro_Biometrico.pdf</span>
+              <span className="text-amber-600 font-bold">HITL-02 · Proveedor Nuevo</span>
+            </div>
+            <div className="flex items-center justify-between font-mono text-[11px]">
+              <div>
+                <span className="text-[9px] text-brand-muted block font-sans">Proveedor</span>
+                Técnico Urgencias SAS
               </div>
+              <div className="text-right">
+                <span className="text-[9px] text-brand-muted block font-sans">Monto Convertido</span>
+                $107.14 USD
+              </div>
+            </div>
+            <div className="pt-1 flex items-center justify-between border-t border-slate-100">
+              <span className="text-[10px] text-slate-500 font-sans">Aprobado en Dashboard por CFO</span>
+              <StatusBadge status="HUMAN_APPROVED" size="slide" />
             </div>
           </div>
+        </div>
 
-          <div className="rounded-md rounded-tl-none border border-white/10 bg-white p-4 text-brand-navy space-y-3">
-            <div className="flex items-center justify-between font-mono text-[11px] text-brand-muted">
-              <span>Extracción OCR · Gemini Flash</span>
-              <span>Capas 1–4 ✓</span>
+        <div className="rounded-md border border-white/15 bg-white/5 p-4 space-y-3">
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span className="flex items-center gap-2">
+              <Icon name="cloud_done" className="text-[15px] text-emerald-400" />
+              Gasto Recurrente
+            </span>
+            <span className="text-emerald-400 font-semibold">Caso 2: Autonomía</span>
+          </div>
+
+          <div className="rounded-md border border-white/10 bg-white p-3 text-brand-navy space-y-2">
+            <div className="flex items-center justify-between font-mono text-[10px] text-brand-muted">
+              <span>Factura_AWS_Cloud.pdf</span>
+              <span className="text-emerald-600 font-bold">Capas 1–4 Superadas ✓</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 font-mono text-[12px]">
+            <div className="flex items-center justify-between font-mono text-[11px]">
               <div>
-                <div className="font-sans text-[10px] text-brand-muted">Proveedor</div>
-                AWS Cloud Services
+                <span className="text-[9px] text-brand-muted block font-sans">Proveedor</span>
+                Amazon Web Services LATAM
               </div>
-              <div>
-                <div className="font-sans text-[10px] text-brand-muted">Monto convertido</div>
+              <div className="text-right">
+                <span className="text-[9px] text-brand-muted block font-sans">Monto Convertido</span>
                 $285.71 USD
               </div>
             </div>
-            <StatusBadge status="AUTO_APPROVED" size="slide" />
+            <div className="pt-1 flex items-center justify-end border-t border-slate-100">
+              <StatusBadge status="AUTO_APPROVED" size="slide" />
+            </div>
           </div>
         </div>
       </div>
@@ -164,41 +190,49 @@ function SlideCover() {
 function SlideProblem() {
   const pains = [
     {
-      icon: 'hourglass_top',
-      title: 'Ineficiencia operativa',
-      text: 'Cientos de horas perdidas revisando facturas por correo, WhatsApp o PDF a mano.'
+      icon: 'build_circle',
+      title: 'El calvario de los imprevistos',
+      subtitle: 'Ad-Hoc / Long-Tail Spend',
+      text: 'Un sábado falla el lector biométrico. El técnico de urgencia manda una cuenta de cobro informal; al ser proveedor nuevo rebota en chats buscando aprobación, se paga tarde y se quema la relación comercial.'
     },
     {
       icon: 'currency_exchange',
-      title: 'Fricción multidivisa',
-      text: 'Facturas en COP, MXN, EUR, BRL o ARS pagadas desde tesorerías en USD, con altas comisiones y discrepancias cambiarias.'
+      title: 'Fricción multidivisa en LatAm',
+      subtitle: 'Discrepancias Cambiarias',
+      text: 'Facturas en COP, MXN, EUR, BRL o ARS pagadas desde tesorerías en USD. La falta de normalización transparente genera pérdidas operativas y descuadres presupuestales.'
     },
     {
       icon: 'gpp_maybe',
       title: 'Riesgo de pagos indebidos',
-      text: 'Cobros duplicados (<30 días) o proveedores en listas restrictivas (SARLAFT / OFAC / ONU) que pasan inadvertidos.'
+      subtitle: 'Falta de Trazabilidad',
+      text: 'Cobros duplicados reenviados en menos de 30 días o proveedores no verificados en SARLAFT/OFAC que terminan aprobándose por fatiga administrativa.'
     }
   ]
   return (
     <>
-      <SlideTitle eyebrow="El problema" title="El cuello de botella de cuentas por pagar en empresas globales." />
-      <div className="flex-1 grid grid-cols-3 gap-6 items-center">
+      <SlideTitle eyebrow="El problema real" title="La ilusión del control: los imprevistos paralizan la operación." />
+      <div className="flex-1 grid grid-cols-3 gap-6 items-center my-auto">
         {pains.map((p, i) => (
-          <div key={p.title} className="rounded-md border border-brand-border bg-white p-7 h-[300px] flex flex-col gap-4 shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 rounded bg-slate-100 border border-brand-border flex items-center justify-center text-brand-teal">
-                <Icon name={p.icon} className="text-[28px]" />
+          <div key={p.title} className="rounded-md border border-brand-border bg-white p-6 h-[320px] flex flex-col justify-between shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded bg-slate-100 border border-brand-border flex items-center justify-center text-brand-teal">
+                  <Icon name={p.icon} className="text-[26px]" />
+                </div>
+                <span className="font-mono text-[12px] text-brand-muted">0{i + 1}</span>
               </div>
-              <span className="font-mono text-[13px] text-brand-muted">0{i + 1}</span>
+              <div>
+                <h3 className="font-display font-semibold text-[20px] leading-tight">{p.title}</h3>
+                <span className="font-mono text-[11px] text-brand-teal uppercase tracking-wider block mt-0.5">{p.subtitle}</span>
+              </div>
+              <p className="text-[14px] leading-relaxed text-brand-muted">{p.text}</p>
             </div>
-            <h3 className="font-display font-semibold text-[22px] leading-tight">{p.title}</h3>
-            <p className="text-[16px] leading-relaxed text-brand-muted">{p.text}</p>
           </div>
         ))}
       </div>
-      <div className="rounded-md border border-brand-border bg-white px-6 py-4 text-[17px] text-brand-steel flex items-center gap-3">
-        <Icon name="timer" className="text-brand-teal" />
-        Las validaciones manuales repetitivas consumen la mayor parte del tiempo de los equipos de finanzas.
+      <div className="rounded-md border border-brand-border bg-white px-5 py-3 text-[15px] text-brand-steel flex items-center gap-3">
+        <Icon name="error_outline" className="text-amber-600" />
+        Las cuentas grandes recurrentes están vigiladas; el gasto imprevisto y la falta de reglas destruyen tiempo y relaciones clave.
       </div>
     </>
   )
@@ -206,130 +240,152 @@ function SlideProblem() {
 
 function SlideSolution() {
   const decisions = [
-    { status: 'AUTO_APPROVED', verb: 'Pagar', text: 'Proveedor verificado, dentro del umbral y con saldo.' },
-    { status: 'REJECTED', verb: 'Frenar', text: 'Duplicado o coincidencia en lista restrictiva.' },
-    { status: 'SCALED_TO_HUMAN', verb: 'Escalar', text: 'Supera el umbral, proveedor nuevo o saldo insuficiente. Decide una persona en el dashboard.' }
+    { status: 'AUTO_APPROVED', verb: 'Pagar', text: 'Proveedor verificado en lista permitida, bajo umbral (<$2,000 USD) y con saldo.' },
+    { status: 'REJECTED', verb: 'Frenar', text: 'Cobro duplicado (<30 días) o coincidencia en lista restrictiva (SARLAFT/OFAC).' },
+    { status: 'SCALED_TO_HUMAN', verb: 'Escalar', text: 'Supera el umbral, es proveedor nuevo o saldo insuficiente. Decide una persona.' }
   ]
   const pillars = [
-    { icon: 'bolt', title: 'Autonomía', text: 'Facturas de proveedores de la lista permitida y bajo $2,000 USD se aprueban solas.' },
-    { icon: 'shield', title: 'Seguridad', text: 'Rechazo inmediato de duplicados y listas restrictivas; ante la duda, escala.' },
+    { icon: 'bolt', title: 'Autonomía', text: 'Proveedores verificados y facturas bajo $2,000 USD se aprueban solas.' },
+    { icon: 'shield', title: 'Seguridad', text: 'Rechazo inmediato de duplicados con 0 llamadas a LLM; ante la duda, escala.' },
     { icon: 'visibility', title: 'Explicabilidad', text: 'Cada decisión con justificación en lenguaje natural y regla disparada.' }
   ]
   return (
-    <>
-      <SlideTitle eyebrow="La solución" title="Gobernanza financiera autónomamente ejecutada." />
-      <p className="text-[18px] text-brand-muted max-w-[900px] mt-3">
-        Un agente conectado a Telegram lee facturas multimodales, aplica las reglas de negocio de Blinka y emite la
-        decisión idónea.
-      </p>
+    <div className="flex-1 flex flex-col justify-between py-2">
+      <div>
+        <SlideTitle eyebrow="La solución" title="Gobernanza financiera autónomamente ejecutada." />
+        <p className="text-[16px] text-brand-muted max-w-[950px] mt-2">
+          Un agente conectado a Telegram lee facturas multimodales con Gemini Flash, aplica las reglas deterministas de Blinka y emite la decisión idónea.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-3 gap-6 mt-10">
+      <div className="grid grid-cols-3 gap-5 my-3">
         {decisions.map((d) => (
-          <div key={d.verb} className="rounded-md border border-brand-border bg-white p-6 space-y-3 shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
+          <div key={d.verb} className="rounded-md border border-brand-border bg-white p-5 space-y-2 shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
             <StatusBadge status={d.status} size="slideLg" />
-            <div className="font-display font-bold text-[34px] leading-none">{d.verb}</div>
-            <p className="text-[15px] leading-relaxed text-brand-muted">{d.text}</p>
+            <div className="font-display font-bold text-[30px] leading-none">{d.verb}</div>
+            <p className="text-[14px] leading-relaxed text-brand-muted">{d.text}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6 mt-10 flex-1 items-start">
+      {/* Franja de Aprobación Humana (HITL) */}
+      <div className="rounded-md border border-cyan-200 bg-cyan-50/70 px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-brand-teal text-white flex items-center justify-center font-bold text-sm">
+            <Icon name="how_to_reg" className="text-[18px]" />
+          </div>
+          <div>
+            <span className="font-display font-semibold text-[15px] text-brand-navy block">
+              Ciclo Human-in-the-Loop (HITL) en Dashboard Web
+            </span>
+            <span className="text-[13px] text-brand-muted">
+              El CFO revisa la justificación y autoriza en 1 clic con revalidación de solvencia en tiempo real.
+            </span>
+          </div>
+        </div>
+        <StatusBadge status="HUMAN_APPROVED" size="slide" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-5 my-2 items-start">
         {pillars.map((p) => (
-          <div key={p.title} className="flex gap-4">
-            <div className="w-11 h-11 shrink-0 rounded bg-brand-navy text-brand-teal flex items-center justify-center">
-              <Icon name={p.icon} className="text-[24px]" />
+          <div key={p.title} className="flex gap-3">
+            <div className="w-9 h-9 shrink-0 rounded bg-brand-navy text-brand-teal flex items-center justify-center">
+              <Icon name={p.icon} className="text-[20px]" />
             </div>
             <div>
-              <div className="font-display font-semibold text-[19px]">{p.title}</div>
-              <p className="text-[15px] leading-relaxed text-brand-muted mt-1">{p.text}</p>
+              <div className="font-display font-semibold text-[16px]">{p.title}</div>
+              <p className="text-[13px] leading-relaxed text-brand-muted mt-0.5">{p.text}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <p className="font-mono text-[12px] text-brand-muted">
-        * El agente decide y registra; no ejecuta pagos reales ni mueve dinero.
+      <p className="font-mono text-[11px] text-brand-muted">
+        * El agente decide y registra con explicabilidad; no ejecuta pagos reales ni mueve dinero sin autorización.
       </p>
-    </>
+    </div>
   )
 }
 
 function SlideArchitecture() {
   const coreSteps = [
     { n: '1', title: 'Gemini Flash', sub: 'OCR multimodal + extracción JSON' },
-    { n: '2', title: 'FX Engine', sub: 'Normaliza divisas a USD (tasas internas)' },
+    { n: '2', title: 'FX Engine', sub: 'Normaliza divisas a USD (tasas ref.)' },
     { n: '3', title: 'Reglas Blinka', sub: '4 capas deterministas · sin LLM' },
     { n: '4', title: 'Audit Logger', sub: 'Explicación en lenguaje natural' }
   ]
   const layers = [
-    { n: 'Capa 1', title: 'Compliance & SARLAFT', text: 'OFAC / ONU / GAFI, cuentas, PEP y NIT' },
-    { n: 'Capa 2', title: 'Integridad', text: 'Duplicados (30 días) y confianza OCR ≥ 85%' },
-    { n: 'Capa 3', title: 'Solvencia', text: 'Saldo en Blinka y presupuesto del período' },
-    { n: 'Capa 4', title: 'Gobierno HITL', text: 'Umbral $2,000 USD y proveedor nuevo' }
+    { n: 'Capa 1', title: 'Compliance & SARLAFT', text: 'OFAC / ONU / GAFI, cuentas, PEP y validación de NIT' },
+    { n: 'Capa 2', title: 'Integridad & Duplicados', text: 'Hash SHA-256 (30 días, 0 LLM) y confianza OCR ≥ 85%' },
+    { n: 'Capa 3', title: 'Solvencia Financiera', text: 'Saldo disponible Blinka, colchón y presupuesto mensual' },
+    { n: 'Capa 4', title: 'Gobierno HITL', text: 'Límite autónomo ($2,000 USD) y proveedores nuevos' }
   ]
   return (
     <>
-      <SlideTitle eyebrow="Arquitectura" title="Hexagonal, desacoplada y determinista." />
+      <SlideTitle eyebrow="Arquitectura técnica" title="Hexagonal, desacoplada y 100% determinista." />
 
-      <div className="grid grid-cols-12 gap-4 mt-6 items-stretch">
+      <div className="grid grid-cols-12 gap-4 mt-5 items-stretch">
         {/* Entrada */}
-        <div className="col-span-2 rounded-md border border-brand-border bg-white p-4 space-y-3">
-          <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted">Entrada</div>
-          <div className="rounded border border-brand-teal bg-cyan-50 px-3 py-2 text-[14px] font-semibold flex items-center gap-2">
-            <Icon name="send" className="text-[18px] text-brand-teal" /> Telegram
+        <div className="col-span-3 rounded-md border border-brand-border bg-white p-4 space-y-2.5">
+          <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted">Entradas Desacopladas</div>
+          <div className="rounded border border-brand-teal bg-cyan-50 px-3 py-1.5 text-[13px] font-semibold flex items-center gap-2">
+            <Icon name="send" className="text-[17px] text-brand-teal" /> Telegram Webhook (MVP)
           </div>
-          <div className="rounded border border-dashed border-slate-300 px-3 py-2 text-[13px] text-brand-muted">
-            WhatsApp · Correo
-            <div className="font-mono text-[10px]">canales futuros</div>
+          <div className="rounded border border-brand-teal bg-cyan-50 px-3 py-1.5 text-[13px] font-semibold flex items-center gap-2">
+            <Icon name="upload_file" className="text-[17px] text-brand-teal" /> Subida Web API / REST
+          </div>
+          <div className="rounded border border-dashed border-slate-300 px-3 py-1 text-[11px] text-brand-muted">
+            WhatsApp · Correo Corporativo (Canales Futuros)
           </div>
         </div>
 
         <div className="col-span-1 flex items-center justify-center text-brand-teal">
-          <Icon name="arrow_forward" className="text-[28px]" />
+          <Icon name="arrow_forward" className="text-[26px]" />
         </div>
 
         {/* Core */}
-        <div className="col-span-6 rounded-md border border-brand-navy bg-white p-4 space-y-3">
+        <div className="col-span-5 rounded-md border border-brand-navy bg-white p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted">Core del agente · FastAPI</div>
+            <span className="font-mono text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">136 Tests Activos</span>
           </div>
           <div className="grid grid-cols-4 gap-2">
             {coreSteps.map((s) => (
-              <div key={s.n} className="rounded border border-brand-border bg-brand-bg p-3 min-h-[104px]">
+              <div key={s.n} className="rounded border border-brand-border bg-brand-bg p-2.5 min-h-[96px]">
                 <div className="font-mono text-[11px] text-brand-teal font-bold">{s.n}</div>
-                <div className="font-display font-semibold text-[15px] leading-tight mt-1">{s.title}</div>
-                <div className="text-[12px] text-brand-muted leading-snug mt-1">{s.sub}</div>
+                <div className="font-display font-semibold text-[14px] leading-tight mt-1">{s.title}</div>
+                <div className="text-[11px] text-brand-muted leading-snug mt-1">{s.sub}</div>
               </div>
             ))}
           </div>
         </div>
 
         <div className="col-span-1 flex items-center justify-center text-brand-teal">
-          <Icon name="arrow_forward" className="text-[28px]" />
+          <Icon name="arrow_forward" className="text-[26px]" />
         </div>
 
         {/* Salida */}
-        <div className="col-span-2 rounded-md border border-brand-border bg-white p-4 space-y-3">
+        <div className="col-span-2 rounded-md border border-brand-border bg-white p-4 space-y-2.5">
           <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted">Persistencia / UI</div>
-          <div className="rounded border border-brand-border bg-brand-bg px-3 py-2 text-[14px] font-semibold flex items-center gap-2">
-            <Icon name="database" className="text-[18px] text-brand-steel" /> PostgreSQL
+          <div className="rounded border border-brand-border bg-brand-bg px-3 py-2 text-[13px] font-semibold flex items-center gap-2">
+            <Icon name="database" className="text-[17px] text-brand-steel" /> PostgreSQL
           </div>
-          <div className="rounded border border-brand-border bg-brand-bg px-3 py-2 text-[14px] font-semibold flex items-center gap-2">
-            <Icon name="dashboard" className="text-[18px] text-brand-steel" /> Dashboard React
+          <div className="rounded border border-brand-border bg-brand-bg px-3 py-2 text-[13px] font-semibold flex items-center gap-2">
+            <Icon name="dashboard" className="text-[17px] text-brand-steel" /> Dashboard React
           </div>
         </div>
       </div>
 
-      <div className="mt-7 flex-1">
-        <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted mb-3">
-          Pipeline de 4 capas · se detiene ante la primera falla crítica
+      <div className="mt-6 flex-1">
+        <div className="font-mono text-[11px] uppercase tracking-widest text-brand-muted mb-2.5">
+          Pipeline de 4 capas · REJECTED detiene de inmediato, alertas de escalamiento se acumulan
         </div>
         <div className="grid grid-cols-4 gap-4">
           {layers.map((l) => (
-            <div key={l.n} className="rounded-md border border-brand-border bg-white p-4 border-t-2 border-t-brand-teal">
+            <div key={l.n} className="rounded-md border border-brand-border bg-white p-3.5 border-t-2 border-t-brand-teal">
               <div className="font-mono text-[11px] font-bold text-brand-teal">{l.n}</div>
-              <div className="font-display font-semibold text-[17px] mt-1">{l.title}</div>
-              <p className="text-[13px] text-brand-muted leading-snug mt-1.5">{l.text}</p>
+              <div className="font-display font-semibold text-[16px] mt-1">{l.title}</div>
+              <p className="text-[12px] text-brand-muted leading-snug mt-1">{l.text}</p>
             </div>
           ))}
         </div>
@@ -341,83 +397,83 @@ function SlideArchitecture() {
 function SlideAudit() {
   const rows = [
     {
-      vendor: 'AWS Cloud Services',
+      vendor: 'COMCEL S.A. (#13489CAV)',
+      original: '173,360 COP',
+      usd: '$41.28',
+      status: 'AUTO_APPROVED',
+      rule: '—',
+      why: 'Factura procesada vía Telegram Bot. Proveedor en lista permitida, saldo suficiente y dentro del límite autónomo.'
+    },
+    {
+      vendor: 'PROVEEDOR_DESCONOCIDO (#SIN_NUMERO)',
+      original: '$0.00 COP',
+      usd: '$0.00',
+      status: 'SCALED_TO_HUMAN',
+      rule: 'INTEG-03 · HITL-02',
+      why: 'Lectura ambigua o ilegible (confianza 0%). Beneficiario fuera de lista permitida. Freno preventivo inmediato.'
+    },
+    {
+      vendor: 'PROVEEDOR_DESCONOCIDO (#SIN_NUMERO)',
+      original: '$0.00 COP',
+      usd: '$0.00',
+      status: 'HUMAN_REJECTED',
+      rule: 'HITL-02',
+      why: 'Rechazado manualmente por CFO Demo desde el dashboard. Nota: "Se rechaza por no ser legible".'
+    },
+    {
+      vendor: 'Amazon Web Services LATAM',
       original: '1,200,000 COP',
       usd: '$285.71',
       status: 'AUTO_APPROVED',
       rule: '—',
-      why: 'Proveedor verificado, saldo suficiente y dentro del límite autónomo.'
-    },
-    {
-      vendor: 'AWS Cloud Services',
-      original: '1,200,000 COP',
-      usd: '$285.71',
-      status: 'REJECTED',
-      rule: 'INTEG-01',
-      why: 'Cobro duplicado detectado dentro de la ventana de 30 días.'
-    },
-    {
-      vendor: 'Oracle Enterprise',
-      original: '3,200 EUR',
-      usd: '$3,478.26',
-      status: 'SCALED_TO_HUMAN',
-      rule: 'HITL-01',
-      why: 'Excede el límite autónomo de $2,000 USD. Requiere aprobación humana.'
-    },
-    {
-      vendor: 'Logística Express MX',
-      original: '117,000 MXN',
-      usd: '$6,000.00',
-      status: 'HUMAN_APPROVED',
-      rule: 'HITL-01',
-      why: 'Escalada por el umbral; aprobada por el CFO en el dashboard, con nota en el Audit Log.'
+      why: 'Factura recurrente cloud verificada en lista permitida y aprobada automáticamente dentro de presupuesto.'
     }
   ]
   return (
     <>
-      <SlideTitle eyebrow="Demo · Audit Log" title="Transparencia y control en tiempo real." />
+      <SlideTitle eyebrow="Demo en vivo · Audit Log" title="Transparencia y trazabilidad total en tiempo real." />
 
-      <div className="mt-6 rounded-md border border-brand-border bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
-        <div className="grid grid-cols-[1.4fr_1.1fr_0.8fr_1.5fr_0.8fr_2.6fr] gap-4 px-5 py-3 bg-brand-bg border-b border-brand-border font-mono text-[11px] uppercase tracking-wider text-brand-muted">
+      <div className="mt-5 rounded-md border border-brand-border bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(4,36,60,0.04)]">
+        <div className="grid grid-cols-[1.5fr_1.1fr_0.8fr_1.5fr_0.8fr_2.5fr] gap-4 px-5 py-2.5 bg-brand-bg border-b border-brand-border font-mono text-[11px] uppercase tracking-wider text-brand-muted">
           <span>Proveedor</span>
           <span>Monto original</span>
           <span>USD</span>
           <span>Estado</span>
           <span>Regla</span>
-          <span>Explicación</span>
+          <span>Explicación en Audit Log</span>
         </div>
         {rows.map((r, i) => (
           <div
             key={i}
-            className="grid grid-cols-[1.4fr_1.1fr_0.8fr_1.5fr_0.8fr_2.6fr] gap-4 px-5 py-6 items-center border-b border-slate-100 last:border-b-0 text-[15px]"
+            className="grid grid-cols-[1.5fr_1.1fr_0.8fr_1.5fr_0.8fr_2.5fr] gap-4 px-5 py-4 items-center border-b border-slate-100 last:border-b-0 text-[14px]"
           >
-            <span className="font-semibold">{r.vendor}</span>
-            <span className="font-mono tabular-data">{r.original}</span>
-            <span className="font-mono tabular-data font-semibold">{r.usd}</span>
+            <span className="font-semibold text-brand-navy">{r.vendor}</span>
+            <span className="font-mono tabular-data text-slate-600">{r.original}</span>
+            <span className="font-mono tabular-data font-semibold text-brand-navy">{r.usd}</span>
             <span>
               <StatusBadge status={r.status} size="slide" />
             </span>
-            <span className="font-mono text-[13px] text-brand-steel">{r.rule}</span>
-            <span className="text-[13px] leading-snug text-brand-muted">{r.why}</span>
+            <span className="font-mono text-[12px] text-brand-steel">{r.rule}</span>
+            <span className="text-[12px] leading-snug text-brand-muted">{r.why}</span>
           </div>
         ))}
       </div>
 
-      <div className="flex-1 flex items-end justify-between gap-6">
-        <div className="flex flex-wrap gap-3 text-[14px] text-brand-steel">
-          {['Umbral configurable', 'Detalle por factura', 'Regla disparada', 'Aprobación humana en el dashboard'].map((t) => (
-            <span key={t} className="inline-flex items-center gap-2 rounded border border-brand-border bg-white px-3 py-1.5">
-              <Icon name="check_circle" className="text-brand-teal text-[18px]" />
+      <div className="flex-1 flex items-end justify-between gap-6 pb-2">
+        <div className="flex flex-wrap gap-2.5 text-[13px] text-brand-steel">
+          {['Umbrales configurables', 'Detalle por factura', 'Regla disparada visual', 'Aprobación interactiva en 1 clic'].map((t) => (
+            <span key={t} className="inline-flex items-center gap-1.5 rounded border border-brand-border bg-white px-3 py-1">
+              <Icon name="check_circle" className="text-brand-teal text-[16px]" />
               {t}
             </span>
           ))}
         </div>
         <a
           href="#auditoria"
-          className="inline-flex items-center gap-2 rounded bg-brand-navy hover:bg-brand-steel text-white px-5 py-3 font-semibold text-[15px] transition-colors"
+          className="inline-flex items-center gap-2 rounded bg-brand-navy hover:bg-brand-steel text-white px-5 py-2.5 font-semibold text-[14px] transition-colors"
         >
           Abrir dashboard en vivo
-          <Icon name="arrow_forward" className="text-[18px]" />
+          <Icon name="arrow_forward" className="text-[16px]" />
         </a>
       </div>
     </>
@@ -427,44 +483,181 @@ function SlideAudit() {
 function SlideImpact() {
   const metrics = [
     { big: '~90%', label: 'menos carga manual', note: 'Estimación de diseño' },
-    { big: '5+', label: 'divisas normalizadas', note: 'COP, MXN, EUR, BRL, ARS a USD' },
     { big: '0', label: 'pagos fuera de reglas', note: 'Por diseño: ante la duda, escala' },
-    { big: '1', label: 'llamada a Gemini por factura', note: 'Reglas sin costo de inferencia' }
+    { big: '1', label: 'llamada a Gemini por doc.', note: '0 llamadas en duplicados (SHA-256)' },
+    { big: '8/8', label: 'casos trampa superados', note: 'Test Suite oficial del reto Blinka' }
   ]
   return (
-    <>
-      <SlideTitle dark eyebrow="Impacto y viabilidad" title="Resultados medibles para Blinka y sus clientes." />
+    <div className="flex-1 flex flex-col justify-between py-2">
+      <div>
+        <SlideTitle dark eyebrow="Impacto y viabilidad" title="Resultados medibles para Blinka y sus clientes." />
 
-      <div className="grid grid-cols-4 gap-5 mt-8">
-        {metrics.map((m) => (
-          <div key={m.label} className="rounded-md border border-white/15 bg-white/5 p-6 space-y-2">
-            <div className="font-display font-extrabold text-[48px] leading-none text-cyan-300">{m.big}</div>
-            <div className="font-display font-semibold text-[18px] leading-snug">{m.label}</div>
-            <div className="font-mono text-[11px] text-slate-300">{m.note}</div>
-          </div>
-        ))}
+        <div className="grid grid-cols-4 gap-5 mt-6">
+          {metrics.map((m) => (
+            <div key={m.label} className="rounded-md border border-white/15 bg-white/5 p-5 space-y-1.5">
+              <div className="font-display font-extrabold text-[44px] leading-none text-cyan-300">{m.big}</div>
+              <div className="font-display font-semibold text-[17px] leading-snug">{m.label}</div>
+              <div className="font-mono text-[11px] text-slate-300">{m.note}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-6 items-end">
-        <div className="col-span-7 space-y-3">
-          <div className="font-mono text-[12px] uppercase tracking-widest text-slate-300">Siguiente paso</div>
-          <p className="text-[19px] leading-relaxed text-slate-100">
-            Desplegado en Railway, código abierto en GitHub y listo para escalar a WhatsApp y correo corporativo sin
-            tocar la lógica de negocio.
+      <div className="grid grid-cols-12 gap-6 items-end pb-3">
+        <div className="col-span-7 space-y-2">
+          <div className="font-mono text-[11px] uppercase tracking-widest text-slate-300">Viabilidad de Implementación</div>
+          <p className="text-[17px] leading-relaxed text-slate-100">
+            Desplegado en producción en Railway, normalización automática de 5+ divisas (COP, MXN, EUR, BRL, ARS),
+            código abierto en GitHub y preparado para escalar a WhatsApp y correo sin tocar el motor de reglas.
           </p>
         </div>
-        <div className="col-span-5 rounded-md border border-white/15 bg-white/5 p-5 space-y-3 font-mono text-[14px]">
+        <div className="col-span-5 rounded-md border border-white/15 bg-white/5 p-4 space-y-2.5 font-mono text-[13px]">
           <div className="flex items-center gap-3">
-            <Icon name="language" className="text-cyan-300 text-[20px]" />
+            <Icon name="language" className="text-cyan-300 text-[18px]" />
             30x404team-production.up.railway.app
           </div>
           <div className="flex items-center gap-3">
-            <Icon name="code" className="text-cyan-300 text-[20px]" />
+            <Icon name="code" className="text-cyan-300 text-[18px]" />
             github.com/Oriojas/30X_404_team
           </div>
         </div>
       </div>
-    </>
+    </div>
+  )
+}
+
+function SlideCosts() {
+  const tiers = [
+    { vol: '100 docs', ai: '$0.50', infra: '$5.00', total: '$5.50', unit: '$0.055' },
+    { vol: '1,000 docs', ai: '$5.00', infra: '$5.00', total: '$10.00', unit: '$0.010', highlight: true, note: '~42 COP' },
+    { vol: '10,000 docs', ai: '$50.00', infra: '$5.00', total: '$55.00', unit: '$0.0055', note: '~23 COP' }
+  ]
+
+  return (
+    <div className="flex-1 flex flex-col justify-between py-2">
+      <div>
+        <SlideTitle dark eyebrow="Viabilidad financiera · Unit Economics" title="Costos operativos mínimos: ~$0.01 USD por factura." />
+        <p className="text-[16px] text-slate-300 max-w-[950px] mt-2">
+          Telemetría empírica medida con Google Gemini API y Railway CLI. Sin costos ocultos de desarrollo ni licencias.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-12 gap-5 my-3 items-stretch">
+        {/* Columna 1: IA (Gemini 3.8 Flash) */}
+        <div className="col-span-4 rounded-md border border-white/15 bg-white/5 p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300 font-semibold">01 · Inteligencia Artificial</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/30">Gemini 3.8 Flash</span>
+            </div>
+            <div className="pt-1">
+              <div className="font-display font-extrabold text-[36px] leading-none text-white tracking-tight">~$0.005 <span className="text-[18px] font-normal text-slate-300">USD</span></div>
+              <span className="text-[13px] text-slate-300 block mt-1">Costo medio por factura procesada</span>
+            </div>
+            <div className="space-y-1.5 pt-2 text-[12px] font-mono text-slate-300 border-t border-white/10">
+              <div className="flex justify-between">
+                <span>PDF (2.139 tokens):</span>
+                <span className="text-white font-semibold">$0.0048 USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Foto/PNG (2.652 tokens):</span>
+                <span className="text-white font-semibold">$0.0051 USD</span>
+              </div>
+              <div className="flex justify-between text-cyan-300">
+                <span>Cobro duplicado (SHA-256):</span>
+                <span className="font-semibold">$0.0000 USD</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 bg-white/[0.03] p-2.5 rounded border border-white/10 leading-snug">
+            1 sola llamada multimodal por documento. $0.75 / 1M input · $3.75 / 1M output (incluye reasoning).
+          </div>
+        </div>
+
+        {/* Columna 2: Infraestructura (Railway) */}
+        <div className="col-span-4 rounded-md border border-white/15 bg-white/5 p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300 font-semibold">02 · Infraestructura Nube</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-400/10 text-emerald-300 border border-emerald-400/30">Railway CLI</span>
+            </div>
+            <div className="pt-1">
+              <div className="font-display font-extrabold text-[36px] leading-none text-white tracking-tight">$5.00 <span className="text-[18px] font-normal text-slate-300">USD/mes</span></div>
+              <span className="text-[13px] text-slate-300 block mt-1">Piso fijo plan Hobby (incluye $5 cómputo)</span>
+            </div>
+            <div className="space-y-1.5 pt-2 text-[12px] font-mono text-slate-300 border-t border-white/10">
+              <div className="flex justify-between">
+                <span>Medido 24h (20 facturas):</span>
+                <span className="text-white font-semibold">$0.039 USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Proyección mensual real:</span>
+                <span className="text-white font-semibold">~$1.20 USD</span>
+              </div>
+              <div className="flex justify-between text-emerald-300">
+                <span>Marginal por factura:</span>
+                <span className="font-semibold">&lt; $0.00003 USD</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 bg-white/[0.03] p-2.5 rounded border border-white/10 leading-snug">
+            3 servicios contenerizados: FastAPI (~67MB) + Postgres (~55MB) + React/Nginx (~39MB).
+          </div>
+        </div>
+
+        {/* Columna 3: Escala & Unit Economics */}
+        <div className="col-span-4 rounded-md border border-cyan-400/30 bg-cyan-950/20 p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300 font-semibold">03 · Unit Economics</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-teal/20 text-cyan-200 border border-brand-teal/40">Escala</span>
+            </div>
+            <div className="space-y-2 pt-1">
+              {tiers.map((t) => (
+                <div
+                  key={t.vol}
+                  className={`p-2.5 rounded border flex items-center justify-between text-[13px] ${
+                    t.highlight
+                      ? 'border-cyan-400/50 bg-cyan-500/10 text-white'
+                      : 'border-white/10 bg-white/[0.02] text-slate-300'
+                  }`}
+                >
+                  <div>
+                    <span className="font-semibold block">{t.vol}/mes</span>
+                    <span className="font-mono text-[11px] text-slate-400">Total: {t.total}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-[15px] text-cyan-300 block">{t.unit}</span>
+                    <span className="text-[11px] text-slate-400">{t.note || '/factura'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="text-[11px] text-cyan-200 bg-cyan-500/10 p-2.5 rounded border border-cyan-400/20 font-mono flex items-center gap-2">
+            <Icon name="trending_up" className="text-cyan-300 text-[16px] shrink-0" />
+            <span>+1.000 facturas adicionales suman solo ~$5.03 USD</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer con gobernanza de costos */}
+      <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[12px] text-slate-400 font-mono">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <Icon name="check_circle" className="text-cyan-300 text-[15px]" />
+            Telegram Webhook: $0.00 (API gratuita)
+          </span>
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <Icon name="check_circle" className="text-cyan-300 text-[15px]" />
+            Cero costos de desarrollo en cálculo
+          </span>
+        </div>
+        <span className="text-slate-400">
+          TRM ref: $4.200 COP/USD · Precios oficiales vigentes 2026
+        </span>
+      </div>
+    </div>
   )
 }
 
@@ -472,34 +665,40 @@ const SLIDES = [
   {
     id: 'portada',
     dark: true,
-    notes: '0:00 · Gancho. Presentar Blinka PayAgent: recibe facturas por Telegram, las lee con Gemini, normaliza divisas a USD con tasas de referencia (sin requerir API externa) y decide qué pagar, frenar o escalar.',
+    notes: '0:00–0:15 · Portada. Presentar Blinka PayAgent: gobernanza financiera y decisiones de pago autónomas sin riesgos ni pagos indebidos.',
     Component: SlideCover
   },
   {
     id: 'problema',
-    notes: '0:00–0:15 · Cientos de horas en facturas manuales, monedas locales y riesgo de pagos duplicados o a listas restrictivas.',
+    notes: '0:15–0:30 · El Problema Real. La ilusión del control: lo recurrente está vigilado; las facturas de servicios e imprevistos paralizan la tesorería.',
     Component: SlideProblem
   },
   {
     id: 'solucion',
-    notes: '0:15–0:35 · Pagar, Frenar o Escalar. Aclarar que el agente decide y registra; no mueve dinero real.',
+    notes: '0:30–0:50 · La Solución. Triaje de decisiones (Pagar, Frenar, Escalar) con explicabilidad de caja blanca. No mueve dinero real.',
     Component: SlideSolution
   },
   {
     id: 'arquitectura',
-    notes: '2:20–2:45 · Gemini solo lee la factura; las decisiones las toma un motor determinista de 4 capas. Telegram es un adaptador: se pueden sumar correo o WhatsApp sin tocar el Core.',
+    notes: '0:50–1:10 · Arquitectura Hexagonal en FastAPI. Gemini 3.8 Flash para OCR (1 llamada) y 4 capas deterministas en Python sin alucinaciones.',
     Component: SlideArchitecture
   },
   {
-    id: 'demo',
-    notes: '0:35–2:20 · Demo: caso 1 aprobado, caso 2 duplicado, caso 3 escalado. Luego abrir el dashboard en vivo, mostrar explicación + regla disparada y aprobar el escalamiento desde el Drawer (queda HUMAN_APPROVED con quién, cuándo y nota; la autonomía no cuenta decisiones humanas).',
-    Component: SlideAudit
+    id: 'costos',
+    dark: true,
+    notes: '1:10–1:35 · Costos Operativos por Factura. Inferencia a ~$0.005 USD de IA e infraestructura en Railway a ~$1.20 USD/mes (Plan Hobby $5). 1.000 facturas/mes por solo ~$10 USD (~42 COP/factura).',
+    Component: SlideCosts
   },
   {
     id: 'impacto',
     dark: true,
-    notes: '2:45–3:00 · Cierre: ~90% menos carga manual (estimado), normalización multidivisa instantánea, cero pagos fuera de reglas por diseño. URL y repositorio abierto.',
+    notes: '1:35–1:55 · Impacto de Negocio. ~90% menos carga manual, 0 pagos fuera de reglas, normalización automática de 5+ divisas.',
     Component: SlideImpact
+  },
+  {
+    id: 'demo',
+    notes: '1:55–2:45 · Demo en Vivo en Producción. Caso 1 Comcel vía Telegram AUTO_APPROVED; Caso 2 Documento ilegible SCALED_TO_HUMAN preventivo; Caso 3 Rechazo manual del CFO con nota HUMAN_REJECTED. Cierre 2:45–3:00.',
+    Component: SlideAudit
   }
 ]
 
@@ -611,12 +810,25 @@ export default function PitchDeck() {
     <>
       {/* Vista Interactiva (en pantalla, oculta al imprimir) */}
       <div className="fixed inset-0 bg-[#0B1C30] overflow-hidden select-none print:hidden" role="region" aria-label="Presentación Blinka PayAgent">
-        <div className="absolute shadow-2xl" style={stageStyle}>
-          <div key={slide.id} className="pitch-slide-enter w-full h-full">
-            <SlideFrame dark={slide.dark} index={index} total={total}>
-              <Current />
-            </SlideFrame>
-          </div>
+        <div className="absolute shadow-2xl slide-stage" style={stageStyle}>
+          {SLIDES.map((s, i) => {
+            const Comp = s.Component
+            let stateClass = 'slide-next'
+            if (i === index) stateClass = 'slide-active'
+            else if (i < index) stateClass = 'slide-prev'
+
+            return (
+              <div
+                key={s.id}
+                className={`slide-panel ${stateClass} w-full h-full`}
+                aria-hidden={i !== index}
+              >
+                <SlideFrame dark={s.dark} index={i} total={total}>
+                  <Comp />
+                </SlideFrame>
+              </div>
+            )
+          })}
         </div>
 
         {/* Barra de progreso */}
@@ -691,6 +903,17 @@ export default function PitchDeck() {
             >
               <Icon name="fullscreen" className="text-[20px]" />
             </button>
+            <a
+              id="pitch-stitch-showcase"
+              href="/stitch_showcase.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 text-brand-teal hover:text-cyan-300 transition-colors flex items-center gap-1"
+              aria-label="Ver animaciones de Stitch MCP"
+              title="Abrir Showcase de Animaciones Stitch"
+            >
+              <Icon name="auto_awesome" className="text-[20px]" />
+            </a>
             <a href="#" className="p-1 text-white hover:text-red-400 transition-colors" aria-label="Volver a la landing" title="Volver a la landing">
               <Icon name="close" className="text-[20px]" />
             </a>
@@ -698,7 +921,7 @@ export default function PitchDeck() {
         )}
       </div>
 
-      {/* Contenedor Exclusivo de Impresión / Guardar como PDF (todas las 6 slides) */}
+      {/* Contenedor Exclusivo de Impresión / Guardar como PDF (todas las slides) */}
       <div className="hidden print:block print-deck">
         {SLIDES.map((s, i) => {
           const SlideComp = s.Component
