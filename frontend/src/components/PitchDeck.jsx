@@ -903,17 +903,6 @@ export default function PitchDeck() {
             >
               <Icon name="fullscreen" className="text-[20px]" />
             </button>
-            <a
-              id="pitch-stitch-showcase"
-              href="/stitch_showcase.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1 text-brand-teal hover:text-cyan-300 transition-colors flex items-center gap-1"
-              aria-label="Ver animaciones de Stitch MCP"
-              title="Abrir Showcase de Animaciones Stitch"
-            >
-              <Icon name="auto_awesome" className="text-[20px]" />
-            </a>
             <a href="#" className="p-1 text-white hover:text-red-400 transition-colors" aria-label="Volver a la landing" title="Volver a la landing">
               <Icon name="close" className="text-[20px]" />
             </a>
