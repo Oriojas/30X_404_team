@@ -349,9 +349,11 @@ flowchart LR
 * **Tarifas Oficiales de Google Gemini API** *(Standard Paid Tier)*:
   * Entrada: **$0.75 USD** por millón de tokens ($0.00000075 / token).
   * Salida (incluye tokens de razonamiento): **$3.75 USD** por millón de tokens ($0.00000375 / token).
-* **Fórmula de Cálculo:**
-  $$\text{Costo IA (PDF)} = (1,090 \times \frac{0.75}{10^6}) + ((146 + 903) \times \frac{3.75}{10^6}) = \$0.00082 + \$0.00393 = \mathbf{\$0.00475\ USD}$$
-  $$\text{Costo Promedio Ponderado de IA} \approx \mathbf{\$0.0050\ USD\ /\ factura\ (\$5.00\ USD\ /\ 1.000\ facturas)}$$
+* **Fórmulas de Cálculo:**
+  * **Inferencia Factura PDF:**
+    $$\text{Costo IA (PDF)} = \left(1{,}090 \times \frac{0.75}{10^6}\right) + \left(1{,}049 \times \frac{3.75}{10^6}\right) = 0.00082 + 0.00393 = \mathbf{0.00475\text{ USD}}$$
+  * **Costo Promedio Ponderado de IA:**
+    $$\text{Costo Promedio IA} \approx \mathbf{0.0050\text{ USD / factura}}\quad (5.00\text{ USD por cada } 1{,}000\text{ facturas})$$
 
 ---
 
